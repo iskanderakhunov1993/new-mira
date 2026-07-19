@@ -1,0 +1,10 @@
+{
+  "name": "mira",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev": "npm run dev --workspace=@mira/web",
+    "build": "npm run build --workspace=@mira/web",
+    "lint": "npm run lint --workspace=@mira/web"
+  }
+}
