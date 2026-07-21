@@ -41,9 +41,36 @@ export const TEST_ACCOUNT = {
 };
 
 const PROFILE_KEY = "mira_demo_profile";
+const CURRENT_USER_EMAIL_KEY = "mira_current_user";
+
+function isBrowser(): boolean {
+  return typeof window !== "undefined";
+}
+
+function getCurrentUserEmail(): string | null {
+  if (!isBrowser()) return null;
+  return window.localStorage.getItem(CURRENT_USER_EMAIL_KEY);
+}
+
+function setCurrentUserEmail(email: string | null): void {
+  if (!isBrowser()) return;
+  if (email) {
+    window.localStorage.setItem(CURRENT_USER_EMAIL_KEY, email);
+  } else {
+    window.localStorage.removeItem(CURRENT_USER_EMAIL_KEY);
+  }
+}
+
+async function fetchJson(url: string, options?: RequestInit): Promise<unknown> {
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  return res.json();
+}
 
 export function getProfile(): MiraProfile | null {
-  if (typeof window === "undefined") return null;
+  if (!isBrowser()) return null;
   const value = window.localStorage.getItem(PROFILE_KEY);
   if (!value) return null;
 
@@ -57,16 +84,28 @@ export function getProfile(): MiraProfile | null {
 export function saveProfile(update: Partial<MiraProfile>): MiraProfile {
   const profile = { ...getProfile(), ...update } as MiraProfile;
   window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  void persistProfileToServer(profile);
   return profile;
 }
 
 export function clearHealthHistory(): MiraProfile {
-  return saveProfile({ entries: [], lastPeriod: undefined });
+  const profile = saveProfile({ entries: [], lastPeriod: undefined });
+  return profile;
 }
 
-export function deleteLocalProfile() {
-  if (typeof window === "undefined") return;
+export async function deleteLocalProfile(): Promise<void> {
+  const email = getCurrentUserEmail();
+  if (email) {
+    try {
+      await fetchJson(`/api/users?email=${encodeURIComponent(email)}`, { method: "DELETE" });
+    } catch {
+      // ignore remote delete failure in this prototype
+    }
+  }
+
+  if (!isBrowser()) return;
   window.localStorage.removeItem(PROFILE_KEY);
+  setCurrentUserEmail(null);
 }
 
 export function saveEntry(entry: CycleEntry): MiraProfile {
@@ -126,10 +165,84 @@ export function setPeriodForDate(date: string, period?: CycleEntry["period"]): M
   });
 }
 
+function getPersistableEmail(profile: Partial<MiraProfile> = {}): string | null {
+  return profile.email?.trim().toLowerCase() ?? getCurrentUserEmail();
+}
+
+async function persistProfileToServer(profile: MiraProfile): Promise<void> {
+  const email = getPersistableEmail(profile);
+  if (!email) return;
+
+  setCurrentUserEmail(email);
+
+  try {
+    await fetchJson("/api/users", {
+      method: "POST",
+      body: JSON.stringify({ ...profile, email }),
+    });
+  } catch {
+    // ignore server persistence failure in this prototype
+  }
+}
+
+export async function loginAccount(email: string, password: string): Promise<MiraProfile> {
+  const result = await fetchJson("/api/auth", {
+    method: "POST",
+    body: JSON.stringify({ action: "login", email, password }),
+  });
+
+  if (result.error) {
+    throw new Error(String(result.error));
+  }
+
+  if (!result.profile) {
+    throw new Error("Ошибка входа");
+  }
+
+  setCurrentUserEmail(email.toLowerCase());
+  return saveProfile(result.profile);
+}
+
+export async function registerAccount(email: string, password: string): Promise<MiraProfile> {
+  const result = await fetchJson("/api/auth", {
+    method: "POST",
+    body: JSON.stringify({ action: "register", email, password }),
+  });
+
+  if (result.error) {
+    throw new Error(String(result.error));
+  }
+
+  if (!result.profile) {
+    throw new Error("Ошибка регистрации");
+  }
+
+  setCurrentUserEmail(email.toLowerCase());
+  return saveProfile(result.profile);
+}
+
+export async function syncProfileFromServer(): Promise<MiraProfile | null> {
+  const email = getCurrentUserEmail();
+  if (!email) return null;
+
+  try {
+    const result = await fetchJson(`/api/users?email=${encodeURIComponent(email)}`);
+    if (result.error) return null;
+    if (result.email) {
+      const profile = saveProfile(result);
+      return profile;
+    }
+  } catch {
+    // ignore sync failure
+  }
+
+  return null;
+}
+
 export function createTestAccount(): MiraProfile {
   const entries: CycleEntry[] = [
     { date: "2026-04-28", period: "medium", pain: 5, painLocations: ["Низ живота"], painTypes: ["Тянущая"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Усталость", "Обезболивающее"], symptomIntensity: { "Спазмы": 2, "Усталость": 2 }, sleepHours: 6 },
-    { date: "2026-04-29", period: "heavy", pain: 6, painLocations: ["Низ живота"], painTypes: ["Спазмы"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Головная боль", "Обезболивающее"], symptomIntensity: { "Спазмы": 3, "Головная боль": 2 }, sleepHours: 6.5 },
+    { date: "2026-04-29", period: "heavy", periodClots: true, pain: 6, painLocations: ["Низ живота"], painTypes: ["Спазмы"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Головная боль"], symptomIntensity: { "Спазмы": 3, "Головная боль": 2 }, sleepHours: 6.5 },
     { date: "2026-05-22", pain: 3, mood: "low", symptoms: ["Головная боль", "Раздражительность"], sleepHours: 5.5 },
     { date: "2026-05-26", period: "medium", pain: 5, painLocations: ["Низ живота"], painTypes: ["Тянущая"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Усталость", "Обезболивающее"], symptomIntensity: { "Спазмы": 2, "Усталость": 2 }, sleepHours: 6 },
     { date: "2026-05-27", period: "heavy", periodClots: true, pain: 6, painLocations: ["Низ живота", "Поясница"], painTypes: ["Спазмы"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Головная боль"], symptomIntensity: { "Спазмы": 3, "Головная боль": 2 }, sleepHours: 6.5 },
@@ -141,7 +254,7 @@ export function createTestAccount(): MiraProfile {
     { date: "2026-06-17", pain: 2, mood: "low", symptoms: ["Вздутие", "Тяга к сладкому"], sleepHours: 6 },
     { date: "2026-06-19", pain: 3, mood: "low", symptoms: ["Головная боль", "Раздражительность"], sleepHours: 5.5 },
     { date: "2026-06-21", pain: 4, mood: "low", symptoms: ["Спазмы", "Усталость"], sleepHours: 6 },
-    { date: "2026-06-23", period: "medium", pain: 5, painLocations: ["Низ живота"], painTypes: ["Тянущая"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Усталость", "Обезболивающее"], symptomIntensity: { "Спазмы": 2, "Усталость": 2 }, sleepHours: 6 },
+    { date: "2026-06-23", period: "medium", pain: 5, painLocations: ["Низ живота"], painTypes: ["Тянущая"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Усталость"], symptomIntensity: { "Спазмы": 2, "Усталость": 2 }, sleepHours: 6 },
     { date: "2026-06-24", period: "heavy", periodNightChange: true, pain: 6, painLocations: ["Низ живота", "Поясница"], painTypes: ["Спазмы"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Головная боль"], symptomIntensity: { "Спазмы": 3, "Головная боль": 2 }, sleepHours: 6.5 },
     { date: "2026-06-25", period: "medium", pain: 4, mood: "calm", symptoms: ["Усталость"], sleepHours: 7 },
     { date: "2026-06-26", period: "light", pain: 2, mood: "calm", symptoms: ["Вздутие"], sleepHours: 7.5 },
@@ -163,6 +276,9 @@ export function createTestAccount(): MiraProfile {
     onboardingComplete: true,
     entries,
   };
+
+  setCurrentUserEmail(TEST_ACCOUNT.email);
   window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  void persistProfileToServer(profile);
   return profile;
 }
