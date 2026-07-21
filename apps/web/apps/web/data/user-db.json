@@ -1,0 +1,311 @@
+{
+  "users": [
+    {
+      "email": "demo@mira.local",
+      "name": "Анна",
+      "lastPeriod": "2026-07-18",
+      "cycleLength": 28,
+      "periodLength": 5,
+      "goal": "cycle",
+      "onboardingComplete": true,
+      "entries": [
+        {
+          "date": "2026-04-28",
+          "period": "medium",
+          "pain": 5,
+          "painLocations": [
+            "Низ живота"
+          ],
+          "painTypes": [
+            "Тянущая"
+          ],
+          "painImpact": "some",
+          "mood": "low",
+          "symptoms": [
+            "Спазмы",
+            "Усталость",
+            "Обезболивающее"
+          ],
+          "symptomIntensity": {
+            "Спазмы": 2,
+            "Усталость": 2
+          },
+          "sleepHours": 6
+        },
+        {
+          "date": "2026-04-29",
+          "period": "heavy",
+          "periodClots": true,
+          "pain": 6,
+          "painLocations": [
+            "Низ живота"
+          ],
+          "painTypes": [
+            "Спазмы"
+          ],
+          "painImpact": "some",
+          "mood": "low",
+          "symptoms": [
+            "Спазмы",
+            "Головная боль"
+          ],
+          "symptomIntensity": {
+            "Спазмы": 3,
+            "Головная боль": 2
+          },
+          "sleepHours": 6.5
+        },
+        {
+          "date": "2026-05-22",
+          "pain": 3,
+          "mood": "low",
+          "symptoms": [
+            "Головная боль",
+            "Раздражительность"
+          ],
+          "sleepHours": 5.5
+        },
+        {
+          "date": "2026-05-26",
+          "period": "medium",
+          "pain": 5,
+          "painLocations": [
+            "Низ живота"
+          ],
+          "painTypes": [
+            "Тянущая"
+          ],
+          "painImpact": "some",
+          "mood": "low",
+          "symptoms": [
+            "Спазмы",
+            "Усталость",
+            "Обезболивающее"
+          ],
+          "symptomIntensity": {
+            "Спазмы": 2,
+            "Усталость": 2
+          },
+          "sleepHours": 6
+        },
+        {
+          "date": "2026-05-27",
+          "period": "heavy",
+          "periodClots": true,
+          "pain": 6,
+          "painLocations": [
+            "Низ живота",
+            "Поясница"
+          ],
+          "painTypes": [
+            "Спазмы"
+          ],
+          "painImpact": "some",
+          "mood": "low",
+          "symptoms": [
+            "Спазмы",
+            "Головная боль"
+          ],
+          "symptomIntensity": {
+            "Спазмы": 3,
+            "Головная боль": 2
+          },
+          "sleepHours": 6.5
+        },
+        {
+          "date": "2026-05-28",
+          "period": "medium",
+          "pain": 3,
+          "mood": "calm",
+          "symptoms": [
+            "Усталость"
+          ],
+          "sleepHours": 7
+        },
+        {
+          "date": "2026-05-29",
+          "period": "light",
+          "pain": 2,
+          "mood": "calm",
+          "symptoms": [
+            "Вздутие"
+          ],
+          "sleepHours": 7.5
+        },
+        {
+          "date": "2026-05-30",
+          "period": "light",
+          "pain": 1,
+          "mood": "good",
+          "sleepHours": 8
+        },
+        {
+          "date": "2026-06-02",
+          "mood": "good",
+          "symptoms": [
+            "Высокая энергия"
+          ],
+          "sleepHours": 8
+        },
+        {
+          "date": "2026-06-08",
+          "mood": "good",
+          "symptoms": [
+            "Чувствительная грудь"
+          ],
+          "sleepHours": 7.5
+        },
+        {
+          "date": "2026-06-17",
+          "pain": 2,
+          "mood": "low",
+          "symptoms": [
+            "Вздутие",
+            "Тяга к сладкому"
+          ],
+          "sleepHours": 6
+        },
+        {
+          "date": "2026-06-19",
+          "pain": 3,
+          "mood": "low",
+          "symptoms": [
+            "Головная боль",
+            "Раздражительность"
+          ],
+          "sleepHours": 5.5
+        },
+        {
+          "date": "2026-06-21",
+          "pain": 4,
+          "mood": "low",
+          "symptoms": [
+            "Спазмы",
+            "Усталость"
+          ],
+          "sleepHours": 6
+        },
+        {
+          "date": "2026-06-23",
+          "period": "medium",
+          "pain": 5,
+          "painLocations": [
+            "Низ живота"
+          ],
+          "painTypes": [
+            "Тянущая"
+          ],
+          "painImpact": "some",
+          "mood": "low",
+          "symptoms": [
+            "Спазмы",
+            "Усталость"
+          ],
+          "symptomIntensity": {
+            "Спазмы": 2,
+            "Усталость": 2
+          },
+          "sleepHours": 6
+        },
+        {
+          "date": "2026-06-24",
+          "period": "heavy",
+          "periodNightChange": true,
+          "pain": 6,
+          "painLocations": [
+            "Низ живота",
+            "Поясница"
+          ],
+          "painTypes": [
+            "Спазмы"
+          ],
+          "painImpact": "some",
+          "mood": "low",
+          "symptoms": [
+            "Спазмы",
+            "Головная боль"
+          ],
+          "symptomIntensity": {
+            "Спазмы": 3,
+            "Головная боль": 2
+          },
+          "sleepHours": 6.5
+        },
+        {
+          "date": "2026-06-25",
+          "period": "medium",
+          "pain": 4,
+          "mood": "calm",
+          "symptoms": [
+            "Усталость"
+          ],
+          "sleepHours": 7
+        },
+        {
+          "date": "2026-06-26",
+          "period": "light",
+          "pain": 2,
+          "mood": "calm",
+          "symptoms": [
+            "Вздутие"
+          ],
+          "sleepHours": 7.5
+        },
+        {
+          "date": "2026-06-27",
+          "period": "light",
+          "pain": 1,
+          "mood": "good",
+          "sleepHours": 8
+        },
+        {
+          "date": "2026-07-01",
+          "mood": "good",
+          "symptoms": [
+            "Высокая энергия"
+          ],
+          "sleepHours": 8
+        },
+        {
+          "date": "2026-07-07",
+          "mood": "good",
+          "symptoms": [
+            "Чувствительная грудь"
+          ],
+          "sleepHours": 7.5
+        },
+        {
+          "date": "2026-07-14",
+          "pain": 2,
+          "mood": "calm",
+          "symptoms": [
+            "Вздутие"
+          ],
+          "sleepHours": 7
+        },
+        {
+          "date": "2026-07-17",
+          "pain": 3,
+          "mood": "low",
+          "symptoms": [
+            "Головная боль",
+            "Раздражительность"
+          ],
+          "sleepHours": 5.5
+        },
+        {
+          "date": "2026-07-18",
+          "period": "medium",
+          "pain": 4,
+          "mood": "low",
+          "symptoms": [
+            "Спазмы",
+            "Усталость",
+            "Обезболивающее"
+          ],
+          "sleepHours": 6
+        }
+      ]
+    }
+  ]
+}

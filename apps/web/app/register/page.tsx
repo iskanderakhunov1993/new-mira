@@ -5,15 +5,17 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { AuthShell } from "@/components/AuthShell";
-import { saveProfile } from "@/lib/demo-session";
+import { registerAccount } from "@/lib/demo-session";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
     const data = new FormData(event.currentTarget);
     const email = String(data.get("email") ?? "").trim();
     const password = String(data.get("password") ?? "");
@@ -23,8 +25,15 @@ export default function RegisterPage() {
     if (password.length < 8) return setError("Пароль должен содержать минимум 8 символов");
     if (!consent) return setError("Нужно принять условия и политику приватности");
 
-    saveProfile({ email, onboardingComplete: false });
-    router.push("/onboarding");
+    setIsSubmitting(true);
+    try {
+      await registerAccount(email, password);
+      router.push("/onboarding");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Ошибка регистрации");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -35,7 +44,7 @@ export default function RegisterPage() {
         <label><span>Пароль</span><div className="input-wrap"><LockKeyhole /><input name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Минимум 8 символов" required minLength={8} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
         <label className="consent"><input name="consent" type="checkbox" /><span className="custom-check"><Check /></span><span>Я принимаю <a href="#">условия использования</a> и <a href="#">политику приватности</a></span></label>
         {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="button auth-submit" type="submit">Создать аккаунт <ArrowRight /></button>
+        <button className="button auth-submit" type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>Создать аккаунт <ArrowRight /></button>
       </form>
       <p className="auth-switch">Уже есть аккаунт? <Link href="/login">Войти</Link></p>
       <p className="auth-demo-note"><LockKeyhole /> Демоверсия не сохраняет введённый пароль</p>
