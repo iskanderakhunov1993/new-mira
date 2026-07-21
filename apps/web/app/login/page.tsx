@@ -5,27 +5,37 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { AuthShell } from "@/components/AuthShell";
-import { createTestAccount, getProfile, saveProfile, TEST_ACCOUNT } from "@/lib/demo-session";
+import { createTestAccount, loginAccount, TEST_ACCOUNT } from "@/lib/demo-session";
 
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
     const data = new FormData(event.currentTarget);
     const email = String(data.get("email") ?? "").trim();
     const password = String(data.get("password") ?? "");
     if (!email.includes("@") || password.length < 8) return setError("Проверьте email и пароль");
+
     if (email.toLowerCase() === TEST_ACCOUNT.email && password === TEST_ACCOUNT.password) {
       createTestAccount();
       router.push("/today");
       return;
     }
-    const existing = getProfile();
-    saveProfile({ email });
-    router.push(existing?.onboardingComplete ? "/today" : "/onboarding");
+
+    setIsSubmitting(true);
+    try {
+      await loginAccount(email, password);
+      router.push("/today");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Ошибка входа");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -36,7 +46,7 @@ export default function LoginPage() {
         <label><span>Пароль</span><div className="input-wrap"><LockKeyhole /><input name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Ваш пароль" required /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
         <div className="auth-form-meta"><label className="remember"><input type="checkbox" /> Запомнить меня</label><a href="#">Забыли пароль?</a></div>
         {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="button auth-submit" type="submit">Войти <ArrowRight /></button>
+        <button className="button auth-submit" type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>Войти <ArrowRight /></button>
       </form>
       <p className="auth-switch">Нет аккаунта? <Link href="/register">Создать бесплатно</Link></p>
       <div className="demo-credentials"><strong>Тестовый аккаунт</strong><span>{TEST_ACCOUNT.email}</span><span>{TEST_ACCOUNT.password}</span></div>
