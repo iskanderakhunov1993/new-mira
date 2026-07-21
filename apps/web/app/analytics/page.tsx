@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, CircleAlert, Droplet, FileHeart, HeartPulse, Info, Sparkles, TrendingUp } from "lucide-react";
+import { BedDouble, CalendarDays, ChevronRight, Droplet, FileHeart, HeartPulse, Sparkles, TrendingUp } from "lucide-react";
 import { AppTabBar } from "@/components/AppTabBar";
 import { getProfile, MiraProfile } from "@/lib/demo-session";
-import { buildCycles, cycleStatus, CycleRecord, formatCycleDate } from "@/lib/cycle-analytics";
+import { buildCycles, CycleRecord, formatCycleDate } from "@/lib/cycle-analytics";
 
 const flowLabels = { spotting: "Мажущие", light: "Слабые", medium: "Средние", heavy: "Обильные" } as const;
 
@@ -18,7 +18,18 @@ function CycleChart({ cycles }: { cycles: CycleRecord[] }) {
   if (values.length < 2) return <div className="cycle-chart-empty">Добавьте ещё один завершённый цикл, чтобы увидеть динамику.</div>;
   const min = Math.min(...values) - 2; const max = Math.max(...values) + 2;
   const points = values.map((value, index) => ({ x: 35 + index * (330 / Math.max(1, values.length - 1)), y: 155 - ((value - min) / Math.max(1, max - min)) * 115, value }));
-  return <div className="cycle-chart"><svg viewBox="0 0 400 190" role="img" aria-label="Динамика длины циклов"><path className="chart-grid" d="M30 40H375M30 97H375M30 155H375" /><polyline points={points.map((point) => `${point.x},${point.y}`).join(" ")} /><g>{points.map((point, index) => <Link href={`/analytics/cycles/${cycles[index].start}`} key={cycles[index].start}><circle cx={point.x} cy={point.y} r="7" /><text x={point.x} y={point.y - 14} textAnchor="middle">{point.value}</text></Link>)}</g></svg><div className="chart-labels">{cycles.map((cycle) => <span key={cycle.start}>{formatCycleDate(cycle.start)}</span>)}</div></div>;
+  return <div className="cycle-chart"><svg viewBox="0 0 400 190" role="img" aria-label="Динамика длины циклов"><rect className="chart-range" x="30" y="55" width="345" height="85" rx="14" /><path className="chart-grid" d="M30 40H375M30 97H375M30 155H375" /><polyline points={points.map((point) => `${point.x},${point.y}`).join(" ")} /><g>{points.map((point, index) => <Link href={`/analytics/cycles/${cycles[index].start}`} key={cycles[index].start}><circle cx={point.x} cy={point.y} r="7" /><text x={point.x} y={point.y - 14} textAnchor="middle">{point.value}</text></Link>)}</g></svg><div className="chart-labels">{cycles.map((cycle) => <span key={cycle.start}>{formatCycleDate(cycle.start)}</span>)}</div></div>;
+}
+
+function average(values: number[]) { return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : undefined; }
+
+function CycleComparison({ cycles }: { cycles: CycleRecord[] }) {
+  const rows = [
+    { label: "Длина", values: cycles.map((cycle) => `${cycle.length} дн.`) },
+    { label: "Боль", values: cycles.map((cycle) => { const value = average(cycle.entries.map((entry) => entry.pain).filter((value): value is number => value !== undefined)); return value ? `${value.toFixed(1)} / 10` : "—"; }) },
+    { label: "Сон", values: cycles.map((cycle) => { const value = average(cycle.entries.map((entry) => entry.sleepHours).filter((value): value is number => value !== undefined)); return value ? `${value.toFixed(1)} ч` : "—"; }) },
+  ];
+  return <section className="cycle-comparison"><header><div><small>Последние записи</small><h2>Сравнение циклов</h2></div><span>{cycles.length} цикла</span></header><div className="cycle-comparison-table"><div className="cycle-comparison-head"><span /><>{cycles.map((cycle) => <b key={cycle.start}>{formatCycleDate(cycle.start)}</b>)}</></div>{rows.map((row) => <div className="cycle-comparison-row" key={row.label}><strong>{row.label}</strong>{row.values.map((value, index) => <span key={`${row.label}-${index}`}>{value}</span>)}</div>)}</div></section>;
 }
 
 function FlowHeatmap({ cycles }: { cycles: CycleRecord[] }) {
@@ -42,46 +53,29 @@ function PainMap({ cycles }: { cycles: CycleRecord[] }) {
   return <><div className="pain-map"><div className="pain-map-scale"><span>Цикл</span><b>1</b><b>7</b><b>14</b><b>21</b><b>28</b></div>{recent.map((cycle) => <div className="pain-map-row" key={cycle.start}><span>{formatCycleDate(cycle.start)}</span><div>{Array.from({ length: 28 }, (_, index) => { const day = index + 1; const entry = cycle.entries.find((item) => item.date === new Date(new Date(`${cycle.start}T12:00:00`).getTime() + index * 86400000).toISOString().slice(0, 10)); const value = entry?.pain ?? 0; return value ? <Link className={value >= 7 ? "high" : value >= 4 ? "medium" : "low"} href={`/diary?section=period&date=${entry!.date}`} title={`${day}-й день · боль ${value}/10`} aria-label={`${day}-й день цикла: боль ${value} из 10`} key={day} /> : <i key={day} />; })}</div></div>)}</div><div className="pain-map-facts"><p><small>Чаще выражена</small><strong>{typicalDay ? `${typicalDay}-й день цикла` : "Пока неизвестно"}</strong></p><p><small>Частое место</small><strong>{common(locations) ?? "Не указано"}</strong></p><p><small>Частый характер</small><strong>{common(types) ?? "Не указано"}</strong></p></div><small className="p1-basis">Основано на {painEntries.length} фактических отметках боли в {recent.length} циклах.</small></>;
 }
 
-function buildMainChange(cycles: CycleRecord[]) {
-  const completed = cycles.filter((cycle) => !cycle.current && cycle.entries.some((entry) => entry.period || entry.pain)).slice(-2);
-  if (completed.length < 2) return { title: "Пока нужен ещё один завершённый цикл", text: "После следующего цикла Mira сравнит длительность, интенсивность выделений и боль.", sample: `${completed.length} из 2 циклов`, tone: "neutral" };
-  const [older, latest] = completed;
-  const averagePain = (cycle: CycleRecord) => { const values = cycle.entries.map((entry) => entry.pain).filter((value): value is number => Boolean(value)); return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0; };
-  const painDelta = averagePain(latest) - averagePain(older);
-  const heavyDelta = latest.entries.filter((entry) => entry.period === "heavy").length - older.entries.filter((entry) => entry.period === "heavy").length;
-  const durationDelta = latest.periodDays - older.periodDays;
-  const sample = `Сравнены циклы ${formatCycleDate(older.start)} и ${formatCycleDate(latest.start)}`;
-  if (Math.abs(painDelta) >= 1.5) return { title: painDelta > 0 ? "В последнем цикле боль была сильнее" : "В последнем цикле боль была слабее", text: `Средняя отмеченная интенсивность изменилась на ${Math.abs(painDelta).toFixed(1)} пункта. Это наблюдение по вашим записям.`, sample, tone: painDelta > 0 ? "attention" : "good" };
-  if (heavyDelta !== 0) return { title: heavyDelta > 0 ? "Обильных дней стало больше" : "Обильных дней стало меньше", text: `Разница с предыдущим циклом — ${Math.abs(heavyDelta)} ${Math.abs(heavyDelta) === 1 ? "день" : "дня"}. Продолжайте отмечать интенсивность.`, sample, tone: heavyDelta > 0 ? "attention" : "good" };
-  if (Math.abs(durationDelta) >= 2) return { title: durationDelta > 0 ? "Месячные длились дольше" : "Месячные были короче", text: `Продолжительность отличается от предыдущего цикла на ${Math.abs(durationDelta)} дня.`, sample, tone: "neutral" };
-  return { title: "Заметных изменений между двумя циклами нет", text: "Длительность, боль и число обильных дней близки к предыдущему циклу.", sample, tone: "good" };
-}
-
 export default function AnalyticsPage() {
   const [profile, setProfile] = useState<MiraProfile | null>(null);
   useEffect(() => { const timer = window.setTimeout(() => setProfile(getProfile()), 0); return () => window.clearTimeout(timer); }, []);
   const cycles = useMemo(() => buildCycles(profile?.entries ?? []), [profile]);
   const completed = cycles.filter((cycle) => !cycle.current);
-  const previous = completed.at(-1);
   const current = cycles.find((cycle) => cycle.current);
-  const status = cycleStatus(previous, completed);
   const lengths = completed.map((cycle) => cycle.length);
-  const range = lengths.length ? `${Math.min(...lengths)}–${Math.max(...lengths)} дней` : "—";
   const periodAverage = completed.length ? Math.round(completed.reduce((sum, cycle) => sum + cycle.periodDays, 0) / completed.length) : profile?.periodLength ?? 5;
   const chartCycles = completed.slice(-6);
   const stable = lengths.length >= 3 && Math.max(...lengths) - Math.min(...lengths) <= 3;
   const recentTrackedCycles = cycles.slice(-3);
-  const mainChange = buildMainChange(cycles);
+  const comparisonCycles = completed.slice(-3).reverse();
+  const averagePain = average(comparisonCycles.flatMap((cycle) => cycle.entries.map((entry) => entry.pain).filter((value): value is number => value !== undefined)));
+  const averageSleep = average(comparisonCycles.flatMap((cycle) => cycle.entries.map((entry) => entry.sleepHours).filter((value): value is number => value !== undefined)));
 
-  return <main className="analytics-page cycles-product-page"><div className="analytics-shell"><header className="analytics-header"><div><small>Мой цикл</small><h1>Мои циклы</h1><p>История, динамика и понятные объяснения.</p></div><span><TrendingUp /></span></header><section className="data-trust-legend" aria-label="Типы данных"><span><i className="fact" />Факт — внесено вами</span><span><i className="forecast" />Прогноз — расчёт Mira</span><span><i className="observation" />Наблюдение — повторение в истории</span></section>
+  return <main className="analytics-page cycles-product-page"><div className="analytics-shell"><header className="analytics-header"><div><small>История и динамика</small><h1>Мой цикл</h1><p>Факты и сравнение последних циклов.</p></div><span><TrendingUp /></span></header>
     {!cycles.length ? <section className="analytics-empty"><Sparkles /><h2>Пока нет завершённых циклов</h2><p>Отметьте начало месячных в календаре — здесь появится история.</p><Link href="/calendar?action=period">Отметить месячные</Link></section> : <>
-      <section className="my-cycles-card"><article><div><small>Длина предыдущего цикла</small><strong>{previous ? `${previous.length} дней` : "Нет данных"}</strong></div><span className={status.tone}><Info />{status.label}</span></article><article><div><small>Средняя длительность месячных</small><strong>{periodAverage} дней</strong></div><span className="neutral"><Info />Основано на {completed.length} циклах</span></article><article><div><small>Колебания длины цикла</small><strong>{range}</strong></div><span className={stable ? "good" : "neutral"}>{lengths.length < 3 ? <Info /> : stable ? <Sparkles /> : <CircleAlert />}{lengths.length < 3 ? "Нужно минимум 3 цикла" : stable ? "Стабильная динамика" : "Есть заметные изменения"}</span></article></section>
-      <section className="mira-cycle-note"><span><Sparkles /></span><div><small>Mira объясняет</small><h2>{lengths.length < 3 ? "Пока рано оценивать регулярность" : stable ? "Последние циклы близки по длине" : "Длина циклов меняется"}</h2><p>{lengths.length < 3 ? "Добавьте ещё один завершённый цикл — после этого появится личный диапазон." : "Проверьте даты начала месячных. Если изменения повторяются и беспокоят вас, историю можно показать врачу."}</p></div></section>
-      <section className={`p1-main-change ${mainChange.tone}`}><span><Sparkles /></span><div><small>Mira заметила · наблюдение</small><h2>{mainChange.title}</h2><p>{mainChange.text}</p><footer>{mainChange.sample} · не является диагнозом</footer></div></section>
-      <section className="p1-analytics-card"><header><div><small>Фактические данные</small><h2>Интенсивность месячных</h2><p>Сравнение последних циклов по дням.</p></div><span><Droplet /></span></header><FlowHeatmap cycles={recentTrackedCycles} /></section>
-      <section className="p1-analytics-card"><header><div><small>Фактические данные</small><h2>Боль по дням цикла</h2><p>Чем насыщеннее точка, тем сильнее отмеченная боль.</p></div><span className="pain"><HeartPulse /></span></header><PainMap cycles={recentTrackedCycles} /></section>
-      <section className="cycle-history-preview"><header><h2>История циклов</h2><Link href="/analytics/cycles">Смотреть все <ChevronRight /></Link></header><div>{[...(current ? [current] : []), ...completed.slice(-2).reverse()].map((cycle) => <Link href={`/analytics/cycles/${cycle.start}`} key={cycle.start}><div><strong>{cycle.current ? `Текущий цикл: ${cycle.length} день` : `${cycle.length} дней`}</strong><span>{cycle.current ? `Начался ${formatCycleDate(cycle.start)}` : `${formatCycleDate(cycle.start)} — ${formatCycleDate(cycle.end)}`}</span><CycleDots cycle={cycle} /></div><ChevronRight /></Link>)}</div></section>
-      <section className="cycle-dynamics-card"><header><div><h2>Динамика цикла</h2><p>Только завершённые циклы</p></div><Info /></header><CycleChart cycles={chartCycles} /><footer><strong>{lengths.length < 3 ? "Пока мало данных для вывода" : stable ? "Циклы отличаются не более чем на 3 дня" : "На графике видны изменения длины"}</strong><span>Нажмите на точку, чтобы открыть цикл.</span></footer></section>
+      <section className="cycle-status-card"><Sparkles /><div><small>Ваш ритм</small><h2>{lengths.length < 3 ? "Пока собираем историю" : stable ? "Цикл близок к обычному" : "Длина циклов меняется"}</h2><p>{lengths.length < 3 ? `Есть ${completed.length} из 3 циклов для сравнения.` : `Последние ${completed.length} цикла ${stable ? "укладываются в ваш обычный диапазон" : "отличаются друг от друга"}.`}</p></div></section>
+      <section className="cycle-summary-grid"><article><CalendarDays /><strong>{comparisonCycles.length ? `${Math.round(average(comparisonCycles.map((cycle) => cycle.length)) ?? 0)} дней` : "—"}</strong><span>типичная длина</span></article><article><Droplet /><strong>{periodAverage} дней</strong><span>месячные</span></article><article><HeartPulse /><strong>{averagePain ? `${averagePain.toFixed(1)} / 10` : "—"}</strong><span>средняя боль</span></article><article><BedDouble /><strong>{averageSleep ? `${averageSleep.toFixed(1)} ч` : "—"}</strong><span>средний сон</span></article></section>
+      {comparisonCycles.length ? <CycleComparison cycles={comparisonCycles} /> : null}
+      <section className="cycle-dynamics-card redesigned"><header><div><small>Только завершённые циклы</small><h2>Динамика длины цикла</h2></div><span>Обычный диапазон</span></header><CycleChart cycles={chartCycles} /><footer><strong>{lengths.length < 3 ? "Пока мало данных для вывода" : stable ? "Циклы отличаются не более чем на 3 дня" : "На графике видны изменения длины"}</strong><span>Нажмите на точку, чтобы открыть цикл.</span></footer></section>
+      <section className="cycle-history-preview"><header><h2>История циклов</h2><Link href="/analytics/cycles">Все циклы <ChevronRight /></Link></header><div>{[...(current ? [current] : []), ...completed.slice(-2).reverse()].map((cycle) => <Link href={`/analytics/cycles/${cycle.start}`} key={cycle.start}><div><strong>{cycle.current ? `Текущий цикл: ${cycle.length} день` : `${cycle.length} дней`}</strong><span>{cycle.current ? `Начался ${formatCycleDate(cycle.start)}` : `${formatCycleDate(cycle.start)} — ${formatCycleDate(cycle.end)}`}</span><CycleDots cycle={cycle} /></div><ChevronRight /></Link>)}</div></section>
+      <details className="cycle-more-data"><summary>Подробные отметки <ChevronRight /></summary><section className="p1-analytics-card"><header><div><small>Фактические данные</small><h2>Интенсивность месячных</h2><p>Сравнение последних циклов по дням.</p></div><span><Droplet /></span></header><FlowHeatmap cycles={recentTrackedCycles} /></section><section className="p1-analytics-card"><header><div><small>Фактические данные</small><h2>Боль по дням цикла</h2><p>Чем насыщеннее точка, тем сильнее отмеченная боль.</p></div><span className="pain"><HeartPulse /></span></header><PainMap cycles={recentTrackedCycles} /></section></details>
       <Link className="doctor-report-entry" href="/analytics/report"><span><FileHeart /></span><div><small>Для консультации</small><h2>Отчёт для врача</h2><p>Соберите факты о циклах и симптомах. Вы сами решаете, что включить.</p></div><ChevronRight /></Link>
     </>}
   </div><AppTabBar active="analytics" /></main>;

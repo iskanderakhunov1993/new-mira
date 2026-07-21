@@ -128,7 +128,10 @@ export function setPeriodForDate(date: string, period?: CycleEntry["period"]): M
 
 export function createTestAccount(): MiraProfile {
   const entries: CycleEntry[] = [
-    { date: "2026-05-26", period: "medium", pain: 5, painLocations: ["Низ живота"], painTypes: ["Тянущая"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Усталость"], symptomIntensity: { "Спазмы": 2, "Усталость": 2 }, sleepHours: 6 },
+    { date: "2026-04-28", period: "medium", pain: 5, painLocations: ["Низ живота"], painTypes: ["Тянущая"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Усталость", "Обезболивающее"], symptomIntensity: { "Спазмы": 2, "Усталость": 2 }, sleepHours: 6 },
+    { date: "2026-04-29", period: "heavy", pain: 6, painLocations: ["Низ живота"], painTypes: ["Спазмы"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Головная боль", "Обезболивающее"], symptomIntensity: { "Спазмы": 3, "Головная боль": 2 }, sleepHours: 6.5 },
+    { date: "2026-05-22", pain: 3, mood: "low", symptoms: ["Головная боль", "Раздражительность"], sleepHours: 5.5 },
+    { date: "2026-05-26", period: "medium", pain: 5, painLocations: ["Низ живота"], painTypes: ["Тянущая"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Усталость", "Обезболивающее"], symptomIntensity: { "Спазмы": 2, "Усталость": 2 }, sleepHours: 6 },
     { date: "2026-05-27", period: "heavy", periodClots: true, pain: 6, painLocations: ["Низ живота", "Поясница"], painTypes: ["Спазмы"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Головная боль"], symptomIntensity: { "Спазмы": 3, "Головная боль": 2 }, sleepHours: 6.5 },
     { date: "2026-05-28", period: "medium", pain: 3, mood: "calm", symptoms: ["Усталость"], sleepHours: 7 },
     { date: "2026-05-29", period: "light", pain: 2, mood: "calm", symptoms: ["Вздутие"], sleepHours: 7.5 },
@@ -138,7 +141,7 @@ export function createTestAccount(): MiraProfile {
     { date: "2026-06-17", pain: 2, mood: "low", symptoms: ["Вздутие", "Тяга к сладкому"], sleepHours: 6 },
     { date: "2026-06-19", pain: 3, mood: "low", symptoms: ["Головная боль", "Раздражительность"], sleepHours: 5.5 },
     { date: "2026-06-21", pain: 4, mood: "low", symptoms: ["Спазмы", "Усталость"], sleepHours: 6 },
-    { date: "2026-06-23", period: "medium", pain: 5, painLocations: ["Низ живота"], painTypes: ["Тянущая"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Усталость"], symptomIntensity: { "Спазмы": 2, "Усталость": 2 }, sleepHours: 6 },
+    { date: "2026-06-23", period: "medium", pain: 5, painLocations: ["Низ живота"], painTypes: ["Тянущая"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Усталость", "Обезболивающее"], symptomIntensity: { "Спазмы": 2, "Усталость": 2 }, sleepHours: 6 },
     { date: "2026-06-24", period: "heavy", periodNightChange: true, pain: 6, painLocations: ["Низ живота", "Поясница"], painTypes: ["Спазмы"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Головная боль"], symptomIntensity: { "Спазмы": 3, "Головная боль": 2 }, sleepHours: 6.5 },
     { date: "2026-06-25", period: "medium", pain: 4, mood: "calm", symptoms: ["Усталость"], sleepHours: 7 },
     { date: "2026-06-26", period: "light", pain: 2, mood: "calm", symptoms: ["Вздутие"], sleepHours: 7.5 },
@@ -147,13 +150,13 @@ export function createTestAccount(): MiraProfile {
     { date: "2026-07-07", mood: "good", symptoms: ["Чувствительная грудь"], sleepHours: 7.5 },
     { date: "2026-07-14", pain: 2, mood: "calm", symptoms: ["Вздутие"], sleepHours: 7 },
     { date: "2026-07-17", pain: 3, mood: "low", symptoms: ["Головная боль", "Раздражительность"], sleepHours: 5.5 },
-    { date: "2026-07-18", pain: 4, mood: "low", symptoms: ["Спазмы", "Усталость"], sleepHours: 6 },
+    { date: "2026-07-18", period: "medium", pain: 4, mood: "low", symptoms: ["Спазмы", "Усталость", "Обезболивающее"], sleepHours: 6 },
   ];
 
   const profile: MiraProfile = {
     email: TEST_ACCOUNT.email,
     name: "Анна",
-    lastPeriod: "2026-06-23",
+    lastPeriod: "2026-07-18",
     cycleLength: 28,
     periodLength: 5,
     goal: "cycle",

@@ -697,6 +697,7 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .report-preview ul { list-style: none; margin: 16px 0 0; padding: 0; }
 .report-preview li { display: flex; justify-content: space-between; gap: 18px; padding: 9px 0; border-top: 1px solid #f2edef; font-size: 8px; }
 .report-preview li span { color: #8c8189; }
+.report-questions li { align-items: flex-start; }.report-questions li span { min-width: 42px; color: #a25480; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
 .report-finding, .report-empty { margin: 0; color: #6f656d; font-size: 9px; line-height: 1.55; }
 .report-tags { display: flex; flex-wrap: wrap; gap: 7px; }
 .report-tags span { padding: 7px 10px; border-radius: 999px; color: #75536b; background: #f5e6ef; font-size: 8px; }
@@ -903,6 +904,53 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .insights-track-link strong { font-size: 11px; }
 .insights-track-link small { color: rgba(255,255,255,.76); font-size: 7px; }
 .insights-track-link > svg { width: 20px; }
+.fingerprint-card, .current-comparison, .personalization-grid article { margin-top: 14px; padding: 22px; border-radius: 25px; background: white; }
+.fingerprint-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.fingerprint-card small, .current-comparison small, .personalization-grid small { color: #a25480; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+.fingerprint-card h2, .current-comparison h2 { margin: 6px 0 0; font-size: 19px; }
+.fingerprint-card header > span { padding: 6px 10px; border-radius: 999px; color: #915c7d; background: #f2e6ef; font-size: 8px; }
+.fingerprint-card > div { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 18px; }
+.fingerprint-card article { min-height: 70px; padding: 13px; border-radius: 16px; background: #faf7f9; }
+.fingerprint-card article small { display: block; color: #90858d; font-size: 7px; letter-spacing: 0; text-transform: none; }
+.fingerprint-card article strong { display: block; margin-top: 7px; color: #4c414a; font-size: 12px; }
+.current-comparison { display: flex; gap: 14px; }
+.current-comparison > svg { width: 22px; flex: none; color: #a85c87; }
+.current-comparison p, .personalization-grid p { margin: 5px 0 0; color: #837881; font-size: 9px; line-height: 1.5; }
+.current-comparison.attention { background: #fff8f5; }
+.personalization-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.personalization-grid article { margin-top: 14px; }
+.personalization-grid svg { width: 21px; margin-bottom: 10px; color: #a85c87; }
+.personalization-grid h2 { margin: 7px 0 0; font-size: 16px; }
+.pattern-card { display: block; color: inherit; }
+.pattern-card > header > svg { width: 19px; color: #aa6b90; }
+.symptom-detail-hero { padding: 27px; border-radius: 25px; color: white; background: linear-gradient(135deg, #cb6699, #9e668f); }
+.symptom-detail-hero > svg { width: 25px; }
+.symptom-detail-hero small { display: block; margin-top: 18px; color: rgba(255,255,255,.75); font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.symptom-detail-hero h2 { margin: 7px 0; font-size: 28px; }
+.symptom-detail-hero p { margin: 0; color: rgba(255,255,255,.88); font-size: 10px; line-height: 1.5; }
+.symptom-history { margin-top: 15px; padding: 22px; border-radius: 24px; background: white; }
+.symptom-history > header { display: flex; justify-content: space-between; align-items: center; }
+.symptom-history > header h2 { font-size: 17px; }
+.symptom-history > header svg { width: 18px; color: #9d8796; }
+.symptom-history article { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid #f0eaed; }
+.symptom-history article:last-child { border-bottom: 0; padding-bottom: 0; }
+.symptom-history article div { display: grid; gap: 4px; }
+.symptom-history article strong { font-size: 12px; }.symptom-history article span { color: #8a7f87; font-size: 8px; }.symptom-history article b { padding: 6px 8px; border-radius: 999px; color: #835f78; background: #f3e9ef; font-size: 7px; text-align: center; }
+.today-personalization { display: grid; gap: 10px; margin-top: 14px; }
+.today-pattern, .today-comparison { display: grid; grid-template-columns: 28px 1fr 18px; align-items: start; gap: 11px; padding: 16px; border-radius: 21px; color: inherit; background: white; box-shadow: 0 8px 26px rgba(91,63,85,.06); }
+.today-pattern > svg:first-child, .today-comparison > svg:first-child { width: 20px; color: #b45d8e; }
+.today-pattern > svg:last-child, .today-comparison > svg:last-child { width: 17px; margin-top: 12px; color: #b091a4; }
+.today-pattern small, .today-comparison small { color: #a25480; font-size: 7px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.today-pattern h2, .today-comparison h2 { margin: 4px 0; font-size: 14px; }
+.today-pattern p, .today-comparison p { margin: 0; color: #827780; font-size: 8px; line-height: 1.45; }
+.today-pattern.quiet { background: #faf7f9; }.today-comparison.attention { background: #fff8f5; }
+.cycle-status-card { display: flex; gap: 15px; margin-top: 14px; padding: 22px; border: 1px solid #f2dce7; border-radius: 27px; background: #fff8fb; }
+.cycle-status-card > svg { width: 25px; flex: none; color: #d85f98; }.cycle-status-card small { color: #aa5d84; font-size: 7px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }.cycle-status-card h2 { margin: 5px 0; font-size: 21px; }.cycle-status-card p { margin: 0; color: #81757e; font-size: 9px; line-height: 1.5; }
+.cycle-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-top: 14px; }.cycle-summary-grid article { min-height: 116px; display: grid; align-content: center; gap: 5px; padding: 14px; border-radius: 19px; background: white; }.cycle-summary-grid svg { width: 20px; margin-bottom: 2px; color: #b65d8f; }.cycle-summary-grid article:nth-child(2) svg, .cycle-summary-grid article:nth-child(4) svg { color: #8f77b5; }.cycle-summary-grid strong { font: 750 16px var(--font-onest); }.cycle-summary-grid span { color: #8b8189; font-size: 7px; line-height: 1.3; }
+.cycle-comparison { margin-top: 14px; padding: 22px; overflow: hidden; border-radius: 27px; background: white; }.cycle-comparison > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 17px; }.cycle-comparison small, .cycle-dynamics-card.redesigned header small { color: #a25480; font-size: 7px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }.cycle-comparison h2 { margin: 5px 0 0; font-size: 20px; }.cycle-comparison > header > span, .cycle-dynamics-card.redesigned header > span { padding: 6px 9px; border-radius: 999px; color: #915c7d; background: #f5e8ef; font-size: 7px; }.cycle-comparison-table { min-width: 440px; }.cycle-comparison-head, .cycle-comparison-row { display: grid; grid-template-columns: 1.1fr repeat(3, 1fr); align-items: center; }.cycle-comparison-head { padding: 0 0 9px; color: #8f838d; font-size: 8px; }.cycle-comparison-head b { font-weight: 700; text-align: center; }.cycle-comparison-row { min-height: 46px; border-top: 1px solid #f0eaed; }.cycle-comparison-row strong { font-size: 9px; }.cycle-comparison-row span { color: #716771; font-size: 8px; text-align: center; }
+.cycle-dynamics-card.redesigned { padding: 22px; }.cycle-dynamics-card.redesigned header { align-items: flex-start; }.cycle-dynamics-card.redesigned h2 { margin: 5px 0 0; }.cycle-chart .chart-range { fill: #fcebf2; }.cycle-more-data { margin-top: 14px; }.cycle-more-data > summary { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-radius: 21px; color: #635862; background: white; font: 750 11px var(--font-manrope); cursor: pointer; list-style: none; }.cycle-more-data > summary::-webkit-details-marker { display: none; }.cycle-more-data > summary svg { width: 18px; transition: transform .2s; }.cycle-more-data[open] > summary svg { transform: rotate(90deg); }.cycle-more-data .p1-analytics-card { margin-top: 12px; }
+.fingerprint-hero { background: #faf6fc; border: 1px solid #e5d9ef; }.fingerprint-hero > span { color: #8a6baa; background: #eee7f6; }.fingerprint-hero.has-patterns > span { color: #8a6baa; background: #eee7f6; }.pattern-card.redesigned header small { color: #a25480; font-size: 7px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }.pattern-card.redesigned header h3 { margin-top: 5px; }.pattern-mini-timeline { display: grid; gap: 9px; margin-top: 17px; padding: 13px; border-radius: 15px; background: #faf8f9; }.pattern-mini-timeline > div { display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 8px; }.pattern-mini-timeline span { color: #8d838a; font-size: 7px; }.pattern-mini-timeline i { height: 6px; display: block; border-radius: 999px; background: #df6d9d; }
+@media (max-width: 560px) { .cycle-summary-grid { grid-template-columns: repeat(2, 1fr); }.cycle-summary-grid article { min-height: 99px; }.cycle-comparison { overflow-x: auto; }.cycle-status-card { padding: 19px; }.cycle-dynamics-card.redesigned { padding: 19px 16px; } }
 
 /* Diary */
 .diary-page { min-height: 100svh; padding: 48px 20px 125px; background: #f7f4f3; }

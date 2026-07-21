@@ -6,8 +6,9 @@ import { ArrowLeft, CalendarRange, Check, FileHeart, LockKeyhole, Printer, Shiel
 import { AppTabBar } from "@/components/AppTabBar";
 import { getProfile, MiraProfile } from "@/lib/demo-session";
 import { buildCycles, daysBetween, formatCycleDate } from "@/lib/cycle-analytics";
+import { buildPersonalization } from "@/lib/personalization";
 
-type ReportKey = "periods" | "pain" | "symptoms" | "mood" | "sleep" | "notes" | "intimacy";
+type ReportKey = "periods" | "pain" | "symptoms" | "mood" | "sleep" | "patterns" | "comparison" | "questions" | "notes" | "intimacy";
 
 const REPORT_ITEMS: { id: ReportKey; label: string; hint: string; sensitive?: boolean }[] = [
   { id: "periods", label: "Даты и длительность циклов", hint: "Месячные и длина каждого цикла" },
@@ -15,11 +16,14 @@ const REPORT_ITEMS: { id: ReportKey; label: string; hint: string; sensitive?: bo
   { id: "symptoms", label: "Симптомы", hint: "Частота отмеченных состояний" },
   { id: "mood", label: "Настроение", hint: "Только общая сводка" },
   { id: "sleep", label: "Сон", hint: "Средняя продолжительность" },
+  { id: "patterns", label: "Личный ритм", hint: "Повторяющиеся симптомы и типичный цикл" },
+  { id: "comparison", label: "Текущий цикл", hint: "Сравнение с вашей обычной историей" },
+  { id: "questions", label: "Вопросы для врача", hint: "Сформированы только из фактических отметок" },
   { id: "notes", label: "Личные заметки", hint: "Может содержать чувствительную информацию", sensitive: true },
   { id: "intimacy", label: "Интимные данные", hint: "Сексуальная активность и желание", sensitive: true },
 ];
 
-const DEFAULT_SELECTION: Record<ReportKey, boolean> = { periods: true, pain: true, symptoms: true, mood: true, sleep: true, notes: false, intimacy: false };
+const DEFAULT_SELECTION: Record<ReportKey, boolean> = { periods: true, pain: true, symptoms: true, mood: true, sleep: true, patterns: true, comparison: true, questions: true, notes: false, intimacy: false };
 
 function formatFullDate(date: string) {
   return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" }).format(new Date(`${date}T12:00:00`));
@@ -52,7 +56,14 @@ export default function DoctorReportPage() {
     const painTypes = pain.flatMap((entry) => entry.painTypes ?? []).reduce<Record<string, number>>((sum, item) => { sum[item] = (sum[item] ?? 0) + 1; return sum; }, {});
     const strongImpactDays = pain.filter((entry) => entry.painImpact === "strong").length;
     const coverage = Math.min(100, Math.round((new Set(entries.map((entry) => entry.date)).size / Math.max(1, daysBetween(fromKey, lastDate) + 1)) * 100));
-    return { fromKey, lastDate, entries, cycles, completed, pain, sleep, symptoms, moods, flowCounts, periodSignals, painLocations, painTypes, strongImpactDays, coverage };
+    const personalization = buildPersonalization(allEntries);
+    const questions = [
+      strongImpactDays > 0 ? `Боль мешала обычным делам в ${strongImpactDays} дн.: стоит ли обсудить план облегчения?` : null,
+      pain.length >= 3 ? `Средняя отмеченная боль — ${(pain.reduce((sum, entry) => sum + (entry.pain ?? 0), 0) / pain.length).toFixed(1)} из 10: какие признаки важно отслеживать?` : null,
+      personalization.patterns[0] ? `Повторяется «${personalization.patterns[0].name}» в ${personalization.patterns[0].matchedCycles} из 3 циклов: требует ли это дополнительного наблюдения?` : null,
+      personalization.sleep.difference && personalization.sleep.difference >= 1 ? `В дни с усталостью сон короче на ${personalization.sleep.difference.toFixed(1)} ч: что стоит учитывать?` : null,
+    ].filter((question): question is string => Boolean(question));
+    return { fromKey, lastDate, entries, cycles, completed, pain, sleep, symptoms, moods, flowCounts, periodSignals, painLocations, painTypes, strongImpactDays, coverage, personalization, questions };
   }, [profile, months]);
 
   const toggle = (id: ReportKey) => setSelected((current) => ({ ...current, [id]: !current[id] }));
@@ -74,6 +85,9 @@ export default function DoctorReportPage() {
       {selected.symptoms && <article><h3>Часто отмеченные симптомы</h3>{report.symptoms.length ? <div className="report-tags">{report.symptoms.slice(0, 8).map(([name, count]) => { const levels = report.entries.map((entry) => entry.symptomIntensity?.[name]).filter((level): level is 1 | 2 | 3 => Boolean(level)); const average = levels.length ? (levels.reduce((sum, level) => sum + level, 0) / levels.length).toFixed(1) : null; return <span key={name}>{name} <b>{count}{average ? ` · ${average}/3` : ""}</b></span>; })}</div> : <p className="report-empty">Симптомы не отмечены.</p>}<small>Интенсивность показана только для дней, где пользователь её указал.</small></article>}
       {selected.mood && <article><h3>Настроение</h3>{Object.keys(report.moods).length ? <p className="report-finding">Хорошее — {report.moods.good ?? 0} дн., спокойное — {report.moods.calm ?? 0} дн., сниженное — {report.moods.low ?? 0} дн.</p> : <p className="report-empty">Отметок настроения нет.</p>}</article>}
       {selected.sleep && <article><h3>Сон</h3>{report.sleep.length ? <p className="report-finding">Средняя продолжительность — <strong>{(report.sleep.reduce((sum, entry) => sum + (entry.sleepHours ?? 0), 0) / report.sleep.length).toFixed(1)} ч.</strong> Основано на {report.sleep.length} отметках.</p> : <p className="report-empty">Отметок сна нет.</p>}</article>}
+      {selected.patterns && <article><h3>Личный ритм</h3>{report.personalization.completed.length >= 3 ? <><div className="report-metrics"><p><strong>{report.personalization.fingerprint[0].value}</strong><span>типичная длина</span></p><p><strong>{report.personalization.fingerprint[1].value}</strong><span>месячные</span></p><p><strong>{report.personalization.fingerprint[3].value}</strong><span>средняя боль</span></p></div>{report.personalization.patterns.length ? <p className="report-finding">Повторяющиеся симптомы: {report.personalization.patterns.slice(0, 3).map((pattern) => `${pattern.name} — ${pattern.matchedCycles} из 3 циклов, обычно ${pattern.typicalDay}-й день`).join("; ")}.</p> : <p className="report-empty">Повторяющихся симптомов в трёх циклах не отмечено.</p>}</> : <p className="report-empty">Для личного ритма нужны три завершённых цикла.</p>}<small>Это наблюдения по пользовательским записям, а не медицинские выводы.</small></article>}
+      {selected.comparison && <article><h3>Текущий цикл и обычный ритм</h3>{report.personalization.currentComparison ? <p className="report-finding">{report.personalization.currentComparison.text}</p> : <p className="report-empty">Пока недостаточно данных текущего цикла для сравнения.</p>}</article>}
+      {selected.questions && <article><h3>Вопросы для обсуждения с врачом</h3>{report.questions.length ? <ul className="report-questions">{report.questions.map((question) => <li key={question}><span>Вопрос</span><strong>{question}</strong></li>)}</ul> : <p className="report-empty">Пока недостаточно фактов, чтобы предложить вопросы. Продолжайте отмечать цикл и самочувствие.</p>}<small>Вопросы помогают начать разговор и не заменяют рекомендаций специалиста.</small></article>}
       {selected.notes && <article><h3>Личные заметки</h3>{report.entries.some((entry) => entry.notes) ? <ul>{report.entries.filter((entry) => entry.notes).map((entry) => <li key={entry.date}><span>{formatFullDate(entry.date)}</span><strong>{entry.notes}</strong></li>)}</ul> : <p className="report-empty">Личных заметок нет.</p>}</article>}
       {selected.intimacy && <article><h3>Интимные данные</h3><p className="report-empty">В выбранном периоде нет сохранённых интимных отметок, доступных для отчёта.</p></article>}
       <footer><ShieldCheck /><p><strong>Важно</strong><span>Отчёт помогает обсудить наблюдения со специалистом, но не заменяет консультацию и диагностику.</span></p></footer>
