@@ -1,50 +1,60 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
+  output       = "../apps/web/generated/prisma"
+  moduleFormat = "esm"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-model User {
-  id                 String   @id @default(cuid())
-  email              String   @unique
-  password           String
+model Profile {
+  id                 String    @id @db.Uuid
+  email              String    @unique
   name               String?
-  onboardingComplete Boolean  @default(false)
+  onboardingComplete Boolean   @default(false)
   goal               String?
-  lastPeriod         String?
-  cycleLength        Int      @default(28)
-  periodLength       Int      @default(5)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  lastPeriod         DateTime? @db.Date
+  cycleLength        Int       @default(28)
+  periodLength       Int       @default(5)
+  weightKg           Float?
+  cycleForecasts     Boolean   @default(true)
+  privateInsights    Boolean   @default(false)
+  consentAcceptedAt  DateTime?
+  consentVersion     String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
   entries            Entry[]
+
+  @@map("profiles")
 }
 
 model Entry {
-  id               String   @id @default(cuid())
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date             String   @index
-  period           String?
-  periodClots      Boolean?
-  periodNightChange Boolean?
-  pain             Int?
-  painLocations    String[]
-  painTypes        String[]
-  painImpact       String?
-  mood             String?
-  symptoms         String[]
-  symptomIntensity Json?
-  sleepHours       Float?
-  notes            String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  profileId          String   @db.Uuid
+  profile            Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  date               DateTime @db.Date
+  period             String?
+  periodClots        Boolean?
+  periodLeak         Boolean?
+  periodNightChange  Boolean?
+  periodHourlyChange Boolean?
+  pain               Int?
+  painLocations      String[]
+  painTypes          String[]
+  painImpact         String?
+  mood               String?
+  symptoms           String[]
+  symptomIntensity   Json?
+  sleepHours         Float?
+  waterMl            Int?
+  weightKg           Float?
+  basalTemperature   Float?
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  @@index([userId])
-  @@index([date])
+  @@unique([profileId, date])
+  @@index([profileId, date])
+  @@map("entries")
 }

@@ -45,7 +45,7 @@ export default function OnboardingPage() {
     <main className="onboarding-page">
       <header className="onboarding-header">
         <Link className="logo" href="/"><span className="logo-mark"><MoonStar /></span><span>Mira</span></Link>
-        <span className="onboarding-safe"><ShieldCheck /> Данные хранятся только на этом устройстве</span>
+        <span className="onboarding-safe"><ShieldCheck /> Данные защищены вашим аккаунтом</span>
       </header>
       <div className="onboarding-progress"><span style={{ width: `${step / 3 * 100}%` }} /></div>
       <section className="onboarding-card">

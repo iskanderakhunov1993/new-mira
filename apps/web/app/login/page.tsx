@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { AuthShell } from "@/components/AuthShell";
-import { createTestAccount, loginAccount, TEST_ACCOUNT } from "@/lib/demo-session";
+import { loginAccount } from "@/lib/demo-session";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,12 +20,6 @@ export default function LoginPage() {
     const email = String(data.get("email") ?? "").trim();
     const password = String(data.get("password") ?? "");
     if (!email.includes("@") || password.length < 8) return setError("Проверьте email и пароль");
-
-    if (email.toLowerCase() === TEST_ACCOUNT.email && password === TEST_ACCOUNT.password) {
-      createTestAccount();
-      router.push("/today");
-      return;
-    }
 
     setIsSubmitting(true);
     try {
@@ -49,8 +43,7 @@ export default function LoginPage() {
         <button className="button auth-submit" type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>Войти <ArrowRight /></button>
       </form>
       <p className="auth-switch">Нет аккаунта? <Link href="/register">Создать бесплатно</Link></p>
-      <div className="demo-credentials"><strong>Тестовый аккаунт</strong><span>{TEST_ACCOUNT.email}</span><span>{TEST_ACCOUNT.password}</span></div>
-      <p className="auth-demo-note"><LockKeyhole /> Демоверсия не сохраняет введённый пароль</p>
+      <p className="auth-demo-note"><LockKeyhole /> Вход защищён Supabase Auth</p>
     </AuthShell>
   );
 }

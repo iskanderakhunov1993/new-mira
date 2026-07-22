@@ -16,6 +16,34 @@ npm run dev
 
 Приложение откроется по адресу [http://localhost:3000](http://localhost:3000).
 
+## Supabase и база данных
+
+Mira использует Supabase Auth для входа, Supabase PostgreSQL для постоянного хранения и Prisma для серверных запросов. Браузер не обращается к таблицам здоровья напрямую.
+
+1. Создайте проект в Supabase.
+2. В SQL Editor создайте отдельного пользователя Prisma по [официальной инструкции Supabase](https://supabase.com/docs/guides/database/prisma).
+3. Скопируйте `.env.example` в `apps/web/.env.local` и заполните:
+   - `NEXT_PUBLIC_SUPABASE_URL`;
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`;
+   - `SUPABASE_SERVICE_ROLE_KEY`;
+   - `DATABASE_URL` — transaction pooler, порт `6543`;
+   - `DIRECT_URL` — session pooler, порт `5432`.
+4. Никогда не добавляйте `.env.local` и service role key в Git.
+5. Примените миграцию:
+
+```bash
+npm run db:deploy
+```
+
+6. В Supabase Auth добавьте разрешённые redirect URL:
+
+```text
+http://localhost:3000/auth/callback
+https://mira-cycle.vercel.app/auth/callback
+```
+
+Для Vercel добавьте те же пять переменных в Settings → Environment Variables. Миграции запускаются отдельно перед production-деплоем.
+
 Основные команды:
 
 ```bash
@@ -143,4 +171,3 @@ fix/* ─────┘
 5. `deploy` всегда соответствует текущему production.
 6. После слияния временная ветка удаляется.
 7. Основная локальная копия проекта: `/Users/iskander/Documents/мира`.
-

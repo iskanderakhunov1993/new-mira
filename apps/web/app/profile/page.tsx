@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check, ChevronRight, Database, Download, Eye, FileHeart, LogOut, ShieldCheck, Trash2, UserRound } from "lucide-react";
-import { clearHealthHistory, deleteLocalProfile, getProfile, MiraProfile, saveProfile } from "@/lib/demo-session";
+import { clearHealthHistory, deleteLocalProfile, getProfile, MiraProfile, saveProfile, signOutAccount } from "@/lib/demo-session";
 
 type ConfirmAction = "history" | "account" | null;
 
@@ -43,9 +43,14 @@ export default function ProfilePage() {
     anchor.href = url; anchor.download = `mira-data-${new Date().toISOString().slice(0, 10)}.json`; anchor.click(); URL.revokeObjectURL(url);
   }
 
-  function confirmAction() {
+  async function confirmAction() {
     if (confirming === "history") { const updated = clearHealthHistory(); setProfile(updated); setConfirming(null); }
-    if (confirming === "account") { deleteLocalProfile(); router.replace("/"); }
+    if (confirming === "account") { await deleteLocalProfile(); router.replace("/"); }
+  }
+
+  async function logout() {
+    await signOutAccount();
+    router.replace("/login");
   }
 
   const entryCount = profile?.entries?.length ?? 0;
@@ -58,9 +63,9 @@ export default function ProfilePage() {
 
     <section className="profile-section profile-list"><header><div><h2>Настройки Mira</h2><p>Выберите, как приложение использует ваши отметки.</p></div></header><button onClick={() => updatePreference("cycleForecasts")}><i><Eye /></i><span><strong>Прогнозы цикла</strong><small>Показывать предполагаемые даты</small></span><b className={(profile?.preferences?.cycleForecasts ?? true) ? "on" : ""}><em /></b></button><button onClick={() => updatePreference("privateInsights")}><i><ShieldCheck /></i><span><strong>Чувствительные данные в подсказках</strong><small>Учитывать интимные отметки в личных наблюдениях</small></span><b className={(profile?.preferences?.privateInsights ?? false) ? "on" : ""}><em /></b></button></section>
 
-    <section className="profile-section profile-list"><header><div><h2>Данные и приватность</h2><p>Пока что данные хранятся в браузере, но теперь они также сохраняются на сервере для этого аккаунта.</p></div></header><Link href="/analytics/report"><i><FileHeart /></i><span><strong>Отчёт для врача</strong><small>Настроить состав и сохранить PDF</small></span><ChevronRight /></Link><button onClick={exportData}><i><Download /></i><span><strong>Скачать все данные</strong><small>Файл JSON · {entryCount} отметок</small></span><ChevronRight /></button><div className="profile-storage"><Database /><p><strong>Локальное хранение + сервер</strong><span>Данные сохраняются в браузере и в виде профиля на сервере.</span></p></div></section>
+    <section className="profile-section profile-list"><header><div><h2>Данные и приватность</h2><p>Основная копия данных хранится в защищённой базе аккаунта, а браузер используется как локальный кэш.</p></div></header><Link href="/analytics/report"><i><FileHeart /></i><span><strong>Отчёт для врача</strong><small>Настроить состав и сохранить PDF</small></span><ChevronRight /></Link><button onClick={exportData}><i><Download /></i><span><strong>Скачать все данные</strong><small>Файл JSON · {entryCount} отметок</small></span><ChevronRight /></button><div className="profile-storage"><Database /><p><strong>Supabase PostgreSQL</strong><span>Доступ к данным ограничен серверной сессией вашего аккаунта.</span></p></div></section>
 
-    <section className="profile-section profile-list profile-danger"><header><div><h2>Управление аккаунтом</h2></div></header><button onClick={() => setConfirming("history")}><i><Trash2 /></i><span><strong>Очистить историю здоровья</strong><small>Удалить циклы, симптомы и заметки</small></span><ChevronRight /></button><button onClick={() => router.push("/login")}><i><LogOut /></i><span><strong>Выйти</strong><small>Данные останутся на устройстве</small></span><ChevronRight /></button><button onClick={() => setConfirming("account")}><i><Trash2 /></i><span><strong>Удалить локальный профиль</strong><small>Необратимо удалить профиль и все данные</small></span><ChevronRight /></button></section>
+    <section className="profile-section profile-list profile-danger"><header><div><h2>Управление аккаунтом</h2></div></header><button onClick={() => setConfirming("history")}><i><Trash2 /></i><span><strong>Очистить историю здоровья</strong><small>Удалить циклы, симптомы и заметки</small></span><ChevronRight /></button><button onClick={logout}><i><LogOut /></i><span><strong>Выйти</strong><small>Локальная сессия будет завершена</small></span><ChevronRight /></button><button onClick={() => setConfirming("account")}><i><Trash2 /></i><span><strong>Удалить аккаунт</strong><small>Необратимо удалить профиль и все данные</small></span><ChevronRight /></button></section>
 
     <p className="profile-version">Mira · прототип PWA · данные не являются медицинским заключением</p>
   </div>

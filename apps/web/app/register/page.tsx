@@ -11,11 +11,13 @@ export default function RegisterPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setSuccess("");
     const data = new FormData(event.currentTarget);
     const email = String(data.get("email") ?? "").trim();
     const password = String(data.get("password") ?? "");
@@ -27,8 +29,12 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      await registerAccount(email, password);
-      router.push("/onboarding");
+      const result = await registerAccount(email, password);
+      if (result.requiresEmailConfirmation) {
+        setSuccess("Проверьте почту и подтвердите адрес. После подтверждения вы вернётесь в Mira.");
+      } else {
+        router.push("/onboarding");
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : "Ошибка регистрации");
     } finally {
@@ -44,10 +50,11 @@ export default function RegisterPage() {
         <label><span>Пароль</span><div className="input-wrap"><LockKeyhole /><input name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Минимум 8 символов" required minLength={8} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
         <label className="consent"><input name="consent" type="checkbox" /><span className="custom-check"><Check /></span><span>Я принимаю <a href="#">условия использования</a> и <a href="#">политику приватности</a></span></label>
         {error && <p className="form-error" role="alert">{error}</p>}
+        {success && <p role="status">{success}</p>}
         <button className="button auth-submit" type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>Создать аккаунт <ArrowRight /></button>
       </form>
       <p className="auth-switch">Уже есть аккаунт? <Link href="/login">Войти</Link></p>
-      <p className="auth-demo-note"><LockKeyhole /> Демоверсия не сохраняет введённый пароль</p>
+      <p className="auth-demo-note"><LockKeyhole /> Пароль обрабатывается Supabase Auth и не хранится в Mira</p>
     </AuthShell>
   );
 }

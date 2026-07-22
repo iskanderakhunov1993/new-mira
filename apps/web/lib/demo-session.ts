@@ -1,3 +1,5 @@
+import { createClient } from "@/lib/supabase/client";
+
 export type MiraProfile = {
   email: string;
   name?: string;
@@ -35,11 +37,6 @@ export type CycleEntry = {
   notes?: string;
 };
 
-export const TEST_ACCOUNT = {
-  email: "demo@mira.local",
-  password: "mira-demo-2026",
-};
-
 const PROFILE_KEY = "mira_demo_profile";
 const CURRENT_USER_EMAIL_KEY = "mira_current_user";
 
@@ -61,12 +58,16 @@ function setCurrentUserEmail(email: string | null): void {
   }
 }
 
-async function fetchJson(url: string, options?: RequestInit): Promise<unknown> {
+type ApiResult = Record<string, unknown>;
+
+async function fetchJson(url: string, options?: RequestInit): Promise<ApiResult> {
   const res = await fetch(url, {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
-  return res.json();
+  const result = await res.json() as ApiResult;
+  if (!res.ok && !result.error) result.error = "Request failed";
+  return result;
 }
 
 export function getProfile(): MiraProfile | null {
@@ -97,7 +98,7 @@ export async function deleteLocalProfile(): Promise<void> {
   const email = getCurrentUserEmail();
   if (email) {
     try {
-      await fetchJson(`/api/users?email=${encodeURIComponent(email)}`, { method: "DELETE" });
+      await fetchJson("/api/users", { method: "DELETE" });
     } catch {
       // ignore remote delete failure in this prototype
     }
@@ -186,39 +187,31 @@ async function persistProfileToServer(profile: MiraProfile): Promise<void> {
 }
 
 export async function loginAccount(email: string, password: string): Promise<MiraProfile> {
-  const result = await fetchJson("/api/auth", {
-    method: "POST",
-    body: JSON.stringify({ action: "login", email, password }),
-  });
-
-  if (result.error) {
-    throw new Error(String(result.error));
-  }
-
-  if (!result.profile) {
-    throw new Error("Ошибка входа");
-  }
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw new Error("Неверный email или пароль");
+  if (!data.user?.email) throw new Error("Ошибка входа");
 
   setCurrentUserEmail(email.toLowerCase());
-  return saveProfile(result.profile);
+  const remote = await syncProfileFromServer();
+  return remote ?? saveProfile({ email: data.user.email });
 }
 
-export async function registerAccount(email: string, password: string): Promise<MiraProfile> {
-  const result = await fetchJson("/api/auth", {
-    method: "POST",
-    body: JSON.stringify({ action: "register", email, password }),
+export async function registerAccount(email: string, password: string): Promise<{ profile: MiraProfile; requiresEmailConfirmation: boolean }> {
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+    },
   });
-
-  if (result.error) {
-    throw new Error(String(result.error));
-  }
-
-  if (!result.profile) {
-    throw new Error("Ошибка регистрации");
-  }
+  if (error) throw new Error(error.message);
+  if (!data.user) throw new Error("Ошибка регистрации");
 
   setCurrentUserEmail(email.toLowerCase());
-  return saveProfile(result.profile);
+  const profile = saveProfile({ email: email.toLowerCase(), onboardingComplete: false, entries: [] });
+  return { profile, requiresEmailConfirmation: !data.session };
 }
 
 export async function syncProfileFromServer(): Promise<MiraProfile | null> {
@@ -226,10 +219,10 @@ export async function syncProfileFromServer(): Promise<MiraProfile | null> {
   if (!email) return null;
 
   try {
-    const result = await fetchJson(`/api/users?email=${encodeURIComponent(email)}`);
+    const result = await fetchJson("/api/users");
     if (result.error) return null;
     if (result.email) {
-      const profile = saveProfile(result);
+      const profile = saveProfile(result as MiraProfile);
       return profile;
     }
   } catch {
@@ -239,46 +232,10 @@ export async function syncProfileFromServer(): Promise<MiraProfile | null> {
   return null;
 }
 
-export function createTestAccount(): MiraProfile {
-  const entries: CycleEntry[] = [
-    { date: "2026-04-28", period: "medium", pain: 5, painLocations: ["Низ живота"], painTypes: ["Тянущая"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Усталость", "Обезболивающее"], symptomIntensity: { "Спазмы": 2, "Усталость": 2 }, sleepHours: 6 },
-    { date: "2026-04-29", period: "heavy", periodClots: true, pain: 6, painLocations: ["Низ живота"], painTypes: ["Спазмы"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Головная боль"], symptomIntensity: { "Спазмы": 3, "Головная боль": 2 }, sleepHours: 6.5 },
-    { date: "2026-05-22", pain: 3, mood: "low", symptoms: ["Головная боль", "Раздражительность"], sleepHours: 5.5 },
-    { date: "2026-05-26", period: "medium", pain: 5, painLocations: ["Низ живота"], painTypes: ["Тянущая"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Усталость", "Обезболивающее"], symptomIntensity: { "Спазмы": 2, "Усталость": 2 }, sleepHours: 6 },
-    { date: "2026-05-27", period: "heavy", periodClots: true, pain: 6, painLocations: ["Низ живота", "Поясница"], painTypes: ["Спазмы"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Головная боль"], symptomIntensity: { "Спазмы": 3, "Головная боль": 2 }, sleepHours: 6.5 },
-    { date: "2026-05-28", period: "medium", pain: 3, mood: "calm", symptoms: ["Усталость"], sleepHours: 7 },
-    { date: "2026-05-29", period: "light", pain: 2, mood: "calm", symptoms: ["Вздутие"], sleepHours: 7.5 },
-    { date: "2026-05-30", period: "light", pain: 1, mood: "good", sleepHours: 8 },
-    { date: "2026-06-02", mood: "good", symptoms: ["Высокая энергия"], sleepHours: 8 },
-    { date: "2026-06-08", mood: "good", symptoms: ["Чувствительная грудь"], sleepHours: 7.5 },
-    { date: "2026-06-17", pain: 2, mood: "low", symptoms: ["Вздутие", "Тяга к сладкому"], sleepHours: 6 },
-    { date: "2026-06-19", pain: 3, mood: "low", symptoms: ["Головная боль", "Раздражительность"], sleepHours: 5.5 },
-    { date: "2026-06-21", pain: 4, mood: "low", symptoms: ["Спазмы", "Усталость"], sleepHours: 6 },
-    { date: "2026-06-23", period: "medium", pain: 5, painLocations: ["Низ живота"], painTypes: ["Тянущая"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Усталость"], symptomIntensity: { "Спазмы": 2, "Усталость": 2 }, sleepHours: 6 },
-    { date: "2026-06-24", period: "heavy", periodNightChange: true, pain: 6, painLocations: ["Низ живота", "Поясница"], painTypes: ["Спазмы"], painImpact: "some", mood: "low", symptoms: ["Спазмы", "Головная боль"], symptomIntensity: { "Спазмы": 3, "Головная боль": 2 }, sleepHours: 6.5 },
-    { date: "2026-06-25", period: "medium", pain: 4, mood: "calm", symptoms: ["Усталость"], sleepHours: 7 },
-    { date: "2026-06-26", period: "light", pain: 2, mood: "calm", symptoms: ["Вздутие"], sleepHours: 7.5 },
-    { date: "2026-06-27", period: "light", pain: 1, mood: "good", sleepHours: 8 },
-    { date: "2026-07-01", mood: "good", symptoms: ["Высокая энергия"], sleepHours: 8 },
-    { date: "2026-07-07", mood: "good", symptoms: ["Чувствительная грудь"], sleepHours: 7.5 },
-    { date: "2026-07-14", pain: 2, mood: "calm", symptoms: ["Вздутие"], sleepHours: 7 },
-    { date: "2026-07-17", pain: 3, mood: "low", symptoms: ["Головная боль", "Раздражительность"], sleepHours: 5.5 },
-    { date: "2026-07-18", period: "medium", pain: 4, mood: "low", symptoms: ["Спазмы", "Усталость", "Обезболивающее"], sleepHours: 6 },
-  ];
-
-  const profile: MiraProfile = {
-    email: TEST_ACCOUNT.email,
-    name: "Анна",
-    lastPeriod: "2026-07-18",
-    cycleLength: 28,
-    periodLength: 5,
-    goal: "cycle",
-    onboardingComplete: true,
-    entries,
-  };
-
-  setCurrentUserEmail(TEST_ACCOUNT.email);
-  window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-  void persistProfileToServer(profile);
-  return profile;
+export async function signOutAccount(): Promise<void> {
+  const supabase = createClient();
+  await supabase.auth.signOut();
+  if (!isBrowser()) return;
+  window.localStorage.removeItem(PROFILE_KEY);
+  setCurrentUserEmail(null);
 }

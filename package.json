@@ -1,10 +1,25 @@
 {
   "name": "mira",
   "private": true,
-  "workspaces": ["apps/*"],
+  "engines": {
+    "node": "24.x"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace=@mira/web",
     "build": "npm run build --workspace=@mira/web",
-    "lint": "npm run lint --workspace=@mira/web"
+    "lint": "npm run lint --workspace=@mira/web",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0",
+    "prisma": "^7.9.0",
+    "tsx": "^4.23.1"
   }
 }
