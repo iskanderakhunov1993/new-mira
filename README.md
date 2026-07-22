@@ -54,10 +54,9 @@ npm run build    # production-сборка
 
 ## Простой Git-flow
 
-В проекте используются только две постоянные ветки:
+В проекте используется одна постоянная ветка:
 
-- `main` — проверенная версия для совместной разработки;
-- `deploy` — версия, которая публикуется в production через Vercel.
+- `main` — проверенная production-версия, автоматически публикуемая через Vercel.
 
 Для отдельной задачи создаётся одна временная ветка:
 
@@ -122,21 +121,15 @@ npm run lint
 npm run build
 ```
 
-Проверьте Preview Deployment от Vercel, затем выполните squash merge и удалите временную ветку.
+Дождитесь успешных проверок GitHub Actions и Preview Deployment от Vercel, затем выполните merge и удалите временную ветку.
 
 ### 4. Production-деплой
 
-Когда версия в `main` готова к публикации, создайте Pull Request:
-
-```text
-main → deploy
-```
-
-После проверки и слияния Vercel автоматически публикует ветку `deploy` в production:
+После проверки и слияния Pull Request в `main` Vercel автоматически публикует новую production-версию:
 
 [https://mira-cycle.vercel.app](https://mira-cycle.vercel.app)
 
-Не коммитьте напрямую в `deploy` и не делайте production-деплой из временной ветки.
+Не коммитьте напрямую в `main` и не делайте production-деплой из временной ветки.
 
 ### 5. Срочное исправление production
 
@@ -146,19 +139,13 @@ git pull origin main
 git switch -c fix/short-description
 ```
 
-Дальше используется обычный путь:
-
-```text
-fix/* → main → deploy
-```
-
-Так исправление остаётся и в рабочей версии, и в production.
+Дальше создайте Pull Request `fix/* → main`. После проверок и слияния исправление автоматически попадёт в production.
 
 ## Схема процесса
 
 ```text
 feature/* ─┐
-           ├─ Pull Request → main → проверка → Pull Request → deploy → Vercel Production
+           ├─ Pull Request → CI + Preview → main → Vercel Production
 fix/* ─────┘
 ```
 
@@ -166,8 +153,8 @@ fix/* ─────┘
 
 1. Одна задача — одна временная ветка.
 2. Новая работа всегда начинается от свежей `main`.
-3. В `main` и `deploy` изменения попадают только через Pull Request.
+3. В `main` изменения попадают только через Pull Request.
 4. `main` должна собираться и проходить lint.
-5. `deploy` всегда соответствует текущему production.
+5. `main` всегда соответствует текущему production.
 6. После слияния временная ветка удаляется.
 7. Основная локальная копия проекта: `/Users/iskander/Documents/мира`.
