@@ -1,0 +1,86 @@
+import { dateDiff } from "./cycle-engine";
+import type { CyclePhase } from "./cycle-phase";
+import type { DomainEntry } from "./types";
+
+export type TodayCard = {
+  kind: "cycle" | "observation" | "action";
+  eyebrow: string;
+  title: string;
+  description: string;
+  href: string;
+  tone: "blue" | "pink" | "dark";
+};
+
+type TodayCardsInput = {
+  entries: DomainEntry[];
+  today: string;
+  hasCycleData: boolean;
+  cycleDay?: number;
+  phase?: CyclePhase;
+  delayed?: boolean;
+};
+
+const phaseCopy: Record<CyclePhase, { label: string; href: string }> = {
+  menstruation: { label: "Менструальная фаза", href: "/knowledge/daily-period-3" },
+  follicular: { label: "Фолликулярная фаза", href: "/knowledge/cycle-basics-2" },
+  "ovulation-window": { label: "Предполагаемая овуляторная фаза", href: "/knowledge/fertility-2" },
+  luteal: { label: "Лютеиновая фаза", href: "/knowledge/pms-1" },
+};
+
+function hasCheckin(entry: DomainEntry) {
+  return Boolean(entry.mood || entry.energy || typeof entry.pain === "number" || entry.symptoms?.length || entry.sleepHours !== undefined || entry.notes);
+}
+
+function recentCheckins(entries: DomainEntry[], today: string) {
+  return entries.filter((entry) => {
+    const age = dateDiff(entry.date, today);
+    return age >= 0 && age <= 6 && hasCheckin(entry);
+  });
+}
+
+function buildObservation(entries: DomainEntry[], today: string): TodayCard {
+  const recent = recentCheckins(entries, today);
+  if (recent.length < 3) {
+    return { kind: "observation", eyebrow: "Наблюдение", title: "Пока мало данных", description: "Сделайте ещё несколько отметок — Mira начнёт показывать факты за неделю.", href: "/track", tone: "pink" };
+  }
+
+  const symptoms = new Map<string, number>();
+  recent.forEach((entry) => entry.symptoms?.forEach((symptom) => symptoms.set(symptom, (symptoms.get(symptom) ?? 0) + 1)));
+  const frequent = [...symptoms.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+  if (frequent && frequent[1] >= 2) {
+    return { kind: "observation", eyebrow: "Последние 7 дней", title: `${frequent[0]} — ${frequent[1]} раза`, description: `Основано на ${recent.length} отметках. Это наблюдение, а не причина симптома.`, href: "/insights", tone: "pink" };
+  }
+
+  const lowEnergyCount = recent.filter((entry) => entry.energy === "low").length;
+  if (lowEnergyCount >= 2) {
+    return { kind: "observation", eyebrow: "Последние 7 дней", title: `Мало энергии — ${lowEnergyCount} раза`, description: `Основано на ${recent.length} отметках. Продолжайте наблюдение, чтобы увидеть повторения.`, href: "/insights", tone: "pink" };
+  }
+
+  return { kind: "observation", eyebrow: "Последние 7 дней", title: `${recent.length} отметки о состоянии`, description: "Пока нет одного часто повторяющегося симптома.", href: "/insights", tone: "pink" };
+}
+
+function buildNextAction(input: TodayCardsInput): TodayCard {
+  const todayEntry = input.entries.find((entry) => entry.date === input.today);
+  if ((todayEntry?.pain ?? 0) >= 7) {
+    return { kind: "action", eyebrow: "Следующий шаг", title: "Оценить сильную боль", description: "Ответьте на несколько вопросов и получите безопасную информационную подсказку.", href: "/concerns/pain", tone: "dark" };
+  }
+  if (todayEntry?.period === "heavy") {
+    return { kind: "action", eyebrow: "Следующий шаг", title: "Оценить обильные месячные", description: "Сравните выделения с обычной картиной и проверьте тревожные признаки.", href: "/concerns/heavy-flow", tone: "dark" };
+  }
+  if (input.delayed) {
+    return { kind: "action", eyebrow: "Следующий шаг", title: "Месячные не начались?", description: "Уточните ситуацию без диагнозов и гарантированных выводов.", href: "/concerns/delay", tone: "dark" };
+  }
+  if (!input.hasCycleData || !input.phase) {
+    return { kind: "action", eyebrow: "Следующий шаг", title: "Сделать первую отметку", description: "Настроение, энергия, боль и выделения — обычно меньше 20 секунд.", href: "/track", tone: "dark" };
+  }
+  const phase = phaseCopy[input.phase];
+  return { kind: "action", eyebrow: "Полезный материал", title: phase.label, description: "Коротко о возможных изменениях без персональных медицинских выводов.", href: phase.href, tone: "dark" };
+}
+
+export function buildTodayCards(input: TodayCardsInput): TodayCard[] {
+  const cycleCard: TodayCard = !input.hasCycleData || !input.cycleDay
+    ? { kind: "cycle", eyebrow: "Цикл", title: "Отметьте начало месячных", description: "После первой отметки Mira рассчитает текущий день и ориентировочный диапазон.", href: "/calendar?action=period", tone: "blue" }
+    : { kind: "cycle", eyebrow: "Цикл", title: `Примерно ${input.cycleDay}-й день цикла`, description: input.phase ? `${phaseCopy[input.phase].label}. Прогноз уточняется по мере накопления данных.` : "Прогноз уточняется по мере накопления данных.", href: "/calendar", tone: "blue" };
+
+  return [cycleCard, buildObservation(input.entries, input.today), buildNextAction(input)];
+}

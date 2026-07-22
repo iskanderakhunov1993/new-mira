@@ -10,8 +10,10 @@ import { Spotlight } from "@/components/Spotlight";
 import { buildPeriodForecast } from "@/lib/cycle-analytics";
 import { buildPersonalization } from "@/lib/personalization";
 import { cyclePhaseForDate } from "@/lib/domain/cycle-phase";
+import { buildTodayCards } from "@/lib/domain/today-cards";
 
 const monthNames = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+const adviceIcons = { cycle: HeartPulse, observation: BookOpen, action: MoonStar };
 
 function dayWord(value: number) {
   const lastTwo = value % 100;
@@ -54,6 +56,9 @@ export default function TodayPage() {
   const dates = Array.from({ length: 7 }, (_, index) => { const date = new Date(today); date.setDate(today.getDate() + index - 3); return date; });
   const personalization = useMemo(() => buildPersonalization(profile?.entries ?? []), [profile]);
   const nextPattern = personalization.completed.length >= 3 ? personalization.patterns.find((pattern) => pattern.typicalDay >= cycle.day && pattern.typicalDay <= cycle.day + 7) : undefined;
+  const todayKey = today.toISOString().slice(0, 10);
+  const todayPhase = cyclePhaseForDate({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, date: todayKey });
+  const todayCards = buildTodayCards({ entries: profile?.entries ?? [], today: todayKey, hasCycleData: cycle.hasCycleStart, cycleDay: cycle.day, phase: todayPhase, delayed: cycle.until < -cycle.uncertaintyDays });
 
   return (
     <main className="app-page flo-inspired-page">
@@ -67,7 +72,7 @@ export default function TodayPage() {
         </section>}
         <section className="today-quick-actions flo-actions" aria-label="Быстрые отметки"><Link className="primary" href="/calendar?action=period"><span><Droplet /></span><strong>Отметить<br />месячные</strong></Link><Link href="/diary?section=symptoms"><span><Plus /></span><strong>Симптомы</strong></Link><Link href="/diary?section=intimacy"><span><Heart /></span><strong>Секс</strong></Link></section>
         <section className="today-safety-links" aria-label="Что вас беспокоит"><h2>Что вас беспокоит?</h2><div>{cycle.until < -cycle.uncertaintyDays && <Link href="/concerns/delay">Месячные не начались</Link>}<Link href="/concerns/pain">Сильная боль</Link><Link href="/concerns/heavy-flow">Обильные месячные</Link></div></section>
-        <section className="daily-advice"><div className="daily-advice-heading"><h2>Советы на каждый день</h2><Link href="/knowledge">Все статьи</Link></div><div className="daily-advice-scroll"><Link className="advice-card advice-blue" href="/knowledge"><span><HeartPulse /></span><small>Цикл</small><h3>Что означает сегодняшний день цикла</h3><p>Коротко о самочувствии и изменениях.</p></Link><Link className="advice-card advice-pink" href="/knowledge"><span><BookOpen /></span><small>Самочувствие</small><h3>Возможные симптомы на этой неделе</h3><p>Что стоит отметить в дневнике.</p></Link><Link className="advice-card advice-dark" href="/knowledge"><span><MoonStar /></span><small>Сон</small><h3>Мягкая практика перед сном</h3><p>Несколько минут, чтобы расслабиться.</p></Link></div></section>
+        <section className="daily-advice"><div className="daily-advice-heading"><h2>Полезное сегодня</h2><Link href="/knowledge">Все материалы</Link></div><div className="daily-advice-scroll">{todayCards.map((card) => { const Icon = adviceIcons[card.kind]; return <Link aria-label={`${card.eyebrow}: ${card.title}`} className={`advice-card advice-${card.tone}`} href={card.href} key={card.kind}><span><Icon /></span><small>{card.eyebrow}</small><h3>{card.title}</h3><p>{card.description}</p></Link>; })}</div></section>
       </div>
       <AppTabBar active="today" />
       {showSpotlight && <Spotlight onClose={() => setShowSpotlight(false)} />}
