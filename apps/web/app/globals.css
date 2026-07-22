@@ -361,7 +361,8 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .app-top-action:hover { transform: translateY(-1px); background: #ecd8e5; }
 .app-top-action svg { width: 23px; }
 .app-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; margin: 28px 0 17px; }
-.app-week div { display: grid; justify-items: center; gap: 7px; color: #8c828c; }
+.app-week > a { display: grid; justify-items: center; gap: 7px; color: #8c828c; border-radius: 18px; }
+.app-week > a:focus-visible { outline: 2px solid #b95788; outline-offset: 3px; }
 .app-week small { font-size: 8px; font-weight: 700; }
 .app-week span { width: 39px; height: 39px; display: grid; place-items: center; border-radius: 50%; font-size: 12px; font-weight: 750; }
 .app-week .active span { color: white; background: var(--ink); box-shadow: 0 6px 15px rgba(33,28,36,.2); }
@@ -413,7 +414,7 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .flo-inspired-page .app-shell { position: relative; z-index: 1; }
 .flo-inspired-page .app-top-action { color: #413449; background: rgba(255,255,255,.52); box-shadow: 0 6px 18px rgba(86,62,98,.08); }
 .flo-inspired-page .app-week { margin-bottom: 0; }
-.flo-inspired-page .app-week div { color: #6f6373; }
+.flo-inspired-page .app-week > a { color: #6f6373; }
 .flo-inspired-page .app-week .active span { color: #7b4c72; background: white; box-shadow: 0 10px 25px rgba(109,76,114,.16); }
 .flo-cycle-hero { min-height: 315px; position: relative; display: grid; align-content: center; justify-items: center; overflow: hidden; margin-inline: -20px; text-align: center; }
 .flo-cycle-hero > p { position: relative; z-index: 1; margin: 0 0 8px; font: 650 18px var(--font-onest); }
@@ -488,6 +489,7 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .calendar-grid a, .calendar-grid button { position: relative; display: grid; place-items: center; border: 0; border-radius: 15px; color: #625860; background: transparent; font: 750 11px var(--font-manrope); cursor: pointer; }
 .calendar-grid button:disabled { cursor: default; opacity: 1; }
 .calendar-grid a.today, .calendar-grid button.today { box-shadow: inset 0 0 0 1px #b9aeb6; }
+.calendar-grid a.selected-day, .calendar-grid button.selected-day { box-shadow: inset 0 0 0 2px #8f4a75, 0 7px 18px rgba(106,64,94,.14); }
 .calendar-grid a.period-day, .calendar-grid button.period-day { color: #9d356a; background: #f8e0ec; }
 .calendar-grid a.predicted-period-day, .calendar-grid button.predicted-period-day { color: #a7658a; background: #fcf5f9; box-shadow: inset 0 0 0 1px #dc9fbe; }
 .calendar-grid a.fertile-day:not(.period-day):not(.predicted-period-day), .calendar-grid button.fertile-day:not(.period-day):not(.predicted-period-day) { color: #267f83; background: #e5f5f3; }

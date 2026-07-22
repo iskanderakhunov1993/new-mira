@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Droplet, Sparkles, X } from "lucide-react";
 import { getProfile, MiraProfile, setPeriodForDate } from "@/lib/demo-session";
 import { AppTabBar } from "@/components/AppTabBar";
@@ -11,10 +12,13 @@ import { addDays, calculateCycle, periodIntervals } from "@/lib/domain/cycle-eng
 const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 const weekdays = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
 
-export default function CalendarPage() {
+function CalendarContent() {
+  const search = useSearchParams();
+  const requestedDate = search.get("date");
+  const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate ?? "") ? requestedDate ?? undefined : undefined;
   const [profile, setProfile] = useState<MiraProfile | null>(null);
-  const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-  const [markMode] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("action") === "period");
+  const [month, setMonth] = useState(() => { const selected = selectedDate ? new Date(`${selectedDate}T12:00:00`) : new Date(); return new Date(selected.getFullYear(), selected.getMonth(), 1); });
+  const markMode = search.get("action") === "period";
   const [saved, setSaved] = useState(false);
   useEffect(() => {
     void getProfile().then(setProfile).catch(() => setProfile(null));
@@ -65,7 +69,7 @@ export default function CalendarPage() {
             if (!day) return <span className="empty" key={`empty-${index}`} />;
             const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
             const entry = profile?.entries?.find((item) => item.date === key);
-            const classes = `${periodDates.has(key) ? "period-day" : ""} ${predictedDates.has(key) ? "predicted-period-day" : ""} ${fertilityDates.fertile.has(key) ? "fertile-day" : ""} ${fertilityDates.ovulation.has(key) ? "ovulation-day" : ""} ${entry?.symptoms?.length ? "symptom-day" : ""} ${entry ? "entry-day" : ""} ${key === todayKey ? "today" : ""}`;
+            const classes = `${periodDates.has(key) ? "period-day" : ""} ${predictedDates.has(key) ? "predicted-period-day" : ""} ${fertilityDates.fertile.has(key) ? "fertile-day" : ""} ${fertilityDates.ovulation.has(key) ? "ovulation-day" : ""} ${entry?.symptoms?.length ? "symptom-day" : ""} ${entry ? "entry-day" : ""} ${key === todayKey ? "today" : ""} ${key === selectedDate ? "selected-day" : ""}`;
             return markMode ? <button className={classes} disabled={key > todayKey} type="button" onClick={() => togglePeriodDay(key)} key={key}><span>{day}</span>{(periodDates.has(key) || predictedDates.has(key) || fertilityDates.fertile.has(key) || entry) && <i />}</button> : <Link className={classes} href={`/track?date=${key}`} key={key}><span>{day}</span>{(periodDates.has(key) || predictedDates.has(key) || fertilityDates.fertile.has(key) || entry) && <i />}</Link>;
           })}</div>
         </section>
@@ -76,4 +80,8 @@ export default function CalendarPage() {
       <AppTabBar active="today" />
     </main>
   );
+}
+
+export default function CalendarPage() {
+  return <Suspense fallback={<main className="calendar-page" />}><CalendarContent /></Suspense>;
 }
