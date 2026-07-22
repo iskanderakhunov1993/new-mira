@@ -4,10 +4,17 @@ import { buildTodayCards } from "./today-cards";
 
 test("builds an honest empty state without cycle data", () => {
   const cards = buildTodayCards({ entries: [], today: "2026-07-22", hasCycleData: false });
-  assert.equal(cards[0].title, "Отметьте начало месячных");
+  assert.equal(cards[0].title, "Прогноз месячных");
   assert.equal(cards[1].title, "Пока мало данных");
   assert.equal(cards[2].href, "/track");
   assert.equal(cards[3].kind, "article");
+});
+
+test("formats the first card as a concise forecast range", () => {
+  const cards = buildTodayCards({ entries: [], today: "2026-07-22", hasCycleData: true, cycleDay: 1, phase: "menstruation", expectedStart: "2026-08-19", uncertaintyDays: 3 });
+  assert.equal(cards[0].title, "Месячные: 16–22 августа");
+  assert.equal(cards[0].description, "Открыть прогноз");
+  assert.equal(cards[0].href, "/calendar");
 });
 
 test("shows a weekly fact only after three check-ins", () => {

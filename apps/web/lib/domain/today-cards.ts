@@ -1,4 +1,4 @@
-import { dateDiff } from "./cycle-engine";
+import { addDays, dateDiff } from "./cycle-engine";
 import type { CyclePhase } from "./cycle-phase";
 import type { DomainEntry } from "./types";
 
@@ -18,6 +18,10 @@ type TodayCardsInput = {
   cycleDay?: number;
   phase?: CyclePhase;
   delayed?: boolean;
+  expectedStart?: string;
+  uncertaintyDays?: number;
+  periodActive?: boolean;
+  periodDay?: number;
 };
 
 const phaseCopy: Record<CyclePhase, { label: string; href: string }> = {
@@ -81,10 +85,27 @@ function buildArticle(phase?: CyclePhase): TodayCard {
   return { kind: "article", eyebrow: "Статья", title: article.label, description: "Короткий образовательный материал без персональных медицинских выводов.", href: article.href, tone: "article" };
 }
 
-export function buildTodayCards(input: TodayCardsInput): TodayCard[] {
-  const cycleCard: TodayCard = !input.hasCycleData || !input.cycleDay
-    ? { kind: "cycle", eyebrow: "Цикл", title: "Отметьте начало месячных", description: "После первой отметки Mira рассчитает текущий день и ориентировочный диапазон.", href: "/calendar?action=period", tone: "blue" }
-    : { kind: "cycle", eyebrow: "Цикл", title: `Примерно ${input.cycleDay}-й день цикла`, description: input.phase ? `${phaseCopy[input.phase].label}. Прогноз уточняется по мере накопления данных.` : "Прогноз уточняется по мере накопления данных.", href: "/calendar", tone: "blue" };
+function formatForecastRange(expectedStart: string, uncertaintyDays: number) {
+  const start = new Date(`${addDays(expectedStart, -uncertaintyDays)}T12:00:00Z`);
+  const end = new Date(`${addDays(expectedStart, uncertaintyDays)}T12:00:00Z`);
+  const day = new Intl.DateTimeFormat("ru-RU", { day: "numeric", timeZone: "UTC" });
+  const dayMonth = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
+  return start.getUTCMonth() === end.getUTCMonth() ? `${day.format(start)}–${dayMonth.format(end)}` : `${dayMonth.format(start)} – ${dayMonth.format(end)}`;
+}
 
-  return [cycleCard, buildObservation(input.entries, input.today), buildNextAction(input), buildArticle(input.phase)];
+function buildForecastCard(input: TodayCardsInput): TodayCard {
+  if (!input.hasCycleData || !input.expectedStart) {
+    return { kind: "cycle", eyebrow: "Ближайший прогноз", title: "Прогноз месячных", description: "Добавить дату и открыть", href: "/calendar?action=period", tone: "blue" };
+  }
+  if (input.periodActive) {
+    return { kind: "cycle", eyebrow: "Ближайший прогноз", title: `Месячные: ${input.periodDay ?? 1}-й день`, description: "Открыть прогноз", href: "/calendar", tone: "blue" };
+  }
+  if (input.delayed) {
+    return { kind: "cycle", eyebrow: "Ближайший прогноз", title: "Месячные пока не начались", description: "Открыть прогноз", href: "/calendar", tone: "blue" };
+  }
+  return { kind: "cycle", eyebrow: "Ближайший прогноз", title: `Месячные: ${formatForecastRange(input.expectedStart, input.uncertaintyDays ?? 3)}`, description: "Открыть прогноз", href: "/calendar", tone: "blue" };
+}
+
+export function buildTodayCards(input: TodayCardsInput): TodayCard[] {
+  return [buildForecastCard(input), buildObservation(input.entries, input.today), buildNextAction(input), buildArticle(input.phase)];
 }
