@@ -14,6 +14,13 @@ export type MiraProfile = {
     cycleForecasts?: boolean;
     privateInsights?: boolean;
   };
+  consents?: {
+    healthData?: boolean;
+    privacyPolicy?: boolean;
+    sensitiveInsights?: boolean;
+    acceptedAt?: string;
+    version?: string;
+  };
 };
 
 export type CycleEntry = {
@@ -37,80 +44,86 @@ export type CycleEntry = {
   notes?: string;
 };
 
-const PROFILE_KEY = "mira_demo_profile";
-const CURRENT_USER_EMAIL_KEY = "mira_current_user";
-
-function isBrowser(): boolean {
-  return typeof window !== "undefined";
-}
-
-function getCurrentUserEmail(): string | null {
-  if (!isBrowser()) return null;
-  return window.localStorage.getItem(CURRENT_USER_EMAIL_KEY);
-}
-
-function setCurrentUserEmail(email: string | null): void {
-  if (!isBrowser()) return;
-  if (email) {
-    window.localStorage.setItem(CURRENT_USER_EMAIL_KEY, email);
-  } else {
-    window.localStorage.removeItem(CURRENT_USER_EMAIL_KEY);
-  }
-}
-
 type ApiResult = Record<string, unknown>;
 
+// This cache lives only in memory for the current page lifetime. PostgreSQL is
+// the sole persistent source of truth; no health data is written to web storage.
+let memoryProfile: MiraProfile | null = null;
+let legacyStoragePurged = false;
+
+function purgeLegacyBrowserData(): void {
+  if (legacyStoragePurged || typeof window === "undefined") return;
+  window.localStorage.removeItem("mira_demo_profile");
+  window.localStorage.removeItem("mira_current_user");
+  legacyStoragePurged = true;
+}
+
 async function fetchJson(url: string, options?: RequestInit): Promise<ApiResult> {
-  const res = await fetch(url, {
+  const response = await fetch(url, {
+    credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     ...options,
   });
-  const result = await res.json() as ApiResult;
-  if (!res.ok && !result.error) result.error = "Request failed";
+  const result = await response.json() as ApiResult;
+  if (!response.ok) {
+    const error = typeof result.error === "string" ? result.error : "Не удалось сохранить данные";
+    throw new Error(error);
+  }
   return result;
 }
 
-export function getProfile(): MiraProfile | null {
-  if (!isBrowser()) return null;
-  const value = window.localStorage.getItem(PROFILE_KEY);
-  if (!value) return null;
+async function createEmptyProfile(): Promise<MiraProfile> {
+  return await fetchJson("/api/users", { method: "POST", body: "{}" }) as MiraProfile;
+}
 
+export async function getProfile(options: { refresh?: boolean } = {}): Promise<MiraProfile | null> {
+  purgeLegacyBrowserData();
+  if (memoryProfile && !options.refresh) return memoryProfile;
   try {
-    return JSON.parse(value) as MiraProfile;
-  } catch {
-    return null;
+    memoryProfile = await fetchJson("/api/users") as MiraProfile;
+  } catch (error) {
+    if (error instanceof Error && error.message === "Profile not found") {
+      memoryProfile = await createEmptyProfile();
+    } else {
+      throw error;
+    }
   }
+  return memoryProfile;
 }
 
-export function saveProfile(update: Partial<MiraProfile>): MiraProfile {
-  const profile = { ...getProfile(), ...update } as MiraProfile;
-  window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-  void persistProfileToServer(profile);
-  return profile;
+export async function saveProfile(update: Partial<MiraProfile>): Promise<MiraProfile> {
+  const current = memoryProfile ?? await getProfile();
+  if (!current) throw new Error("Профиль не найден");
+  const next = {
+    ...current,
+    ...update,
+    preferences: update.preferences ? { ...current.preferences, ...update.preferences } : current.preferences,
+    consents: update.consents ? { ...current.consents, ...update.consents } : current.consents,
+  };
+  memoryProfile = await fetchJson("/api/users", {
+    method: "POST",
+    body: JSON.stringify(next),
+  }) as MiraProfile;
+  return memoryProfile;
 }
 
-export function clearHealthHistory(): MiraProfile {
-  const profile = saveProfile({ entries: [], lastPeriod: undefined });
-  return profile;
+export async function clearHealthHistory(): Promise<MiraProfile> {
+  const current = memoryProfile ?? await getProfile();
+  if (!current) throw new Error("Профиль не найден");
+  memoryProfile = await fetchJson("/api/users", {
+    method: "POST",
+    body: JSON.stringify({ ...current, entries: [], lastPeriod: null }),
+  }) as MiraProfile;
+  return memoryProfile;
 }
 
 export async function deleteLocalProfile(): Promise<void> {
-  const email = getCurrentUserEmail();
-  if (email) {
-    try {
-      await fetchJson("/api/users", { method: "DELETE" });
-    } catch {
-      // ignore remote delete failure in this prototype
-    }
-  }
-
-  if (!isBrowser()) return;
-  window.localStorage.removeItem(PROFILE_KEY);
-  setCurrentUserEmail(null);
+  await fetchJson("/api/users", { method: "DELETE" });
+  memoryProfile = null;
 }
 
-export function saveEntry(entry: CycleEntry): MiraProfile {
-  const profile = getProfile();
+export async function saveEntry(entry: CycleEntry): Promise<MiraProfile> {
+  const profile = memoryProfile ?? await getProfile();
   if (!profile) throw new Error("Профиль не найден");
   const entries = [...(profile.entries ?? [])];
   const existingIndex = entries.findIndex((item) => item.date === entry.date);
@@ -120,70 +133,40 @@ export function saveEntry(entry: CycleEntry): MiraProfile {
   return saveProfile({ entries });
 }
 
-export function setPeriodForDate(date: string, period?: CycleEntry["period"]): MiraProfile {
-  const profile = getProfile();
+export async function setPeriodForDate(date: string, period?: CycleEntry["period"]): Promise<MiraProfile> {
+  const profile = memoryProfile ?? await getProfile();
   if (!profile) throw new Error("Профиль не найден");
   const entries = [...(profile.entries ?? [])];
   const existingIndex = entries.findIndex((item) => item.date === date);
-  const existing = existingIndex >= 0 ? entries[existingIndex] : { date };
-  const nextEntry: CycleEntry = { ...existing };
-
+  const nextEntry: CycleEntry = { ...(existingIndex >= 0 ? entries[existingIndex] : { date }) };
   if (period) nextEntry.period = period;
   else delete nextEntry.period;
 
   if (existingIndex >= 0) {
-    const hasDetails = Object.keys(nextEntry).some((key) => key !== "date");
-    if (hasDetails) entries[existingIndex] = nextEntry;
+    if (Object.keys(nextEntry).some((key) => key !== "date")) entries[existingIndex] = nextEntry;
     else entries.splice(existingIndex, 1);
   } else if (period) entries.push(nextEntry);
-
   entries.sort((a, b) => a.date.localeCompare(b.date));
-  const previousDate = new Date(`${date}T12:00:00`);
-  previousDate.setDate(previousDate.getDate() - 1);
-  const previousKey = previousDate.toISOString().slice(0, 10);
+
+  const previous = new Date(`${date}T12:00:00`);
+  previous.setDate(previous.getDate() - 1);
+  const previousKey = previous.toISOString().slice(0, 10);
   const startsNewPeriod = Boolean(period) && !entries.some((item) => item.date === previousKey && item.period);
   let lastPeriod = startsNewPeriod ? date : profile.lastPeriod;
-
   if (!period && profile.lastPeriod === date) {
-    const markedDates = entries.filter((item) => item.period).map((item) => item.date);
-    const latestMarkedDate = markedDates.at(-1);
-    if (!latestMarkedDate) lastPeriod = undefined;
-    else {
-      lastPeriod = latestMarkedDate;
-      const cursor = new Date(`${latestMarkedDate}T12:00:00`);
+    const marked = entries.filter((item) => item.period).map((item) => item.date);
+    lastPeriod = marked.at(-1);
+    if (lastPeriod) {
+      const cursor = new Date(`${lastPeriod}T12:00:00`);
       while (true) {
         cursor.setDate(cursor.getDate() - 1);
         const key = cursor.toISOString().slice(0, 10);
-        if (!markedDates.includes(key)) break;
+        if (!marked.includes(key)) break;
         lastPeriod = key;
       }
     }
   }
-
-  return saveProfile({
-    entries,
-    lastPeriod,
-  });
-}
-
-function getPersistableEmail(profile: Partial<MiraProfile> = {}): string | null {
-  return profile.email?.trim().toLowerCase() ?? getCurrentUserEmail();
-}
-
-async function persistProfileToServer(profile: MiraProfile): Promise<void> {
-  const email = getPersistableEmail(profile);
-  if (!email) return;
-
-  setCurrentUserEmail(email);
-
-  try {
-    await fetchJson("/api/users", {
-      method: "POST",
-      body: JSON.stringify({ ...profile, email }),
-    });
-  } catch {
-    // ignore server persistence failure in this prototype
-  }
+  return saveProfile({ entries, lastPeriod });
 }
 
 export async function loginAccount(email: string, password: string): Promise<MiraProfile> {
@@ -191,51 +174,33 @@ export async function loginAccount(email: string, password: string): Promise<Mir
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw new Error("Неверный email или пароль");
   if (!data.user?.email) throw new Error("Ошибка входа");
-
-  setCurrentUserEmail(email.toLowerCase());
-  const remote = await syncProfileFromServer();
-  return remote ?? saveProfile({ email: data.user.email });
+  memoryProfile = null;
+  return (await getProfile({ refresh: true }))!;
 }
 
-export async function registerAccount(email: string, password: string): Promise<{ profile: MiraProfile; requiresEmailConfirmation: boolean }> {
+export async function registerAccount(email: string, password: string): Promise<{ profile: MiraProfile | null; requiresEmailConfirmation: boolean }> {
   const supabase = createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+      data: { privacy_policy_consent: true, consent_version: "2026-07-22" },
     },
   });
   if (error) throw new Error(error.message);
   if (!data.user) throw new Error("Ошибка регистрации");
-
-  setCurrentUserEmail(email.toLowerCase());
-  const profile = saveProfile({ email: email.toLowerCase(), onboardingComplete: false, entries: [] });
+  memoryProfile = null;
+  const profile = data.session ? await getProfile({ refresh: true }) : null;
   return { profile, requiresEmailConfirmation: !data.session };
 }
 
 export async function syncProfileFromServer(): Promise<MiraProfile | null> {
-  const email = getCurrentUserEmail();
-  if (!email) return null;
-
-  try {
-    const result = await fetchJson("/api/users");
-    if (result.error) return null;
-    if (result.email) {
-      const profile = saveProfile(result as MiraProfile);
-      return profile;
-    }
-  } catch {
-    // ignore sync failure
-  }
-
-  return null;
+  return getProfile({ refresh: true });
 }
 
 export async function signOutAccount(): Promise<void> {
+  memoryProfile = null;
   const supabase = createClient();
   await supabase.auth.signOut();
-  if (!isBrowser()) return;
-  window.localStorage.removeItem(PROFILE_KEY);
-  setCurrentUserEmail(null);
 }

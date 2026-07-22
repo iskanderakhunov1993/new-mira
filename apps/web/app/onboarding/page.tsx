@@ -20,25 +20,30 @@ export default function OnboardingPage() {
   const [cycleLength, setCycleLength] = useState(28);
   const [periodLength, setPeriodLength] = useState(5);
   const [goal, setGoal] = useState("cycle");
+  const [healthConsent, setHealthConsent] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const profile = getProfile();
+    void getProfile().then((profile) => {
       if (!profile?.email) router.replace("/register");
       if (profile?.name) setName(profile.name);
-    }, 0);
-    return () => window.clearTimeout(timer);
+      setHealthConsent(profile?.consents?.healthData ?? false);
+    }).catch(() => router.replace("/login"));
   }, [router]);
 
-  function next(event: FormEvent) {
+  async function next(event: FormEvent) {
     event.preventDefault();
     setError("");
     if (step === 1 && name.trim().length < 2) return setError("Расскажите, как к вам обращаться");
     if (step === 2 && !lastPeriod) return setError("Выберите первый день последних месячных");
     if (step < 3) return setStep(step + 1);
-    saveProfile({ name: name.trim(), lastPeriod, cycleLength, periodLength, goal, onboardingComplete: true });
-    router.push("/today");
+    if (!healthConsent) return setError("Подтвердите согласие на хранение данных здоровья");
+    try {
+      await saveProfile({ name: name.trim(), lastPeriod, cycleLength, periodLength, goal, onboardingComplete: true, consents: { healthData: true, privacyPolicy: true } });
+      router.push("/today");
+    } catch {
+      setError("Не удалось сохранить данные. Проверьте соединение и повторите попытку.");
+    }
   }
 
   return (
@@ -73,6 +78,7 @@ export default function OnboardingPage() {
             <h1>Что сейчас важнее?</h1>
             <p>Мы настроим первый экран под вашу главную задачу.</p>
             <div className="goal-list">{goals.map(([value, title, description]) => <button className={goal === value ? "selected" : ""} type="button" onClick={() => setGoal(value)} key={value}><span className="goal-radio"><i /></span><span><strong>{title}</strong><small>{description}</small></span></button>)}</div>
+            <label className="consent"><input type="checkbox" checked={healthConsent} onChange={(event) => setHealthConsent(event.target.checked)} /><span className="custom-check"><Check /></span><span>Я согласна хранить мои данные о цикле и самочувствии в защищённой базе Mira</span></label>
           </div>}
           {error && <p className="form-error onboarding-error" role="alert">{error}</p>}
           <div className="onboarding-actions">{step > 1 && <button className="back-button" type="button" onClick={() => setStep(step - 1)}><ArrowLeft /> Назад</button>}<button className="button" type="submit">{step === 3 ? "Открыть Mira" : "Продолжить"}<ArrowRight /></button></div>

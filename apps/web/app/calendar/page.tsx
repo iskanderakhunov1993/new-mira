@@ -13,9 +13,11 @@ const weekdays = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
 export default function CalendarPage() {
   const [profile, setProfile] = useState<MiraProfile | null>(null);
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-  const [markMode, setMarkMode] = useState(false);
+  const [markMode] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("action") === "period");
   const [saved, setSaved] = useState(false);
-  useEffect(() => { const timer = window.setTimeout(() => { setProfile(getProfile()); setMarkMode(new URLSearchParams(window.location.search).get("action") === "period"); }, 0); return () => window.clearTimeout(timer); }, []);
+  useEffect(() => {
+    void getProfile().then(setProfile).catch(() => setProfile(null));
+  }, []);
 
   const days = useMemo(() => {
     const firstWeekday = (month.getDay() + 6) % 7;
@@ -40,9 +42,9 @@ export default function CalendarPage() {
     setMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
   }
 
-  function togglePeriodDay(date: string) {
+  async function togglePeriodDay(date: string) {
     if (date > todayKey) return;
-    const updated = setPeriodForDate(date, periodDates.has(date) ? undefined : "medium");
+    const updated = await setPeriodForDate(date, periodDates.has(date) ? undefined : "medium");
     setProfile(updated); setSaved(true);
     window.setTimeout(() => setSaved(false), 1800);
   }

@@ -9,7 +9,7 @@ import { buildCycles, cycleStatus, formatCycleDate } from "@/lib/cycle-analytics
 
 export default function CycleDetailPage() {
   const params = useParams<{ start: string }>(); const [profile, setProfile] = useState<MiraProfile | null>(null);
-  useEffect(() => { const timer = window.setTimeout(() => setProfile(getProfile()), 0); return () => window.clearTimeout(timer); }, []);
+  useEffect(() => { void getProfile().then(setProfile).catch(() => setProfile(null)); }, []);
   const cycles = useMemo(() => buildCycles(profile?.entries ?? []), [profile]); const cycle = cycles.find((item) => item.start === params.start); const completed = cycles.filter((item) => !item.current); const status = cycleStatus(cycle, completed);
   const symptomCounts = new Map<string, number>(); cycle?.entries.forEach((entry) => entry.symptoms?.forEach((item) => symptomCounts.set(item, (symptomCounts.get(item) ?? 0) + 1))); const symptoms = [...symptomCounts.entries()].sort((a,b) => b[1]-a[1]).slice(0,4);
   if (!cycle) return <main className="cycle-subpage"><div className="analytics-empty"><h2>Цикл не найден</h2><Link href="/analytics/cycles">Вернуться к истории</Link></div></main>;
