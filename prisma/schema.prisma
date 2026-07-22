@@ -13,9 +13,11 @@ model Profile {
   email              String    @unique
   name               String?
   onboardingComplete Boolean   @default(false)
+  onboardingStep     Int       @default(1)
   goal               String?
   lastPeriod         DateTime? @db.Date
   cycleLength        Int       @default(28)
+  cyclePattern       String    @default("regular")
   periodLength       Int       @default(5)
   weightKg           Float?
   cycleForecasts     Boolean   @default(true)
@@ -23,6 +25,7 @@ model Profile {
   healthDataConsent  Boolean   @default(false)
   privacyConsent     Boolean   @default(false)
   sensitiveConsent   Boolean   @default(false)
+  firstPromptDismissed Boolean  @default(false)
   consentAcceptedAt  DateTime?
   consentVersion     String?
   createdAt          DateTime  @default(now())

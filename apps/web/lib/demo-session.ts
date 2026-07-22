@@ -5,10 +5,13 @@ export type MiraProfile = {
   name?: string;
   lastPeriod?: string;
   cycleLength?: number;
+  cyclePattern?: "regular" | "irregular" | "unknown";
   periodLength?: number;
   weightKg?: number;
   goal?: string;
   onboardingComplete?: boolean;
+  onboardingStep?: number;
+  firstPromptDismissed?: boolean;
   entries?: CycleEntry[];
   preferences?: {
     cycleForecasts?: boolean;
