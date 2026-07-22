@@ -11,6 +11,8 @@ export type DomainEntry = {
   energy?: Energy;
   pain?: number;
   symptoms?: string[];
+  symptomIntensity?: Record<string, 1 | 2 | 3>;
+  sleepHours?: number;
   notes?: string;
 };
 

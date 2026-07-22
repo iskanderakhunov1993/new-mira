@@ -8,6 +8,7 @@ import { getProfile, MiraProfile, setPeriodForDate } from "@/lib/demo-session";
 import { AppTabBar } from "@/components/AppTabBar";
 import { buildPeriodForecast, formatCycleDate, predictedFertilityDates } from "@/lib/cycle-analytics";
 import { addDays, calculateCycle, periodIntervals } from "@/lib/domain/cycle-engine";
+import { buildCalendarMarkers } from "@/lib/domain/calendar-markers";
 
 const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 const weekdays = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
@@ -69,8 +70,14 @@ function CalendarContent() {
             if (!day) return <span className="empty" key={`empty-${index}`} />;
             const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
             const entry = profile?.entries?.find((item) => item.date === key);
+            const markers = buildCalendarMarkers(entry);
+            const visibleMarkers = markers.slice(0, 2);
+            const hiddenCount = markers.length - visibleMarkers.length;
+            const stateMarkers = markers.length ? <span className="calendar-state-markers" aria-hidden="true">{visibleMarkers.map((marker) => <b key={marker.key}>{marker.emoji}</b>)}{hiddenCount > 0 && <em>+{hiddenCount}</em>}</span> : null;
+            const ariaLabel = `${day} ${monthNames[month.getMonth()]}${markers.length ? `: ${markers.map((marker) => marker.label).join(", ")}` : ""}`;
             const classes = `${periodDates.has(key) ? "period-day" : ""} ${predictedDates.has(key) ? "predicted-period-day" : ""} ${fertilityDates.fertile.has(key) ? "fertile-day" : ""} ${fertilityDates.ovulation.has(key) ? "ovulation-day" : ""} ${entry?.symptoms?.length ? "symptom-day" : ""} ${entry ? "entry-day" : ""} ${key === todayKey ? "today" : ""} ${key === selectedDate ? "selected-day" : ""}`;
-            return markMode ? <button className={classes} disabled={key > todayKey} type="button" onClick={() => togglePeriodDay(key)} key={key}><span>{day}</span>{(periodDates.has(key) || predictedDates.has(key) || fertilityDates.fertile.has(key) || entry) && <i />}</button> : <Link className={classes} href={`/track?date=${key}`} key={key}><span>{day}</span>{(periodDates.has(key) || predictedDates.has(key) || fertilityDates.fertile.has(key) || entry) && <i />}</Link>;
+            const fallbackDot = !markers.length && (predictedDates.has(key) || fertilityDates.fertile.has(key));
+            return markMode ? <button aria-label={ariaLabel} className={classes} disabled={key > todayKey} type="button" onClick={() => togglePeriodDay(key)} key={key}><span>{day}</span>{stateMarkers}{fallbackDot && <i />}</button> : <Link aria-label={ariaLabel} className={classes} href={`/track?date=${key}`} key={key}><span>{day}</span>{stateMarkers}{fallbackDot && <i />}</Link>;
           })}</div>
         </section>
         <section className="calendar-legend"><span><i className="actual" />Факт: месячные</span><span><i className="predicted" />Диапазон прогноза</span><span><i className="symptom" />Есть симптомы</span><span><i className="entry" />Есть отметка</span></section>
