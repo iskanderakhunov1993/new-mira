@@ -43,4 +43,5 @@ test("keeps a phase article when the observation card is hidden", () => {
   const cards = buildTodayCards({ entries: [], today: "2026-07-22", hasCycleData: true, cycleDay: 20, phase: "luteal" });
   assert.equal(cards[1].href, "/knowledge/pms-1");
   assert.equal(cards[1].title, "Лютеиновая фаза");
+  assert.equal(cards[1].eyebrow, "Для прочтения");
 });

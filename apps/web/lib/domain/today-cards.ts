@@ -77,7 +77,7 @@ function buildNextAction(input: TodayCardsInput): TodayCard | undefined {
 
 function buildArticle(phase?: CyclePhase): TodayCard {
   const article = phase ? phaseCopy[phase] : { label: "Четыре фазы цикла", href: "/knowledge/cycle-basics-2" };
-  return { kind: "article", eyebrow: "Статья", title: article.label, description: "Короткий образовательный материал без персональных медицинских выводов.", href: article.href, tone: "article" };
+  return { kind: "article", eyebrow: "Для прочтения", title: article.label, description: "Короткий образовательный материал без персональных медицинских выводов.", href: article.href, tone: "article" };
 }
 
 function formatForecastRange(expectedStart: string, uncertaintyDays: number) {
