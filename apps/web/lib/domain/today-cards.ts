@@ -24,13 +24,6 @@ type TodayCardsInput = {
   periodDay?: number;
 };
 
-const phaseCopy: Record<CyclePhase, { label: string; href: string }> = {
-  menstruation: { label: "Менструальная фаза", href: "/knowledge/daily-period-3" },
-  follicular: { label: "Фолликулярная фаза", href: "/knowledge/cycle-basics-2" },
-  "ovulation-window": { label: "Предполагаемая овуляторная фаза", href: "/knowledge/fertility-2" },
-  luteal: { label: "Лютеиновая фаза", href: "/knowledge/pms-1" },
-};
-
 function hasCheckin(entry: DomainEntry) {
   return Boolean(entry.mood || entry.energy || typeof entry.pain === "number" || entry.symptoms?.length || entry.sleepHours !== undefined || entry.notes);
 }
@@ -75,9 +68,8 @@ function buildNextAction(input: TodayCardsInput): TodayCard | undefined {
   return undefined;
 }
 
-function buildArticle(phase?: CyclePhase): TodayCard {
-  const article = phase ? phaseCopy[phase] : { label: "Четыре фазы цикла", href: "/knowledge/cycle-basics-2" };
-  return { kind: "article", eyebrow: "Для прочтения", title: article.label, description: "Короткий образовательный материал без персональных медицинских выводов.", href: article.href, tone: "article" };
+function buildArticle(): TodayCard {
+  return { kind: "article", eyebrow: "Для прочтения", title: "Для прочтения", description: "Открыть статьи", href: "/knowledge", tone: "article" };
 }
 
 function formatForecastRange(expectedStart: string, uncertaintyDays: number) {
@@ -104,5 +96,5 @@ function buildForecastCard(input: TodayCardsInput): TodayCard {
 export function buildTodayCards(input: TodayCardsInput): TodayCard[] {
   const observation = buildObservation(input.entries, input.today);
   const importantCheck = buildNextAction(input);
-  return [buildForecastCard(input), ...(observation ? [observation] : []), ...(importantCheck ? [importantCheck] : []), buildArticle(input.phase)];
+  return [buildForecastCard(input), ...(observation ? [observation] : []), ...(importantCheck ? [importantCheck] : []), buildArticle()];
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, CalendarDays, ChevronRight, CircleUserRound, Droplet, Heart, HeartPulse, MoonStar, Plus, Sparkles, TrendingUp } from "lucide-react";
+import { CalendarDays, ChevronRight, CircleUserRound, Droplet, Heart, Plus, Sparkles, TrendingUp } from "lucide-react";
 import { getProfile, MiraProfile } from "@/lib/demo-session";
 import { AppTabBar } from "@/components/AppTabBar";
 import { Spotlight } from "@/components/Spotlight";
@@ -13,7 +13,6 @@ import { cyclePhaseForDate } from "@/lib/domain/cycle-phase";
 import { buildTodayCards, type TodayCard } from "@/lib/domain/today-cards";
 
 const monthNames = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-const adviceIcons = { cycle: HeartPulse, observation: HeartPulse, action: MoonStar, article: BookOpen };
 
 function dayWord(value: number) {
   const lastTwo = value % 100;
@@ -79,7 +78,7 @@ export default function TodayPage() {
         </section>}
         <section className="today-quick-actions flo-actions" aria-label="Быстрые отметки"><Link className="primary" href="/calendar?action=period"><span><Droplet /></span><strong>Отметить<br />месячные</strong></Link><Link href="/diary?section=symptoms"><span><Plus /></span><strong>Симптомы</strong></Link><Link href="/diary?section=intimacy"><span><Heart /></span><strong>Секс</strong></Link></section>
         <section className="today-safety-links" aria-label="Что вас беспокоит"><h2>Что вас беспокоит?</h2><div>{cycle.until < -cycle.uncertaintyDays && <Link href="/concerns/delay">Месячные не начались</Link>}<Link href="/concerns/pain">Сильная боль</Link><Link href="/concerns/heavy-flow">Обильные месячные</Link></div></section>
-        <section className="daily-advice"><div className="daily-advice-heading"><h2>Полезное сегодня</h2><Link href="/knowledge">Все материалы</Link></div><div className="daily-advice-scroll">{todayCards.map((card) => { const Icon = adviceIcons[card.kind]; const minimal = card.kind === "cycle" || card.kind === "observation" || card.kind === "action"; const accessiblePrefix = card.kind === "cycle" ? "Прогноз" : card.kind === "observation" ? "Наблюдение недели" : card.eyebrow; return <Link aria-label={`${accessiblePrefix}: ${card.title}`} className={`advice-card advice-${card.tone} ${minimal ? "advice-card-minimal" : ""}`} href={card.href} key={card.kind}>{!minimal && <span><Icon /></span>}{!minimal && <small>{card.eyebrow}</small>}<h3>{card.title}</h3>{!minimal && <p>{card.description}</p>}</Link>; })}</div></section>
+        <section className="daily-advice"><div className="daily-advice-heading"><h2>Полезное сегодня</h2><Link href="/knowledge">Все материалы</Link></div><div className="daily-advice-scroll">{todayCards.map((card) => { const accessiblePrefix = card.kind === "cycle" ? "Прогноз" : card.kind === "observation" ? "Наблюдение недели" : card.eyebrow; return <Link aria-label={`${accessiblePrefix}: ${card.title}`} className={`advice-card advice-${card.tone} advice-card-minimal`} href={card.href} key={card.kind}><h3>{card.title}</h3></Link>; })}</div></section>
       </div>
       <AppTabBar active="today" />
       {showSpotlight && <Spotlight onClose={() => setShowSpotlight(false)} />}
