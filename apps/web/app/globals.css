@@ -874,6 +874,17 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .knowledge-categories { display: flex; justify-content: center; gap: 7px; margin-bottom: 28px; overflow-x: auto; scrollbar-width: none; }
 .knowledge-categories button { min-height: 34px; padding: 0 14px; border: 1px solid #e3dbe1; border-radius: 999px; color: #776c76; background: white; font-size: 9px; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .knowledge-categories button.active { border-color: var(--ink); color: white; background: var(--ink); }
+.knowledge-now { margin-top: 30px; padding: 25px; border-radius: 28px; background: #eee8f4; }
+.knowledge-now-heading span { color: #80608d; font-size: 8px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.knowledge-now-heading h2 { margin: 7px 0; font-size: 27px; }
+.knowledge-now-heading p { max-width: 610px; margin: 0; color: #796f7a; font-size: 10px; line-height: 1.55; }
+.knowledge-now-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; margin-top: 19px; }
+.knowledge-now-card { min-height: 170px; position: relative; display: flex; flex-direction: column; padding: 18px; border: 1px solid rgba(130,97,145,.16); border-radius: 21px; color: #352e37; background: rgba(255,255,255,.72); }
+.knowledge-now-card small { color: #87648f; font-size: 7px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.knowledge-now-card h3 { margin: 12px 28px 12px 0; font: 650 16px/1.22 var(--font-onest); }
+.knowledge-now-card > span { margin-top: auto; color: #8d828d; font-size: 7px; }
+.knowledge-now-card > svg { position: absolute; right: 15px; top: 15px; width: 17px; color: #916495; }
+.knowledge-now-state { margin-top: 18px; padding: 20px; border-radius: 18px; color: #796f7a; background: rgba(255,255,255,.6); font-size: 10px; }
 .featured-article { min-height: 260px; position: relative; overflow: hidden; display: flex; align-items: center; padding: 40px 45px; border-radius: 29px; color: white; background: #2c252d; }
 .featured-article > div:first-child { position: relative; z-index: 2; max-width: 510px; }
 .featured-article small { color: #e18aba; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .11em; }
@@ -1372,6 +1383,9 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
   .profile-fields > div { grid-template-columns: 1fr; }
   .knowledge-header h1 { font-size: 38px; }
   .knowledge-categories { justify-content: flex-start; margin-inline: -16px; padding-inline: 16px; }
+  .knowledge-now { margin-inline: -4px; padding: 21px 18px; }
+  .knowledge-now-grid { grid-auto-columns: 82%; grid-auto-flow: column; grid-template-columns: none; margin-inline: -18px; padding-inline: 18px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .knowledge-now-card { scroll-snap-align: start; }
   .featured-article { min-height: 300px; padding: 30px 25px; align-items: flex-end; }
   .featured-article h2 { max-width: 290px; font-size: 28px; }
   .featured-article p { max-width: 280px; }
