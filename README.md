@@ -35,7 +35,9 @@ npm run build    # production-сборка
 
 - `feature/короткое-название` — новая возможность;
 - `fix/короткое-название` — исправление ошибки;
+- `ux-ui/короткое-название` — улучшение интерфейса или пользовательского сценария;
 - `docs/короткое-название` — только документация.
+- `chore/короткое-название` — инфраструктура, зависимости и техническое обслуживание.
 
 После слияния временную ветку нужно удалить. Не создавайте дополнительные постоянные ветки и ветки с номерами версий.
 
@@ -84,7 +86,7 @@ git push -u origin feature/profile-settings
 На GitHub создайте Pull Request:
 
 ```text
-feature/* или fix/* → main
+feature/*, fix/*, ux-ui/*, docs/* или chore/* → main
 ```
 
 Перед слиянием обязательно:
@@ -130,8 +132,10 @@ fix/* → main → deploy
 
 ```text
 feature/* ─┐
-           ├─ Pull Request → main → проверка → Pull Request → deploy → Vercel Production
-fix/* ─────┘
+fix/* ─────┤
+ux-ui/* ───┼─ Pull Request → main → проверка → Pull Request → deploy → Vercel Production
+docs/* ────┤
+chore/* ───┘
 ```
 
 ## Правила, чтобы не запутаться
@@ -143,4 +147,3 @@ fix/* ─────┘
 5. `deploy` всегда соответствует текущему production.
 6. После слияния временная ветка удаляется.
 7. Основная локальная копия проекта: `/Users/iskander/Documents/мира`.
-
