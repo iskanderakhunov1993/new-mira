@@ -13,7 +13,7 @@ import { cyclePhaseForDate } from "@/lib/domain/cycle-phase";
 import { buildTodayCards } from "@/lib/domain/today-cards";
 
 const monthNames = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-const adviceIcons = { cycle: HeartPulse, observation: BookOpen, action: MoonStar };
+const adviceIcons = { cycle: HeartPulse, observation: HeartPulse, action: MoonStar, article: BookOpen };
 
 function dayWord(value: number) {
   const lastTwo = value % 100;

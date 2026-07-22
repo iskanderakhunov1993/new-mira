@@ -3,12 +3,12 @@ import type { CyclePhase } from "./cycle-phase";
 import type { DomainEntry } from "./types";
 
 export type TodayCard = {
-  kind: "cycle" | "observation" | "action";
+  kind: "cycle" | "observation" | "action" | "article";
   eyebrow: string;
   title: string;
   description: string;
   href: string;
-  tone: "blue" | "pink" | "dark";
+  tone: "blue" | "pink" | "dark" | "article";
 };
 
 type TodayCardsInput = {
@@ -73,8 +73,12 @@ function buildNextAction(input: TodayCardsInput): TodayCard {
   if (!input.hasCycleData || !input.phase) {
     return { kind: "action", eyebrow: "Следующий шаг", title: "Сделать первую отметку", description: "Настроение, энергия, боль и выделения — обычно меньше 20 секунд.", href: "/track", tone: "dark" };
   }
-  const phase = phaseCopy[input.phase];
-  return { kind: "action", eyebrow: "Полезный материал", title: phase.label, description: "Коротко о возможных изменениях без персональных медицинских выводов.", href: phase.href, tone: "dark" };
+  return { kind: "action", eyebrow: "Следующий шаг", title: "Отметить состояние сегодня", description: "Настроение, энергия, боль и выделения — обычно меньше 20 секунд.", href: "/track", tone: "dark" };
+}
+
+function buildArticle(phase?: CyclePhase): TodayCard {
+  const article = phase ? phaseCopy[phase] : { label: "Четыре фазы цикла", href: "/knowledge/cycle-basics-2" };
+  return { kind: "article", eyebrow: "Статья", title: article.label, description: "Короткий образовательный материал без персональных медицинских выводов.", href: article.href, tone: "article" };
 }
 
 export function buildTodayCards(input: TodayCardsInput): TodayCard[] {
@@ -82,5 +86,5 @@ export function buildTodayCards(input: TodayCardsInput): TodayCard[] {
     ? { kind: "cycle", eyebrow: "Цикл", title: "Отметьте начало месячных", description: "После первой отметки Mira рассчитает текущий день и ориентировочный диапазон.", href: "/calendar?action=period", tone: "blue" }
     : { kind: "cycle", eyebrow: "Цикл", title: `Примерно ${input.cycleDay}-й день цикла`, description: input.phase ? `${phaseCopy[input.phase].label}. Прогноз уточняется по мере накопления данных.` : "Прогноз уточняется по мере накопления данных.", href: "/calendar", tone: "blue" };
 
-  return [cycleCard, buildObservation(input.entries, input.today), buildNextAction(input)];
+  return [cycleCard, buildObservation(input.entries, input.today), buildNextAction(input), buildArticle(input.phase)];
 }

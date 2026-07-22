@@ -7,6 +7,7 @@ test("builds an honest empty state without cycle data", () => {
   assert.equal(cards[0].title, "Отметьте начало месячных");
   assert.equal(cards[1].title, "Пока мало данных");
   assert.equal(cards[2].href, "/track");
+  assert.equal(cards[3].kind, "article");
 });
 
 test("shows a weekly fact only after three check-ins", () => {
@@ -31,8 +32,9 @@ test("prioritizes a strong-pain flow over educational content", () => {
   assert.equal(cards[2].title, "Оценить сильную боль");
 });
 
-test("uses a phase article when no attention flow is needed", () => {
+test("keeps the fourth card as a phase article", () => {
   const cards = buildTodayCards({ entries: [], today: "2026-07-22", hasCycleData: true, cycleDay: 20, phase: "luteal" });
-  assert.equal(cards[2].href, "/knowledge/pms-1");
-  assert.equal(cards[2].title, "Лютеиновая фаза");
+  assert.equal(cards[2].href, "/track");
+  assert.equal(cards[3].href, "/knowledge/pms-1");
+  assert.equal(cards[3].title, "Лютеиновая фаза");
 });
