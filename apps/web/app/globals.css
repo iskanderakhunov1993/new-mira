@@ -1468,6 +1468,36 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .period-current strong { display: block; margin: 5px 0; font-size: 22px; }.period-current small,.period-date span { color: #a34d7c; font-size: 8px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }.period-current p,.period-note { color: var(--muted); font-size: 10px; line-height: 1.5; }.period-date input { width: 100%; margin-top: 10px; padding: 13px; border: 0; border-radius: 15px; background: #f7f4f5; }.period-flow > div { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; }.period-submit { width: 100%; justify-content: center; margin-top: 16px; }.period-delete { margin: 15px auto; }.period-note { text-align: center; }
 .period-history-editor { margin-top: 15px; padding: 20px; border-radius: 24px; background: #fff; }.period-history-editor summary { color: #8e4770; font-weight: 850; cursor: pointer; }.period-history-editor label { display: grid; gap: 6px; margin-top: 12px; color: var(--muted); font-size: 9px; }.period-history-editor input { padding: 12px; border: 0; border-radius: 14px; background: #f7f4f5; }.period-history-editor > button:not(.period-delete) { width: 100%; min-height: 42px; margin-top: 14px; border: 0; border-radius: 999px; color: #fff; background: #bd5788; font-weight: 800; }
 .calendar-legend .symptom { background: #9e75ad; }.calendar-legend .entry { background: #6c9e8b; }.calendar-grid .symptom-day:not(.period-day) i { background: #9e75ad; }.calendar-grid .entry-day:not(.period-day):not(.symptom-day) i { background: #6c9e8b; }
+
+/* Cycle phases use a quiet background layer; entries and symptoms stay readable above it. */
+.calendar-grid a.phase-menstruation:not(.period-day):not(.predicted-period-day),
+.calendar-grid button.phase-menstruation:not(.period-day):not(.predicted-period-day) { color: #963d69; background: #f9e4ed; }
+.calendar-grid a.phase-follicular:not(.period-day):not(.predicted-period-day),
+.calendar-grid button.phase-follicular:not(.period-day):not(.predicted-period-day) { color: #44766b; background: #e7f3ee; }
+.calendar-grid a.phase-ovulation-window:not(.period-day):not(.predicted-period-day),
+.calendar-grid button.phase-ovulation-window:not(.period-day):not(.predicted-period-day) { color: #277c7e; background: #dff2f1; }
+.calendar-grid a.phase-luteal:not(.period-day):not(.predicted-period-day),
+.calendar-grid button.phase-luteal:not(.period-day):not(.predicted-period-day) { color: #705a83; background: #eee8f4; }
+.calendar-grid a.period-day,
+.calendar-grid button.period-day { color: #94365f; background: #f3cddd; }
+
+.calendar-phase-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; margin: 12px 4px 0; padding: 12px 14px; border-radius: 18px; color: #756b75; background: rgba(255,255,255,.58); font-size: 8px; }
+.calendar-phase-legend span { display: flex; align-items: center; gap: 6px; }
+.calendar-phase-legend i { width: 13px; height: 13px; border-radius: 50%; }
+.calendar-phase-legend i.menstruation { background: #f3cddd; }
+.calendar-phase-legend i.follicular { background: #dcefe7; }
+.calendar-phase-legend i.ovulation { background: #d7eeed; box-shadow: inset 0 0 0 1px #6aa8a6; }
+.calendar-phase-legend i.luteal { background: #e9e0f1; }
+.calendar-phase-legend small { flex-basis: 100%; color: #958a93; font-size: 7px; }
+
+.flo-inspired-page .app-week > a.phase-menstruation span { color: #963d69; background: #f7d9e6; }
+.flo-inspired-page .app-week > a.phase-follicular span { color: #44766b; background: #e2f0ea; }
+.flo-inspired-page .app-week > a.phase-ovulation-window span { color: #277c7e; background: #d9efee; }
+.flo-inspired-page .app-week > a.phase-luteal span { color: #705a83; background: #eae2f1; }
+.flo-inspired-page .app-week > a.active.phase-menstruation span { color: #8f315c; background: #f2c6d8; box-shadow: 0 10px 25px rgba(156,70,110,.18), inset 0 0 0 2px rgba(196,70,126,.25); }
+.flo-inspired-page .app-week > a.active.phase-follicular span { color: #37695f; background: #dcece5; box-shadow: 0 10px 25px rgba(75,124,109,.16), inset 0 0 0 2px rgba(83,139,121,.2); }
+.flo-inspired-page .app-week > a.active.phase-ovulation-window span { color: #216f72; background: #d3eae9; box-shadow: 0 10px 25px rgba(51,128,129,.16), inset 0 0 0 2px rgba(59,143,143,.22); }
+.flo-inspired-page .app-week > a.active.phase-luteal span { color: #674f79; background: #e4daed; box-shadow: 0 10px 25px rgba(111,82,132,.16), inset 0 0 0 2px rgba(123,91,146,.2); }
 .offline-page { display: grid; place-items: center; }.offline-page section { width: min(420px,100%); padding: 34px; border-radius: 30px; background: #fff; text-align: center; }.offline-page svg { width: 44px; color: #a45b82; }.offline-page h1 { margin: 15px 0 8px; }.offline-page p { color: var(--muted); line-height: 1.6; }.offline-page a { display: inline-flex; margin-top: 12px; padding: 12px 20px; border-radius: 999px; color: #fff; background: #c7558b; font-weight: 800; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
