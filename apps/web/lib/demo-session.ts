@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { AssessmentAnswers, AssessmentType, HealthAssessment } from "@/lib/domain/assessment";
 
 export type MiraProfile = {
   email: string;
@@ -12,7 +13,9 @@ export type MiraProfile = {
   onboardingComplete?: boolean;
   onboardingStep?: number;
   firstPromptDismissed?: boolean;
+  spotlightStatus?: "pending" | "shown" | "skipped" | "completed";
   entries?: CycleEntry[];
+  assessments?: HealthAssessment[];
   preferences?: {
     cycleForecasts?: boolean;
     privateInsights?: boolean;
@@ -33,11 +36,14 @@ export type CycleEntry = {
   periodLeak?: boolean;
   periodNightChange?: boolean;
   periodHourlyChange?: boolean;
+  periodStarted?: boolean;
+  periodEnded?: boolean;
   pain?: number;
   painLocations?: string[];
   painTypes?: string[];
   painImpact?: "none" | "some" | "strong";
   mood?: "low" | "calm" | "good";
+  energy?: "low" | "normal" | "high";
   symptoms?: string[];
   symptomIntensity?: Record<string, 1 | 2 | 3>;
   sleepHours?: number;
@@ -103,20 +109,19 @@ export async function saveProfile(update: Partial<MiraProfile>): Promise<MiraPro
     preferences: update.preferences ? { ...current.preferences, ...update.preferences } : current.preferences,
     consents: update.consents ? { ...current.consents, ...update.consents } : current.consents,
   };
+  const profileOnly = { ...next };
+  delete profileOnly.entries;
   memoryProfile = await fetchJson("/api/users", {
     method: "POST",
-    body: JSON.stringify(next),
+    body: JSON.stringify(profileOnly),
   }) as MiraProfile;
   return memoryProfile;
 }
 
 export async function clearHealthHistory(): Promise<MiraProfile> {
-  const current = memoryProfile ?? await getProfile();
-  if (!current) throw new Error("Профиль не найден");
-  memoryProfile = await fetchJson("/api/users", {
-    method: "POST",
-    body: JSON.stringify({ ...current, entries: [], lastPeriod: null }),
-  }) as MiraProfile;
+  await fetchJson("/api/entries", { method: "DELETE" });
+  memoryProfile = await getProfile({ refresh: true });
+  if (!memoryProfile) throw new Error("Профиль не найден");
   return memoryProfile;
 }
 
@@ -126,50 +131,67 @@ export async function deleteLocalProfile(): Promise<void> {
 }
 
 export async function saveEntry(entry: CycleEntry): Promise<MiraProfile> {
-  const profile = memoryProfile ?? await getProfile();
+  const { date, ...payload } = entry;
+  await fetchJson(`/api/entries/${date}`, { method: "PUT", body: JSON.stringify(payload) });
+  const profile = await getProfile({ refresh: true });
   if (!profile) throw new Error("Профиль не найден");
-  const entries = [...(profile.entries ?? [])];
-  const existingIndex = entries.findIndex((item) => item.date === entry.date);
-  if (existingIndex >= 0) entries[existingIndex] = entry;
-  else entries.push(entry);
-  entries.sort((a, b) => a.date.localeCompare(b.date));
-  return saveProfile({ entries });
+  return profile;
+}
+
+export async function deleteEntry(date: string): Promise<MiraProfile> {
+  await fetchJson(`/api/entries/${date}`, { method: "DELETE" });
+  const profile = await getProfile({ refresh: true });
+  if (!profile) throw new Error("Профиль не найден");
+  return profile;
 }
 
 export async function setPeriodForDate(date: string, period?: CycleEntry["period"]): Promise<MiraProfile> {
-  const profile = memoryProfile ?? await getProfile();
+  await fetchJson(`/api/entries/${date}`, { method: "PUT", body: JSON.stringify({ period: period ?? null }) });
+  const profile = await getProfile({ refresh: true });
   if (!profile) throw new Error("Профиль не найден");
-  const entries = [...(profile.entries ?? [])];
-  const existingIndex = entries.findIndex((item) => item.date === date);
-  const nextEntry: CycleEntry = { ...(existingIndex >= 0 ? entries[existingIndex] : { date }) };
-  if (period) nextEntry.period = period;
-  else delete nextEntry.period;
+  return profile;
+}
 
-  if (existingIndex >= 0) {
-    if (Object.keys(nextEntry).some((key) => key !== "date")) entries[existingIndex] = nextEntry;
-    else entries.splice(existingIndex, 1);
-  } else if (period) entries.push(nextEntry);
-  entries.sort((a, b) => a.date.localeCompare(b.date));
+export async function startPeriod(date: string, flow: CycleEntry["period"] = "medium") {
+  await fetchJson("/api/periods/start", { method: "POST", body: JSON.stringify({ date, flow }) });
+  return getProfile({ refresh: true });
+}
 
-  const previous = new Date(`${date}T12:00:00`);
-  previous.setDate(previous.getDate() - 1);
-  const previousKey = previous.toISOString().slice(0, 10);
-  const startsNewPeriod = Boolean(period) && !entries.some((item) => item.date === previousKey && item.period);
-  let lastPeriod = startsNewPeriod ? date : profile.lastPeriod;
-  if (!period && profile.lastPeriod === date) {
-    const marked = entries.filter((item) => item.period).map((item) => item.date);
-    lastPeriod = marked.at(-1);
-    if (lastPeriod) {
-      const cursor = new Date(`${lastPeriod}T12:00:00`);
-      while (true) {
-        cursor.setDate(cursor.getDate() - 1);
-        const key = cursor.toISOString().slice(0, 10);
-        if (!marked.includes(key)) break;
-        lastPeriod = key;
-      }
-    }
-  }
-  return saveProfile({ entries, lastPeriod });
+export async function endPeriod(date: string, flow: CycleEntry["period"] = "light") {
+  await fetchJson("/api/periods/current", { method: "PATCH", body: JSON.stringify({ date, flow }) });
+  return getProfile({ refresh: true });
+}
+
+export async function deletePeriod(start: string) {
+  await fetchJson(`/api/periods/${start}`, { method: "DELETE" });
+  return getProfile({ refresh: true });
+}
+
+export async function getAssessments(): Promise<HealthAssessment[]> {
+  return await fetchJson("/api/assessments") as unknown as HealthAssessment[];
+}
+
+export async function getAssessment(id: string): Promise<HealthAssessment> {
+  return await fetchJson(`/api/assessments/${id}`) as unknown as HealthAssessment;
+}
+
+export async function saveAssessment(input: { date: string; type: AssessmentType; answers: AssessmentAnswers }): Promise<HealthAssessment> {
+  return await fetchJson("/api/assessments", { method: "POST", body: JSON.stringify(input) }) as unknown as HealthAssessment;
+}
+
+export async function deleteAssessment(id: string): Promise<void> {
+  await fetchJson(`/api/assessments/${id}`, { method: "DELETE" });
+}
+
+export async function updatePeriod(start: string, update: { startDate: string; endDate?: string; flow: NonNullable<CycleEntry["period"]> }) {
+  await fetchJson(`/api/periods/${start}`, { method: "PATCH", body: JSON.stringify(update) });
+  return getProfile({ refresh: true });
+}
+
+export type ProductEventName = "onboarding_started" | "onboarding_step_completed" | "onboarding_completed" | "spotlight_shown" | "spotlight_skipped" | "spotlight_completed" | "checkin_started" | "checkin_completed" | "entry_updated" | "entry_deleted" | "period_started" | "period_ended" | "period_updated" | "period_deleted";
+
+export async function trackProductEvent(name: ProductEventName, route: string) {
+  try { await fetchJson("/api/product-events", { method: "POST", body: JSON.stringify({ name, route }) }); } catch { /* аналитика не блокирует основной сценарий */ }
 }
 
 export async function loginAccount(email: string, password: string): Promise<MiraProfile> {

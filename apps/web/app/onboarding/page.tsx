@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, Check, LoaderCircle, MoonStar, Sparkles } from "lucide-react";
-import { getProfile, saveProfile } from "@/lib/demo-session";
-import { buildPeriodForecast } from "@/lib/cycle-analytics";
+import { getProfile, saveProfile, trackProductEvent } from "@/lib/demo-session";
+import { calculateCycle } from "@/lib/domain/cycle-engine";
 
 const TOTAL_STEPS = 4;
 
@@ -15,7 +15,9 @@ export default function OnboardingPage() {
   const [lastPeriod, setLastPeriod] = useState("");
   const [dateUnknown, setDateUnknown] = useState(false);
   const [cycleLength, setCycleLength] = useState(28);
+  const [periodLength, setPeriodLength] = useState(5);
   const [cyclePattern, setCyclePattern] = useState<"regular" | "irregular" | "unknown">("regular");
+  const [goal, setGoal] = useState("understand");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -27,16 +29,19 @@ export default function OnboardingPage() {
       setLastPeriod(profile.lastPeriod ?? "");
       setDateUnknown((profile.onboardingStep ?? 1) >= 3 && !profile.lastPeriod);
       setCycleLength(profile.cycleLength ?? 28);
+      setPeriodLength(profile.periodLength ?? 5);
       setCyclePattern(profile.cyclePattern ?? "regular");
+      setGoal(profile.goal ?? "understand");
       setStep(Math.min(TOTAL_STEPS, Math.max(1, profile.onboardingStep ?? 1)));
       setIsLoading(false);
+      if ((profile.onboardingStep ?? 1) === 1) void trackProductEvent("onboarding_started", "/onboarding");
     }).catch(() => router.replace("/login"));
   }, [router]);
 
   const forecast = useMemo(() => {
     if (!lastPeriod || dateUnknown || cyclePattern !== "regular") return null;
-    return buildPeriodForecast({ entries: [], lastPeriod, cycleLength, periodLength: 5 });
-  }, [cycleLength, cyclePattern, dateUnknown, lastPeriod]);
+    return calculateCycle({ entries: [], lastPeriod, cycleLength, periodLength, cyclePattern, today: new Date().toISOString().slice(0, 10) });
+  }, [cycleLength, cyclePattern, dateUnknown, lastPeriod, periodLength]);
 
   async function next(event: FormEvent) {
     event.preventDefault();
@@ -47,19 +52,25 @@ export default function OnboardingPage() {
     try {
       if (step === 1) {
         await saveProfile({ onboardingStep: 2 });
+        void trackProductEvent("onboarding_step_completed", "/onboarding");
         setStep(2);
       } else if (step === 2) {
-        await saveProfile({ ...(dateUnknown ? {} : { lastPeriod }), onboardingStep: 3 });
+        await saveProfile({ ...(dateUnknown ? { lastPeriod: undefined } : { lastPeriod }), periodLength, onboardingStep: 3 });
+        void trackProductEvent("onboarding_step_completed", "/onboarding");
         setStep(3);
       } else if (step === 3) {
         await saveProfile({ cycleLength, cyclePattern, onboardingStep: 4 });
+        void trackProductEvent("onboarding_step_completed", "/onboarding");
         setStep(4);
       } else {
         await saveProfile({
           onboardingComplete: true,
           onboardingStep: 4,
+          goal,
+          periodLength,
           consents: { healthData: true, privacyPolicy: true },
         });
+        void trackProductEvent("onboarding_completed", "/onboarding");
         router.push("/today");
       }
     } catch {
@@ -78,8 +89,7 @@ export default function OnboardingPage() {
 
   if (isLoading) return <main className="onboarding-page onboarding-loading"><LoaderCircle /><p>Загружаем…</p></main>;
 
-  const minForecast = forecast ? Math.max(0, forecast.daysUntil - forecast.uncertaintyDays) : 0;
-  const maxForecast = forecast ? Math.max(0, forecast.daysUntil + forecast.uncertaintyDays) : 0;
+  const formatDate = (date?: string) => date ? new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" }).format(new Date(`${date}T12:00:00`)) : "—";
 
   return (
     <main className="onboarding-page onboarding-minimal">
@@ -102,6 +112,7 @@ export default function OnboardingPage() {
             <p>Выберите первый день.</p>
             <label className={`large-field onboarding-date-field ${dateUnknown ? "field-disabled" : ""}`}><span>Первый день</span><input type="date" value={lastPeriod} disabled={dateUnknown} max={new Date().toISOString().slice(0, 10)} onChange={(event) => { setLastPeriod(event.target.value); setError(""); }} /></label>
             <button className={`unknown-date centered ${dateUnknown ? "selected" : ""}`} type="button" onClick={() => { setDateUnknown((value) => !value); setError(""); }}><span><Check /></span>Не помню точно</button>
+            <div className="cycle-length-control compact"><button type="button" aria-label="Уменьшить длительность" onClick={() => setPeriodLength(Math.max(1, periodLength - 1))}>−</button><strong>{periodLength}<span>дней обычно</span></strong><button type="button" aria-label="Увеличить длительность" onClick={() => setPeriodLength(Math.min(14, periodLength + 1))}>+</button></div>
           </div>}
 
           {step === 3 && <div className="onboarding-step">
@@ -114,10 +125,11 @@ export default function OnboardingPage() {
 
           {step === 4 && <div className="onboarding-step onboarding-ready">
             <span className="ready-check"><Check /></span>
-            <small>Настройка завершена</small>
-            <h1>{forecast ? "Ваш первый прогноз готов" : "Mira готова к первой отметке"}</h1>
-            {forecast ? <div className="forecast-result"><p>Сегодня примерно <strong>{forecast.cycleDay}-й день цикла</strong>.</p><p>Следующие месячные могут начаться через <strong>{minForecast}–{maxForecast} дней</strong>.</p></div> : <div className="forecast-result"><p>Отметьте начало месячных, когда будете готовы.</p><p>Mira построит первый ориентировочный прогноз по фактической дате.</p></div>}
-            <p className="forecast-disclaimer">Первые прогнозы ориентировочные. Со временем Mira лучше поймёт особенности вашего цикла.</p>
+            <small>Последний шаг</small>
+            <h1>Что для вас важнее сейчас?</h1>
+            <div className="cycle-pattern-options goal-options"><button className={goal === "understand" ? "selected" : ""} type="button" onClick={() => setGoal("understand")}><span><Check /></span>Понимать свой цикл</button><button className={goal === "wellbeing" ? "selected" : ""} type="button" onClick={() => setGoal("wellbeing")}><span><Check /></span>Следить за самочувствием</button><button className={goal === "pms" ? "selected" : ""} type="button" onClick={() => setGoal("pms")}><span><Check /></span>Наблюдать ПМС</button></div>
+            {forecast ? <div className="forecast-result"><p>Сегодня примерно <strong>{forecast.cycleDay}-й день цикла</strong>.</p><p>Ориентировочный диапазон: <strong>{formatDate(forecast.rangeStart)} — {formatDate(forecast.rangeEnd)}</strong>.</p></div> : <div className="forecast-result"><p>Первый прогноз появится после отметки начала месячных.</p></div>}
+            <p className="forecast-disclaimer">Прогноз не является гарантированной датой и уточняется по мере накопления данных.</p>
           </div>}
 
           {error && <p className="form-error onboarding-error" role="alert">{error}</p>}

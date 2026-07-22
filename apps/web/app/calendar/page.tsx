@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Droplet, Sparkles, X } from "lucide-react";
 import { getProfile, MiraProfile, setPeriodForDate } from "@/lib/demo-session";
 import { AppTabBar } from "@/components/AppTabBar";
-import { buildPeriodForecast, dateKeyAfter, formatCycleDate, predictedFertilityDates, predictedPeriodDates } from "@/lib/cycle-analytics";
+import { buildPeriodForecast, formatCycleDate, predictedFertilityDates } from "@/lib/cycle-analytics";
+import { addDays, calculateCycle, periodIntervals } from "@/lib/domain/cycle-engine";
 
 const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 const weekdays = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
@@ -25,18 +26,21 @@ export default function CalendarPage() {
     return [...Array.from({ length: firstWeekday }, () => null), ...Array.from({ length: daysInMonth }, (_, index) => index + 1)];
   }, [month]);
 
-  const periodDates = new Set(profile?.entries?.filter((entry) => entry.period).map((entry) => entry.date) ?? []);
   const todayKey = new Date().toISOString().slice(0, 10);
-  const forecast = buildPeriodForecast({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, today: todayKey });
-  const predictedDates = predictedPeriodDates(forecast);
-  const fertilityDates = predictedFertilityDates(forecast);
+  const periodDates = new Set(profile?.entries?.filter((entry) => entry.period).map((entry) => entry.date) ?? []);
+  periodIntervals(profile?.entries ?? [], todayKey).forEach((interval) => { if (!interval.end) return; for (let cursor = interval.start; cursor <= interval.end; cursor = addDays(cursor, 1)) periodDates.add(cursor); });
+  const forecast = calculateCycle({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, cyclePattern: profile?.cyclePattern, today: todayKey });
+  const legacyForecast = buildPeriodForecast({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, today: todayKey });
+  const predictedDates = new Set<string>();
+  if (forecast.rangeStart && forecast.rangeEnd) for (let cursor = forecast.rangeStart; cursor <= addDays(forecast.rangeEnd, (profile?.periodLength ?? 5) - 1); cursor = addDays(cursor, 1)) predictedDates.add(cursor);
+  const fertilityDates = predictedFertilityDates(legacyForecast);
   periodDates.forEach((date) => predictedDates.delete(date));
   const visiblePeriodDays = days.filter((day) => {
     if (!day) return false;
     const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     return periodDates.has(key);
   }).length;
-  const forecastRange = forecast.expectedStart ? `${formatCycleDate(dateKeyAfter(forecast.expectedStart, -forecast.uncertaintyDays))} — ${formatCycleDate(dateKeyAfter(forecast.expectedStart, forecast.uncertaintyDays))}` : "Недостаточно данных";
+  const forecastRange = forecast.rangeStart && forecast.rangeEnd ? `${formatCycleDate(forecast.rangeStart)} — ${formatCycleDate(forecast.rangeEnd)}` : "Недостаточно данных";
 
   function moveMonth(offset: number) {
     setMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
@@ -60,13 +64,14 @@ export default function CalendarPage() {
           <div className="calendar-grid">{days.map((day, index) => {
             if (!day) return <span className="empty" key={`empty-${index}`} />;
             const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            const classes = `${periodDates.has(key) ? "period-day" : ""} ${predictedDates.has(key) ? "predicted-period-day" : ""} ${fertilityDates.fertile.has(key) ? "fertile-day" : ""} ${fertilityDates.ovulation.has(key) ? "ovulation-day" : ""} ${key === todayKey ? "today" : ""}`;
-            return markMode ? <button className={classes} disabled={key > todayKey} type="button" onClick={() => togglePeriodDay(key)} key={key}><span>{day}</span>{(periodDates.has(key) || predictedDates.has(key) || fertilityDates.fertile.has(key)) && <i />}</button> : <Link className={classes} href={`/diary?section=period&date=${key}`} key={key}><span>{day}</span>{(periodDates.has(key) || predictedDates.has(key) || fertilityDates.fertile.has(key)) && <i />}</Link>;
+            const entry = profile?.entries?.find((item) => item.date === key);
+            const classes = `${periodDates.has(key) ? "period-day" : ""} ${predictedDates.has(key) ? "predicted-period-day" : ""} ${fertilityDates.fertile.has(key) ? "fertile-day" : ""} ${fertilityDates.ovulation.has(key) ? "ovulation-day" : ""} ${entry?.symptoms?.length ? "symptom-day" : ""} ${entry ? "entry-day" : ""} ${key === todayKey ? "today" : ""}`;
+            return markMode ? <button className={classes} disabled={key > todayKey} type="button" onClick={() => togglePeriodDay(key)} key={key}><span>{day}</span>{(periodDates.has(key) || predictedDates.has(key) || fertilityDates.fertile.has(key) || entry) && <i />}</button> : <Link className={classes} href={`/track?date=${key}`} key={key}><span>{day}</span>{(periodDates.has(key) || predictedDates.has(key) || fertilityDates.fertile.has(key) || entry) && <i />}</Link>;
           })}</div>
         </section>
-        <section className="calendar-legend"><span><i className="actual" />Факт: месячные</span><span><i className="predicted" />Прогноз месячных</span><span><i className="fertile" />Примерные фертильные дни</span><span><i className="ovulation" />Примерная овуляция</span></section>
-        <section className="calendar-summary"><span><Droplet /></span><div><small>{forecast.expectedStart ? "Следующие месячные — прогноз" : "Отмечено в этом месяце"}</small><h2>{forecast.expectedStart ? formatCycleDate(forecast.expectedStart) : `${visiblePeriodDays} ${visiblePeriodDays === 1 ? "день" : visiblePeriodDays > 1 && visiblePeriodDays < 5 ? "дня" : "дней"}`}</h2><p>{forecast.expectedStart ? `Возможное начало: ${forecastRange} ${forecast.completedCycles ? `Расчёт по ${forecast.completedCycles} ${forecast.completedCycles === 1 ? "завершённому циклу" : "завершённым циклам"}.` : "Расчёт по настройкам профиля."}` : markMode ? "Нажимайте на прошедшие дни, чтобы добавить или убрать отметку." : "Отметьте начало месячных — после этого появится прогноз."}</p></div></section>
-        {forecast.expectedOvulation && <section className="fertility-summary"><span><Sparkles /></span><div><small>Примерный прогноз</small><h2>Овуляция — около {formatCycleDate(forecast.expectedOvulation)}</h2><p>Фертильное окно: {formatCycleDate(forecast.fertileWindow[0])} — {formatCycleDate(forecast.fertileWindow.at(-1)!)} Календарный расчёт не подтверждает овуляцию и не подходит как метод контрацепции.</p></div></section>}
+        <section className="calendar-legend"><span><i className="actual" />Факт: месячные</span><span><i className="predicted" />Диапазон прогноза</span><span><i className="symptom" />Есть симптомы</span><span><i className="entry" />Есть отметка</span></section>
+        <section className="calendar-summary"><span><Droplet /></span><div><small>{forecast.expectedStart ? "Следующие месячные — прогноз" : "Отмечено в этом месяце"}</small><h2>{forecast.expectedStart ? forecastRange : `${visiblePeriodDays} ${visiblePeriodDays === 1 ? "день" : visiblePeriodDays > 1 && visiblePeriodDays < 5 ? "дня" : "дней"}`}</h2><p>{forecast.expectedStart ? `${forecast.explanation} Основано на ${forecast.completedCycles || "настройках профиля"}.` : markMode ? "Нажимайте на прошедшие дни, чтобы добавить или убрать отметку." : "Отметьте начало месячных — после этого появится прогноз."}</p></div></section>
+        {legacyForecast.expectedOvulation && <section className="fertility-summary"><span><Sparkles /></span><div><small>Дополнительный календарный ориентир</small><h2>Овуляция — около {formatCycleDate(legacyForecast.expectedOvulation)}</h2><p>Фертильное окно: {formatCycleDate(legacyForecast.fertileWindow[0])} — {formatCycleDate(legacyForecast.fertileWindow.at(-1)!)} Этот расчёт не подтверждает овуляцию и не подходит как метод контрацепции.</p></div></section>}
       </div>
       <AppTabBar active="today" />
     </main>

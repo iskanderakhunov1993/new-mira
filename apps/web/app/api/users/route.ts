@@ -13,11 +13,14 @@ const entrySchema = z.object({
   periodLeak: z.boolean().optional(),
   periodNightChange: z.boolean().optional(),
   periodHourlyChange: z.boolean().optional(),
+  periodStarted: z.boolean().optional(),
+  periodEnded: z.boolean().optional(),
   pain: z.number().int().min(0).max(10).optional(),
   painLocations: z.array(z.string().max(80)).max(20).default([]),
   painTypes: z.array(z.string().max(80)).max(20).default([]),
   painImpact: z.enum(["none", "some", "strong"]).optional(),
   mood: z.enum(["low", "calm", "good"]).optional(),
+  energy: z.enum(["low", "normal", "high"]).optional(),
   symptoms: z.array(z.string().max(80)).max(50).default([]),
   symptomIntensity: z.record(z.string(), z.number().int().min(1).max(3)).optional(),
   sleepHours: z.number().min(0).max(24).optional(),
@@ -49,6 +52,7 @@ const profileSchema = z.object({
   }).optional(),
   entries: z.array(entrySchema).max(5000).optional(),
   firstPromptDismissed: z.boolean().optional(),
+  spotlightStatus: z.enum(["pending", "shown", "skipped", "completed"]).optional(),
 });
 
 function serializeProfile(profile: Awaited<ReturnType<typeof loadProfile>>) {
@@ -82,11 +86,14 @@ function serializeProfile(profile: Awaited<ReturnType<typeof loadProfile>>) {
       periodLeak: entry.periodLeak ?? undefined,
       periodNightChange: entry.periodNightChange ?? undefined,
       periodHourlyChange: entry.periodHourlyChange ?? undefined,
+      periodStarted: entry.periodStarted || undefined,
+      periodEnded: entry.periodEnded || undefined,
       pain: entry.pain ?? undefined,
       painLocations: entry.painLocations,
       painTypes: entry.painTypes,
       painImpact: entry.painImpact ?? undefined,
       mood: entry.mood ?? undefined,
+      energy: entry.energy ?? undefined,
       symptoms: entry.symptoms,
       symptomIntensity: entry.symptomIntensity ?? undefined,
       sleepHours: entry.sleepHours ?? undefined,
@@ -96,6 +103,7 @@ function serializeProfile(profile: Awaited<ReturnType<typeof loadProfile>>) {
       notes: entry.notes ?? undefined,
     })),
     firstPromptDismissed: profile.firstPromptDismissed,
+    spotlightStatus: profile.spotlightStatus,
   };
 }
 
@@ -147,6 +155,7 @@ export async function POST(request: Request) {
         privacyConsent: payload.consents?.privacyPolicy ?? registeredPrivacyConsent,
         sensitiveConsent: payload.consents?.sensitiveInsights ?? false,
         firstPromptDismissed: payload.firstPromptDismissed ?? false,
+        spotlightStatus: payload.spotlightStatus ?? "pending",
         consentAcceptedAt: payload.consents?.healthData && (payload.consents?.privacyPolicy ?? registeredPrivacyConsent) ? new Date() : undefined,
         consentVersion: payload.consents?.healthData && (payload.consents?.privacyPolicy ?? registeredPrivacyConsent) ? "2026-07-22" : undefined,
       },
@@ -167,23 +176,11 @@ export async function POST(request: Request) {
         privacyConsent: payload.consents?.privacyPolicy,
         sensitiveConsent: payload.consents?.sensitiveInsights,
         firstPromptDismissed: payload.firstPromptDismissed,
+        spotlightStatus: payload.spotlightStatus,
         consentAcceptedAt: payload.consents?.healthData && payload.consents?.privacyPolicy ? new Date() : undefined,
         consentVersion: payload.consents?.healthData && payload.consents?.privacyPolicy ? "2026-07-22" : undefined,
       },
     });
-
-    if (payload.entries) {
-      await tx.entry.deleteMany({ where: { userId: user.id } });
-      if (payload.entries.length > 0) {
-        await tx.entry.createMany({
-          data: payload.entries.map((entry) => ({
-            ...entry,
-            userId: user.id,
-            date: new Date(`${entry.date}T00:00:00.000Z`),
-          })),
-        });
-      }
-    }
 
     return tx.profile.findUniqueOrThrow({
       where: { id: user.id },
