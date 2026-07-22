@@ -23,8 +23,8 @@ export default function LoginPage() {
 
     setIsSubmitting(true);
     try {
-      await loginAccount(email, password);
-      router.push("/today");
+      const profile = await loginAccount(email, password);
+      router.push(profile.onboardingComplete ? "/today" : "/onboarding");
     } catch (error) {
       setError(error instanceof Error ? error.message : "Ошибка входа");
     } finally {

@@ -13,9 +13,11 @@ model Profile {
   email              String    @unique
   name               String?
   onboardingComplete Boolean   @default(false)
+  onboardingStep     Int       @default(1)
   goal               String?
   lastPeriod         DateTime? @db.Date
   cycleLength        Int       @default(28)
+  cyclePattern       String    @default("regular")
   periodLength       Int       @default(5)
   weightKg           Float?
   cycleForecasts     Boolean   @default(true)
@@ -23,13 +25,33 @@ model Profile {
   healthDataConsent  Boolean   @default(false)
   privacyConsent     Boolean   @default(false)
   sensitiveConsent   Boolean   @default(false)
+  firstPromptDismissed Boolean  @default(false)
+  spotlightStatus    String    @default("pending")
   consentAcceptedAt  DateTime?
   consentVersion     String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   entries            Entry[]
+  productEvents      ProductEvent[]
+  healthAssessments  HealthAssessment[]
 
   @@map("profiles")
+}
+
+model HealthAssessment {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id") @db.Uuid
+  profile    Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date       DateTime @db.Date
+  type       String
+  answers    Json
+  resultCode String   @map("result_code")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, date])
+  @@index([userId, type])
+  @@map("health_assessments")
 }
 
 model Entry {
@@ -42,11 +64,14 @@ model Entry {
   periodLeak         Boolean?
   periodNightChange  Boolean?
   periodHourlyChange Boolean?
+  periodStarted      Boolean  @default(false)
+  periodEnded        Boolean  @default(false)
   pain               Int?
   painLocations      String[]
   painTypes          String[]
   painImpact         String?
   mood               String?
+  energy             String?
   symptoms           String[]
   symptomIntensity   Json?
   sleepHours         Float?
@@ -60,4 +85,16 @@ model Entry {
   @@unique([userId, date])
   @@index([userId, date])
   @@map("entries")
+}
+
+model ProductEvent {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id") @db.Uuid
+  profile   Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  route     String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("product_events")
 }

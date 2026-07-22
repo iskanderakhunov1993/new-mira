@@ -76,7 +76,7 @@ function DiaryContent() {
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [symptomIntensity, setSymptomIntensity] = useState<Record<string, 1 | 2 | 3>>({});
   const [mood, setMood] = useState<CycleEntry["mood"]>();
-  const [sleepHours, setSleepHours] = useState(8);
+  const [sleepHours, setSleepHours] = useState<number>();
   const [notes, setNotes] = useState("");
   const [waterMl, setWaterMl] = useState(0);
   const [weightKg, setWeightKg] = useState<number | "">("");
@@ -97,7 +97,7 @@ function DiaryContent() {
       setPeriod(entry?.period); setPain(entry?.pain ?? 0); setPainLocations(entry?.painLocations ?? []); setPainTypes(entry?.painTypes ?? []); setPainImpact(entry?.painImpact ?? "none");
       setPeriodClots(Boolean(entry?.periodClots)); setPeriodLeak(Boolean(entry?.periodLeak)); setPeriodNightChange(Boolean(entry?.periodNightChange)); setPeriodHourlyChange(Boolean(entry?.periodHourlyChange));
       setSymptoms(entry?.symptoms ?? []); setSymptomIntensity(entry?.symptomIntensity ?? {});
-      setMood(entry?.mood); setSleepHours(entry?.sleepHours ?? 8); setNotes(entry?.notes ?? ""); setSaved(false);
+      setMood(entry?.mood); setSleepHours(entry?.sleepHours); setNotes(entry?.notes ?? ""); setSaved(false);
       setWaterMl(entry?.waterMl ?? 0); setWeightKg(entry?.weightKg ?? currentProfile?.weightKg ?? ""); setBasalTemperature(entry?.basalTemperature ?? ""); setOpenChart(null);
     }).catch(() => setProfile(null));
     return () => { cancelled = true; };
@@ -195,7 +195,7 @@ function DiaryContent() {
         </section>}
         {(matches("настроение") || matches("тяжело") || matches("спокойно") || matches("хорошо")) && <section className="state-card state-mood" id="diary-mood"><div className="state-card-title"><span><Smile /></span><div><h2>Настроение</h2><p>Как вы ощущали себя большую часть дня?</p></div></div><div className="state-chips mood-chips">{moodOptions.map((item) => <button className={mood === item.value ? "selected" : ""} type="button" onClick={() => setMood(item.value)} key={item.value}><i>{item.emoji}</i>{item.label}</button>)}</div></section>}
         {visibleSymptomGroups.map((group) => { const Icon = group.icon; const options = normalizedQuery && matches(group.title) ? symptomGroups.find((item) => item.id === group.id)!.options : group.options; const selectedInGroup = group.options.filter((item) => symptoms.includes(item) && !emptyGroupOptions.includes(item)); return <section className={`state-card state-group ${group.tone}`} id={group.id === "symptoms" ? "diary-symptoms" : `diary-${group.id}`} key={group.id}><div className="state-card-title"><span><Icon /></span><div><h2>{group.title}</h2><p>{group.description}</p></div></div><div className="state-chips grouped-chips">{options.map((item) => <button className={symptoms.includes(item) ? "selected" : ""} type="button" onClick={() => toggleSymptom(item)} key={item}><i>{item.includes("энерг") || item === "Спокойствие" ? "✦" : item.includes("Выдел") ? "○" : item === "Головная боль" ? "◉" : item.includes("аппетит") ? "◒" : "●"}</i>{item}</button>)}</div>{intensityGroupIds.has(group.id) && selectedInGroup.length > 0 && <div className="symptom-intensity-list"><h3>Интенсивность <small>необязательно</small></h3>{selectedInGroup.map((item) => <div key={item}><span>{item}</span><div>{([1, 2, 3] as const).map((level) => <button className={symptomIntensity[item] === level ? "selected" : ""} type="button" aria-label={`${item}: ${level === 1 ? "слабо" : level === 2 ? "средне" : "сильно"}`} onClick={() => setIntensity(item, level)} key={level}>{level === 1 ? "Слабо" : level === 2 ? "Средне" : "Сильно"}</button>)}</div></div>)}</div>}</section>; })}
-        {(matches("сон") || matches("часы")) && <section className="state-card state-sleep" id="diary-sleep"><div className="state-card-title"><span><MoonStar /></span><div><h2>Сон</h2><p>Примерная продолжительность сна</p></div></div><div className="compact-sleep"><button type="button" onClick={() => setSleepHours(Math.max(3, sleepHours - .5))}>−</button><strong>{sleepHours}<small> часов</small></strong><button type="button" onClick={() => setSleepHours(Math.min(12, sleepHours + .5))}>+</button></div></section>}
+        {(matches("сон") || matches("часы")) && <section className="state-card state-sleep" id="diary-sleep"><div className="state-card-title"><span><MoonStar /></span><div><h2>Сон</h2><p>Примерная продолжительность сна</p></div></div><div className="compact-sleep"><button type="button" onClick={() => setSleepHours(Math.max(3, (sleepHours ?? 8) - .5))}>−</button><strong>{sleepHours ?? "—"}<small> часов</small></strong><button type="button" onClick={() => setSleepHours(Math.min(12, (sleepHours ?? 8) + .5))}>+</button></div>{sleepHours !== undefined && <button className="track-clear-value" type="button" onClick={() => setSleepHours(undefined)}>Не сохранять сон</button>}</section>}
         {symptomsMode && <section className="measurements-section" aria-labelledby="measurements-title">
           <div className="measurements-heading"><div><h2 id="measurements-title">Измерения</h2><p>Вода, вес и базальная температура</p></div><BarChart3 /></div>
           <article className="measurement-card water-card">

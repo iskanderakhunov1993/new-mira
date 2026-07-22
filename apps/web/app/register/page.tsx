@@ -48,7 +48,7 @@ export default function RegisterPage() {
       <form className="auth-form" onSubmit={submit} noValidate>
         <label><span>Email</span><div className="input-wrap"><Mail /><input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></div></label>
         <label><span>Пароль</span><div className="input-wrap"><LockKeyhole /><input name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Минимум 8 символов" required minLength={8} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
-        <label className="consent"><input name="consent" type="checkbox" /><span className="custom-check"><Check /></span><span>Я принимаю <a href="#">условия использования</a> и <a href="#">политику приватности</a></span></label>
+        <label className="consent"><input name="consent" type="checkbox" /><span className="custom-check"><Check /></span><span>Я принимаю <a href="#">условия</a>, <a href="#">политику приватности</a> и согласна хранить данные о цикле и самочувствии в Mira</span></label>
         {error && <p className="form-error" role="alert">{error}</p>}
         {success && <p role="status">{success}</p>}
         <button className="button auth-submit" type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>Создать аккаунт <ArrowRight /></button>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check, ChevronRight, Database, Download, Eye, FileHeart, LogOut, ShieldCheck, Trash2, UserRound } from "lucide-react";
-import { clearHealthHistory, deleteLocalProfile, getProfile, MiraProfile, saveProfile, signOutAccount } from "@/lib/demo-session";
+import { clearHealthHistory, deleteLocalProfile, getAssessments, getProfile, MiraProfile, saveProfile, signOutAccount } from "@/lib/demo-session";
 
 type ConfirmAction = "history" | "account" | null;
 
@@ -34,10 +34,11 @@ export default function ProfilePage() {
     const updated = await saveProfile({ preferences, consents }); setProfile(updated);
   }
 
-  function exportData() {
+  async function exportData() {
     const data = profile;
     if (!data) return;
-    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), profile: data }, null, 2)], { type: "application/json" });
+    const assessments = await getAssessments();
+    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), profile: data, assessments }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob); const anchor = document.createElement("a");
     anchor.href = url; anchor.download = `mira-data-${new Date().toISOString().slice(0, 10)}.json`; anchor.click(); URL.revokeObjectURL(url);
   }
@@ -52,6 +53,12 @@ export default function ProfilePage() {
     router.replace("/login");
   }
 
+  async function restartSpotlight() {
+    const updated = await saveProfile({ spotlightStatus: "pending" });
+    setProfile(updated);
+    router.push("/today");
+  }
+
   const entryCount = profile?.entries?.length ?? 0;
   return <main className="profile-page"><div className="profile-shell">
     <header className="profile-top"><Link href="/today" aria-label="Вернуться на главную"><ArrowLeft /></Link><div><small>Аккаунт</small><h1>Профиль</h1></div><span><UserRound /></span></header>
@@ -60,9 +67,9 @@ export default function ProfilePage() {
 
     <section className="profile-section"><header><div><h2>Основные данные</h2><p>Используются для персонального прогноза цикла.</p></div></header><div className="profile-fields"><label><span>Имя</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Как к вам обращаться" /></label><div><label><span>Средняя длина цикла</span><select value={cycleLength} onChange={(event) => setCycleLength(Number(event.target.value))}>{Array.from({ length: 25 }, (_, index) => index + 21).map((value) => <option value={value} key={value}>{value} дней</option>)}</select></label><label><span>Месячные обычно идут</span><select value={periodLength} onChange={(event) => setPeriodLength(Number(event.target.value))}>{Array.from({ length: 9 }, (_, index) => index + 2).map((value) => <option value={value} key={value}>{value} дней</option>)}</select></label></div></div><button className={`profile-save ${saved ? "saved" : ""}`} onClick={updateProfile}>{saved ? <><Check />Сохранено</> : "Сохранить изменения"}</button></section>
 
-    <section className="profile-section profile-list"><header><div><h2>Настройки Mira</h2><p>Выберите, как приложение использует ваши отметки.</p></div></header><button onClick={() => updatePreference("cycleForecasts")}><i><Eye /></i><span><strong>Прогнозы цикла</strong><small>Показывать предполагаемые даты</small></span><b className={(profile?.preferences?.cycleForecasts ?? true) ? "on" : ""}><em /></b></button><button onClick={() => updatePreference("privateInsights")}><i><ShieldCheck /></i><span><strong>Чувствительные данные в подсказках</strong><small>Учитывать интимные отметки в личных наблюдениях</small></span><b className={(profile?.preferences?.privateInsights ?? false) ? "on" : ""}><em /></b></button></section>
+    <section className="profile-section profile-list"><header><div><h2>Настройки Mira</h2><p>Выберите, как приложение использует ваши отметки.</p></div></header><button onClick={() => updatePreference("cycleForecasts")}><i><Eye /></i><span><strong>Прогнозы цикла</strong><small>Показывать предполагаемые даты</small></span><b className={(profile?.preferences?.cycleForecasts ?? true) ? "on" : ""}><em /></b></button><button onClick={() => updatePreference("privateInsights")}><i><ShieldCheck /></i><span><strong>Чувствительные данные в подсказках</strong><small>Учитывать интимные отметки в личных наблюдениях</small></span><b className={(profile?.preferences?.privateInsights ?? false) ? "on" : ""}><em /></b></button><button onClick={restartSpotlight}><i><UserRound /></i><span><strong>Повторить знакомство</strong><small>Снова показать подсказку первой отметки</small></span><ChevronRight /></button></section>
 
-    <section className="profile-section profile-list"><header><div><h2>Данные и приватность</h2><p>Профиль и записи хранятся только в защищённой базе аккаунта.</p></div></header><Link href="/analytics/report"><i><FileHeart /></i><span><strong>Отчёт для врача</strong><small>Настроить состав и сохранить PDF</small></span><ChevronRight /></Link><button onClick={exportData}><i><Download /></i><span><strong>Скачать все данные</strong><small>Файл JSON · {entryCount} отметок</small></span><ChevronRight /></button><div className="profile-storage"><Database /><p><strong>Supabase PostgreSQL</strong><span>Браузер не хранит постоянную копию данных здоровья.</span></p></div></section>
+    <section className="profile-section profile-list"><header><div><h2>Данные и приватность</h2><p>Профиль и записи хранятся только в защищённой базе аккаунта.</p></div></header><Link href="/analytics/report"><i><FileHeart /></i><span><strong>Отчёт для врача</strong><small>Настроить состав и сохранить PDF</small></span><ChevronRight /></Link><button onClick={() => void exportData()}><i><Download /></i><span><strong>Скачать все данные</strong><small>Файл JSON · {entryCount} отметок</small></span><ChevronRight /></button><div className="profile-storage"><Database /><p><strong>Supabase PostgreSQL</strong><span>Браузер не хранит постоянную копию данных здоровья.</span></p></div></section>
 
     <section className="profile-section profile-list profile-danger"><header><div><h2>Управление аккаунтом</h2></div></header><button onClick={() => setConfirming("history")}><i><Trash2 /></i><span><strong>Очистить историю здоровья</strong><small>Удалить циклы, симптомы и заметки</small></span><ChevronRight /></button><button onClick={logout}><i><LogOut /></i><span><strong>Выйти</strong><small>Локальная сессия будет завершена</small></span><ChevronRight /></button><button onClick={() => setConfirming("account")}><i><Trash2 /></i><span><strong>Удалить аккаунт</strong><small>Необратимо удалить профиль и все данные</small></span><ChevronRight /></button></section>
 
