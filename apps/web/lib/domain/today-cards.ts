@@ -42,11 +42,9 @@ function recentCheckins(entries: DomainEntry[], today: string) {
   });
 }
 
-function buildObservation(entries: DomainEntry[], today: string): TodayCard {
+function buildObservation(entries: DomainEntry[], today: string): TodayCard | undefined {
   const recent = recentCheckins(entries, today);
-  if (recent.length < 3) {
-    return { kind: "observation", eyebrow: "Наблюдение", title: "Пока мало данных", description: "Сделайте ещё несколько отметок — Mira начнёт показывать факты за неделю.", href: "/track", tone: "pink" };
-  }
+  if (recent.length < 3) return undefined;
 
   const symptoms = new Map<string, number>();
   recent.forEach((entry) => entry.symptoms?.forEach((symptom) => symptoms.set(symptom, (symptoms.get(symptom) ?? 0) + 1)));
@@ -107,5 +105,6 @@ function buildForecastCard(input: TodayCardsInput): TodayCard {
 }
 
 export function buildTodayCards(input: TodayCardsInput): TodayCard[] {
-  return [buildForecastCard(input), buildObservation(input.entries, input.today), buildNextAction(input), buildArticle(input.phase)];
+  const observation = buildObservation(input.entries, input.today);
+  return [buildForecastCard(input), ...(observation ? [observation] : []), buildNextAction(input), buildArticle(input.phase)];
 }
