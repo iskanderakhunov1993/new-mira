@@ -61,21 +61,18 @@ function buildObservation(entries: DomainEntry[], today: string): TodayCard | un
   return { kind: "observation", eyebrow: "Последние 7 дней", title: `${recent.length} отметки о состоянии`, description: "Пока нет одного часто повторяющегося симптома.", href: "/insights", tone: "pink" };
 }
 
-function buildNextAction(input: TodayCardsInput): TodayCard {
+function buildNextAction(input: TodayCardsInput): TodayCard | undefined {
   const todayEntry = input.entries.find((entry) => entry.date === input.today);
   if ((todayEntry?.pain ?? 0) >= 7) {
-    return { kind: "action", eyebrow: "Следующий шаг", title: "Оценить сильную боль", description: "Ответьте на несколько вопросов и получите безопасную информационную подсказку.", href: "/concerns/pain", tone: "dark" };
+    return { kind: "action", eyebrow: "Важно проверить", title: "Важно проверить!", description: "Открыть проверку сильной боли.", href: "/concerns/pain", tone: "dark" };
   }
   if (todayEntry?.period === "heavy") {
-    return { kind: "action", eyebrow: "Следующий шаг", title: "Оценить обильные месячные", description: "Сравните выделения с обычной картиной и проверьте тревожные признаки.", href: "/concerns/heavy-flow", tone: "dark" };
+    return { kind: "action", eyebrow: "Важно проверить", title: "Важно проверить!", description: "Открыть проверку обильных месячных.", href: "/concerns/heavy-flow", tone: "dark" };
   }
   if (input.delayed) {
-    return { kind: "action", eyebrow: "Следующий шаг", title: "Месячные не начались?", description: "Уточните ситуацию без диагнозов и гарантированных выводов.", href: "/concerns/delay", tone: "dark" };
+    return { kind: "action", eyebrow: "Важно проверить", title: "Важно проверить!", description: "Открыть проверку задержки.", href: "/concerns/delay", tone: "dark" };
   }
-  if (!input.hasCycleData || !input.phase) {
-    return { kind: "action", eyebrow: "Следующий шаг", title: "Сделать первую отметку", description: "Настроение, энергия, боль и выделения — обычно меньше 20 секунд.", href: "/track", tone: "dark" };
-  }
-  return { kind: "action", eyebrow: "Следующий шаг", title: "Отметить состояние сегодня", description: "Настроение, энергия, боль и выделения — обычно меньше 20 секунд.", href: "/track", tone: "dark" };
+  return undefined;
 }
 
 function buildArticle(phase?: CyclePhase): TodayCard {
@@ -106,5 +103,6 @@ function buildForecastCard(input: TodayCardsInput): TodayCard {
 
 export function buildTodayCards(input: TodayCardsInput): TodayCard[] {
   const observation = buildObservation(input.entries, input.today);
-  return [buildForecastCard(input), ...(observation ? [observation] : []), buildNextAction(input), buildArticle(input.phase)];
+  const importantCheck = buildNextAction(input);
+  return [buildForecastCard(input), ...(observation ? [observation] : []), ...(importantCheck ? [importantCheck] : []), buildArticle(input.phase)];
 }
