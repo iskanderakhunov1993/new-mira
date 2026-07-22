@@ -55,7 +55,7 @@ function PainMap({ cycles }: { cycles: CycleRecord[] }) {
 
 export default function AnalyticsPage() {
   const [profile, setProfile] = useState<MiraProfile | null>(null);
-  useEffect(() => { const timer = window.setTimeout(() => setProfile(getProfile()), 0); return () => window.clearTimeout(timer); }, []);
+  useEffect(() => { void getProfile().then(setProfile).catch(() => setProfile(null)); }, []);
   const cycles = useMemo(() => buildCycles(profile?.entries ?? []), [profile]);
   const completed = cycles.filter((cycle) => !cycle.current);
   const current = cycles.find((cycle) => cycle.current);

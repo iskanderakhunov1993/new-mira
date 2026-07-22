@@ -21,8 +21,7 @@ function dayWord(value: number) {
 export default function TodayPage() {
   const [profile, setProfile] = useState<MiraProfile | null>(null);
   useEffect(() => {
-    const timer = window.setTimeout(() => setProfile(getProfile()), 0);
-    return () => window.clearTimeout(timer);
+    void getProfile().then(setProfile).catch(() => setProfile(null));
   }, []);
 
   const cycle = useMemo(() => {

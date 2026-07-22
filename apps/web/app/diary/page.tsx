@@ -89,8 +89,9 @@ function DiaryContent() {
   const [hiddenGroups, setHiddenGroups] = useState<string[]>([]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const currentProfile = getProfile();
+    let cancelled = false;
+    void getProfile().then((currentProfile) => {
+      if (cancelled) return;
       const entry = currentProfile?.entries?.find((item) => item.date === date);
       setProfile(currentProfile);
       setPeriod(entry?.period); setPain(entry?.pain ?? 0); setPainLocations(entry?.painLocations ?? []); setPainTypes(entry?.painTypes ?? []); setPainImpact(entry?.painImpact ?? "none");
@@ -98,8 +99,8 @@ function DiaryContent() {
       setSymptoms(entry?.symptoms ?? []); setSymptomIntensity(entry?.symptomIntensity ?? {});
       setMood(entry?.mood); setSleepHours(entry?.sleepHours ?? 8); setNotes(entry?.notes ?? ""); setSaved(false);
       setWaterMl(entry?.waterMl ?? 0); setWeightKg(entry?.weightKg ?? currentProfile?.weightKg ?? ""); setBasalTemperature(entry?.basalTemperature ?? ""); setOpenChart(null);
-    }, 0);
-    return () => window.clearTimeout(timer);
+    }).catch(() => setProfile(null));
+    return () => { cancelled = true; };
   }, [date]);
 
   useEffect(() => {
@@ -139,10 +140,10 @@ function DiaryContent() {
     setSymptomIntensity((current) => ({ ...current, [symptom]: level }));
   }
 
-  function save() {
+  async function save() {
     const numericWeight = weightKg === "" ? undefined : weightKg;
-    let updated = saveEntry({ date, period, periodClots: period ? periodClots || undefined : undefined, periodLeak: period ? periodLeak || undefined : undefined, periodNightChange: period ? periodNightChange || undefined : undefined, periodHourlyChange: period ? periodHourlyChange || undefined : undefined, pain: pain || undefined, painLocations: pain && painLocations.length ? painLocations : undefined, painTypes: pain && painTypes.length ? painTypes : undefined, painImpact: pain ? painImpact : undefined, symptoms: symptoms.length ? symptoms : undefined, symptomIntensity: Object.keys(symptomIntensity).length ? symptomIntensity : undefined, mood, sleepHours, waterMl: waterMl || undefined, weightKg: numericWeight, basalTemperature: basalTemperature === "" ? undefined : basalTemperature, notes: notes.trim() || undefined });
-    if (numericWeight) updated = saveProfile({ weightKg: numericWeight });
+    let updated = await saveEntry({ date, period, periodClots: period ? periodClots || undefined : undefined, periodLeak: period ? periodLeak || undefined : undefined, periodNightChange: period ? periodNightChange || undefined : undefined, periodHourlyChange: period ? periodHourlyChange || undefined : undefined, pain: pain || undefined, painLocations: pain && painLocations.length ? painLocations : undefined, painTypes: pain && painTypes.length ? painTypes : undefined, painImpact: pain ? painImpact : undefined, symptoms: symptoms.length ? symptoms : undefined, symptomIntensity: Object.keys(symptomIntensity).length ? symptomIntensity : undefined, mood, sleepHours, waterMl: waterMl || undefined, weightKg: numericWeight, basalTemperature: basalTemperature === "" ? undefined : basalTemperature, notes: notes.trim() || undefined });
+    if (numericWeight) updated = await saveProfile({ weightKg: numericWeight });
     setProfile(updated);
     setSaved(true); window.setTimeout(() => setSaved(false), 2400);
   }

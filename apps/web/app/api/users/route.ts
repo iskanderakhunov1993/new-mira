@@ -32,13 +32,18 @@ const profileSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   onboardingComplete: z.boolean().optional(),
   goal: z.string().max(80).optional(),
-  lastPeriod: z.iso.date().optional(),
+  lastPeriod: z.iso.date().nullable().optional(),
   cycleLength: z.number().int().min(15).max(60).optional(),
   periodLength: z.number().int().min(1).max(14).optional(),
   weightKg: z.number().min(20).max(500).optional(),
   preferences: z.object({
     cycleForecasts: z.boolean().optional(),
     privateInsights: z.boolean().optional(),
+  }).optional(),
+  consents: z.object({
+    healthData: z.boolean().optional(),
+    privacyPolicy: z.boolean().optional(),
+    sensitiveInsights: z.boolean().optional(),
   }).optional(),
   entries: z.array(entrySchema).max(5000).optional(),
 });
@@ -57,6 +62,13 @@ function serializeProfile(profile: Awaited<ReturnType<typeof loadProfile>>) {
     preferences: {
       cycleForecasts: profile.cycleForecasts,
       privateInsights: profile.privateInsights,
+    },
+    consents: {
+      healthData: profile.healthDataConsent,
+      privacyPolicy: profile.privacyConsent,
+      sensitiveInsights: profile.sensitiveConsent,
+      acceptedAt: profile.consentAcceptedAt?.toISOString(),
+      version: profile.consentVersion ?? undefined,
     },
     entries: profile.entries.map((entry) => ({
       date: entry.date.toISOString().slice(0, 10),
@@ -107,6 +119,7 @@ export async function POST(request: Request) {
   }
 
   const payload = parsed.data;
+  const registeredPrivacyConsent = user.user_metadata?.privacy_policy_consent === true;
   const profile = await prisma.$transaction(async (tx) => {
     await tx.profile.upsert({
       where: { id: user.id },
@@ -122,30 +135,38 @@ export async function POST(request: Request) {
         weightKg: payload.weightKg,
         cycleForecasts: payload.preferences?.cycleForecasts ?? true,
         privateInsights: payload.preferences?.privateInsights ?? false,
-        consentAcceptedAt: new Date(),
-        consentVersion: "2026-07-22",
+        healthDataConsent: payload.consents?.healthData ?? false,
+        privacyConsent: payload.consents?.privacyPolicy ?? registeredPrivacyConsent,
+        sensitiveConsent: payload.consents?.sensitiveInsights ?? false,
+        consentAcceptedAt: payload.consents?.healthData && (payload.consents?.privacyPolicy ?? registeredPrivacyConsent) ? new Date() : undefined,
+        consentVersion: payload.consents?.healthData && (payload.consents?.privacyPolicy ?? registeredPrivacyConsent) ? "2026-07-22" : undefined,
       },
       update: {
         email: user.email!,
         name: payload.name,
         onboardingComplete: payload.onboardingComplete,
         goal: payload.goal,
-        lastPeriod: payload.lastPeriod ? new Date(`${payload.lastPeriod}T00:00:00.000Z`) : undefined,
+        lastPeriod: payload.lastPeriod === null ? null : payload.lastPeriod ? new Date(`${payload.lastPeriod}T00:00:00.000Z`) : undefined,
         cycleLength: payload.cycleLength,
         periodLength: payload.periodLength,
         weightKg: payload.weightKg,
         cycleForecasts: payload.preferences?.cycleForecasts,
         privateInsights: payload.preferences?.privateInsights,
+        healthDataConsent: payload.consents?.healthData,
+        privacyConsent: payload.consents?.privacyPolicy,
+        sensitiveConsent: payload.consents?.sensitiveInsights,
+        consentAcceptedAt: payload.consents?.healthData && payload.consents?.privacyPolicy ? new Date() : undefined,
+        consentVersion: payload.consents?.healthData && payload.consents?.privacyPolicy ? "2026-07-22" : undefined,
       },
     });
 
     if (payload.entries) {
-      await tx.entry.deleteMany({ where: { profileId: user.id } });
+      await tx.entry.deleteMany({ where: { userId: user.id } });
       if (payload.entries.length > 0) {
         await tx.entry.createMany({
           data: payload.entries.map((entry) => ({
             ...entry,
-            profileId: user.id,
+            userId: user.id,
             date: new Date(`${entry.date}T00:00:00.000Z`),
           })),
         });

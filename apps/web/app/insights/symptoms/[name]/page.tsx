@@ -11,7 +11,7 @@ import { formatCycleDate } from "@/lib/cycle-analytics";
 export default function SymptomDetailPage() {
   const params = useParams<{ name: string }>();
   const [profile, setProfile] = useState<MiraProfile | null>(null);
-  useEffect(() => { const timer = window.setTimeout(() => setProfile(getProfile()), 0); return () => window.clearTimeout(timer); }, []);
+  useEffect(() => { void getProfile().then(setProfile).catch(() => setProfile(null)); }, []);
   const name = decodeURIComponent(params.name);
   const pattern = useMemo(() => findSymptomPattern(profile?.entries ?? [], name), [profile, name]);
   if (!pattern) return <main className="cycle-subpage"><div className="analytics-empty"><h2>Пока недостаточно данных</h2><p>Нужны отметки симптома хотя бы в двух из трёх завершённых циклов.</p><Link href="/insights">Вернуться к инсайтам</Link></div></main>;

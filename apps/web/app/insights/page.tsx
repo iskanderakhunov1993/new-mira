@@ -13,7 +13,7 @@ function PatternCard({ pattern }: { pattern: SymptomPattern }) {
 
 export default function InsightsPage() {
   const [profile, setProfile] = useState<MiraProfile | null>(null);
-  useEffect(() => { const timer = window.setTimeout(() => setProfile(getProfile()), 0); return () => window.clearTimeout(timer); }, []);
+  useEffect(() => { void getProfile().then(setProfile).catch(() => setProfile(null)); }, []);
   const personalization = useMemo(() => buildPersonalization(profile?.entries ?? []), [profile]);
   const ready = personalization.completed.length >= 3;
 

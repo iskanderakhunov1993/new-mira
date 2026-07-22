@@ -33,7 +33,7 @@ export default function DoctorReportPage() {
   const [profile, setProfile] = useState<MiraProfile | null>(null);
   const [months, setMonths] = useState(3);
   const [selected, setSelected] = useState(DEFAULT_SELECTION);
-  useEffect(() => { const timer = window.setTimeout(() => setProfile(getProfile()), 0); return () => window.clearTimeout(timer); }, []);
+  useEffect(() => { void getProfile().then(setProfile).catch(() => setProfile(null)); }, []);
 
   const report = useMemo(() => {
     const allEntries = profile?.entries ?? [];
