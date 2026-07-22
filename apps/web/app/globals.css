@@ -441,6 +441,8 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .advice-card small { font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; opacity: .7; }
 .advice-card h3 { margin: 7px 0; font: 680 15px/1.08 var(--font-onest); }
 .advice-card p { display: -webkit-box; margin: auto 0 0; overflow: hidden; font-size: 8px; line-height: 1.4; opacity: .72; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.advice-card-minimal { justify-content: center; }
+.advice-card-minimal h3 { margin: 0; font-size: 17px; }
 .advice-pink { background: #f7dfe8; }
 .advice-dark { color: white; background: #635d78; }
 .advice-article { background: #eee8f6; }
