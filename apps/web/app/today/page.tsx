@@ -10,7 +10,7 @@ import { Spotlight } from "@/components/Spotlight";
 import { buildPeriodForecast } from "@/lib/cycle-analytics";
 import { buildPersonalization } from "@/lib/personalization";
 import { cyclePhaseForDate } from "@/lib/domain/cycle-phase";
-import { buildTodayCards } from "@/lib/domain/today-cards";
+import { buildTodayCards, type TodayCard } from "@/lib/domain/today-cards";
 
 const monthNames = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
 const adviceIcons = { cycle: HeartPulse, observation: HeartPulse, action: MoonStar, article: BookOpen };
@@ -27,6 +27,7 @@ export default function TodayPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<MiraProfile | null>(null);
   const [showSpotlight, setShowSpotlight] = useState(false);
+  const previewCards = process.env.NODE_ENV === "development";
   useEffect(() => {
     void getProfile().then((current) => {
       if (current && !current.onboardingComplete) return router.replace("/onboarding");
@@ -58,7 +59,13 @@ export default function TodayPage() {
   const nextPattern = personalization.completed.length >= 3 ? personalization.patterns.find((pattern) => pattern.typicalDay >= cycle.day && pattern.typicalDay <= cycle.day + 7) : undefined;
   const todayKey = today.toISOString().slice(0, 10);
   const todayPhase = cyclePhaseForDate({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, date: todayKey });
-  const todayCards = buildTodayCards({ entries: profile?.entries ?? [], today: todayKey, hasCycleData: cycle.hasCycleStart, cycleDay: cycle.day, phase: todayPhase, delayed: cycle.until < -cycle.uncertaintyDays, expectedStart: cycle.expectedStart, uncertaintyDays: cycle.uncertaintyDays, periodActive: cycle.active, periodDay: cycle.periodDay });
+  const actualTodayCards = buildTodayCards({ entries: profile?.entries ?? [], today: todayKey, hasCycleData: cycle.hasCycleStart, cycleDay: cycle.day, phase: todayPhase, delayed: cycle.until < -cycle.uncertaintyDays, expectedStart: cycle.expectedStart, uncertaintyDays: cycle.uncertaintyDays, periodActive: cycle.active, periodDay: cycle.periodDay });
+  const todayCards: TodayCard[] = previewCards ? [
+    actualTodayCards.find((card) => card.kind === "cycle")!,
+    actualTodayCards.find((card) => card.kind === "observation") ?? { kind: "observation", eyebrow: "Последние 7 дней", title: "Усталость — 3 раза", description: "Тестовый пример наблюдения.", href: "/insights", tone: "pink" },
+    actualTodayCards.find((card) => card.kind === "action") ?? { kind: "action", eyebrow: "Важно проверить", title: "Важно проверить!", description: "Тестовый пример важной проверки.", href: "/concerns/pain", tone: "dark" },
+    actualTodayCards.find((card) => card.kind === "article")!,
+  ] : actualTodayCards;
 
   return (
     <main className="app-page flo-inspired-page">
