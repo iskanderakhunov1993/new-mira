@@ -1481,7 +1481,9 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .calendar-grid a.period-day,
 .calendar-grid button.period-day { color: #94365f; background: #f3cddd; }
 
-.calendar-phase-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; margin: 12px 4px 0; padding: 12px 14px; border-radius: 18px; color: #756b75; background: rgba(255,255,255,.58); font-size: 8px; }
+.calendar-legend-card { margin: 13px 4px 0; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,.58); }
+.calendar-legend-card .calendar-legend { margin: 0; }
+.calendar-phase-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(117,107,117,.12); color: #756b75; font-size: 8px; }
 .calendar-phase-legend span { display: flex; align-items: center; gap: 6px; }
 .calendar-phase-legend i { width: 13px; height: 13px; border-radius: 50%; }
 .calendar-phase-legend i.menstruation { background: #f3cddd; }
