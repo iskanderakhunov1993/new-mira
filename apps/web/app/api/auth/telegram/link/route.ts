@@ -12,6 +12,7 @@ export async function POST() {
   }
   const botUsername = process.env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, "");
   if (!botUsername) return NextResponse.json({ error: "Telegram bot is not configured" }, { status: 503 });
+  const miniAppShortName = process.env.TELEGRAM_MINI_APP_SHORT_NAME?.trim() || "mira";
 
   const token = randomBytes(24).toString("base64url");
   await prisma.accountLinkToken.create({
@@ -22,7 +23,7 @@ export async function POST() {
     },
   });
   return NextResponse.json({
-    url: `https://t.me/${botUsername}?startapp=${encodeURIComponent(`link_${token}`)}`,
+    url: `https://t.me/${botUsername}/${miniAppShortName}?startapp=${encodeURIComponent(`link_${token}`)}`,
     expiresInSeconds: 600,
   });
 }

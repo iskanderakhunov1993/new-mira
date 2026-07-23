@@ -15,13 +15,13 @@ Mira uses the same Next.js application, API routes, PostgreSQL profiles, and hea
 ## BotFather setup
 
 1. Create a bot with `@BotFather` and keep the token outside the repository.
-2. Configure the Mini App URL as `https://mira-cycle.vercel.app/telegram`.
-3. Set a menu button that opens the Mini App.
-4. Add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME` (without `@`) to the server-side Vercel environment.
+2. Register the Main Mini App with URL `https://mira-cycle.vercel.app/telegram` and a unique short name, currently `mira`.
+3. Use the direct link `https://t.me/mira_cycle_app_bot/mira` and set the menu button to open the same Mini App URL.
+4. Add `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` (without `@`), and `TELEGRAM_MINI_APP_SHORT_NAME` to the server-side Vercel environment.
 5. Apply the Prisma migration before deploying the application.
 
 For local visual work, open `/telegram`. Real authentication can only be tested from a Telegram client because a normal browser does not provide signed `initData`.
 
 ## Shared-account flow
 
-From the PWA profile, choose “Подключить Telegram”. Mira generates a one-time deep link. Opening it attaches the Telegram identity to the existing `Profile`, so Today, calendar, periods, symptoms, and settings use the same records on both platforms.
+From the PWA profile, choose “Подключить Telegram”. Mira generates a one-time Main Mini App deep link in the form `https://t.me/<bot>/<short_name>?startapp=link_<token>`. Opening it attaches the Telegram identity to the existing `Profile`, so Today, calendar, periods, symptoms, and settings use the same records on both platforms.
