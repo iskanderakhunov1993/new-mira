@@ -25,7 +25,9 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     void getProfile({ refresh: true }).then((profile) => {
-      if (!profile?.email) return router.replace("/register");
+      // Telegram profiles intentionally have no email. Authentication has
+      // already been verified server-side, so a profile is enough to onboard.
+      if (!profile) return router.replace("/register");
       if (profile.onboardingComplete) return router.replace("/today");
       setLastPeriod(profile.lastPeriod ?? "");
       setDateUnknown((profile.onboardingStep ?? 1) >= 3 && !profile.lastPeriod);

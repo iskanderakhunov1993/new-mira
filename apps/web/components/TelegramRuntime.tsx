@@ -22,10 +22,13 @@ export function TelegramRuntime() {
       const webApp = window.Telegram?.WebApp;
       if (!webApp) return;
       document.documentElement.dataset.telegramMiniApp = "true";
-      webApp.setHeaderColor?.("#eefafa");
-      webApp.setBackgroundColor?.("#eefafa");
-      webApp.expand();
+      // Telegram keeps its native loading screen visible until ready() is called.
+      // Call it before optional appearance APIs: older clients can throw on a
+      // custom color and must not prevent the app from becoming visible.
       webApp.ready();
+      try { webApp.expand(); } catch { /* Unsupported in some desktop clients. */ }
+      try { webApp.setHeaderColor?.("#eefafa"); } catch { /* Keep Telegram defaults. */ }
+      try { webApp.setBackgroundColor?.("#eefafa"); } catch { /* Keep Telegram defaults. */ }
     };
     if (window.Telegram?.WebApp) return activate();
     const timer = window.setInterval(() => {

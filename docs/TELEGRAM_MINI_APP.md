@@ -22,6 +22,8 @@ Mira uses the same Next.js application, API routes, PostgreSQL profiles, and hea
 
 For local visual work, open `/telegram`. Real authentication can only be tested from a Telegram client because a normal browser does not provide signed `initData`.
 
+The client must call `Telegram.WebApp.ready()` before optional appearance APIs. Otherwise an older Telegram client can keep its native “Загружаем…” screen visible even though Mira has loaded. Telegram profiles do not have an email address; onboarding must accept an authenticated profile without redirecting it to email registration.
+
 ## Shared-account flow
 
 From the PWA profile, choose “Подключить Telegram”. Mira generates a one-time Main Mini App deep link in the form `https://t.me/<bot>/<short_name>?startapp=link_<token>`. Opening it attaches the Telegram identity to the existing `Profile`, so Today, calendar, periods, symptoms, and settings use the same records on both platforms.

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { AssessmentAnswers, AssessmentType, HealthAssessment } from "@/lib/domain/assessment";
 
 export type MiraProfile = {
-  email: string;
+  email?: string;
   name?: string;
   lastPeriod?: string;
   cycleLength?: number;
