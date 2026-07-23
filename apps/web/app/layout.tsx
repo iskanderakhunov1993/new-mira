@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Onest } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { PwaRegister } from "@/components/PwaRegister";
 import { AuthSessionRestorer } from "@/components/AuthSessionRestorer";
@@ -22,8 +21,12 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ru" data-scroll-behavior="smooth">
+      <head>
+        {/* Telegram requires its SDK before application scripts so WebApp.ready() can dismiss the native loader. */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="https://telegram.org/js/telegram-web-app.js?61" />
+      </head>
       <body className={`${manrope.variable} ${onest.variable}`}>
-        <Script src="https://telegram.org/js/telegram-web-app.js?61" strategy="beforeInteractive" />
         <PwaRegister /><AuthSessionRestorer /><TelegramRuntime />{children}
       </body>
     </html>
