@@ -21,10 +21,17 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 const telegramBootstrap = `
 (() => {
   const params = new URLSearchParams(window.location.search);
-  const initData = params.get("tgWebAppData") || "";
+  const rawHash = window.location.hash.replace(/^#/, "");
+  const hashQuery = rawHash.includes("?") ? rawHash.slice(rawHash.indexOf("?") + 1) : rawHash;
+  const hashParams = new URLSearchParams(hashQuery);
+  const initData = params.get("tgWebAppData") || hashParams.get("tgWebAppData") || "";
   const postEvent = (eventType, eventData = {}) => {
     if (window.TelegramWebviewProxy?.postEvent) {
       window.TelegramWebviewProxy.postEvent(eventType, JSON.stringify(eventData));
+      return;
+    }
+    if (window.external && "notify" in window.external) {
+      window.external.notify(JSON.stringify({ eventType, eventData }));
       return;
     }
     if (window.parent !== window) {
