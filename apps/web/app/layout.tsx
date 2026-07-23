@@ -18,43 +18,13 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#fbf8fc" };
 
-const telegramBootstrap = `
-(() => {
-  const params = new URLSearchParams(window.location.search);
-  const rawHash = window.location.hash.replace(/^#/, "");
-  const hashQuery = rawHash.includes("?") ? rawHash.slice(rawHash.indexOf("?") + 1) : rawHash;
-  const hashParams = new URLSearchParams(hashQuery);
-  const initData = params.get("tgWebAppData") || hashParams.get("tgWebAppData") || "";
-  const postEvent = (eventType, eventData = "") => {
-    if (window.TelegramWebviewProxy?.postEvent) {
-      window.TelegramWebviewProxy.postEvent(eventType, JSON.stringify(eventData));
-      return;
-    }
-    if (window.external && "notify" in window.external) {
-      window.external.notify(JSON.stringify({ eventType, eventData }));
-      return;
-    }
-    if (window.parent !== window) {
-      window.parent.postMessage(JSON.stringify({ eventType, eventData }), "*");
-    }
-  };
-  window.Telegram = window.Telegram || {};
-  window.Telegram.WebApp = window.Telegram.WebApp || {
-    initData,
-    ready: () => postEvent("web_app_ready"),
-    expand: () => postEvent("web_app_expand"),
-    setHeaderColor: (color) => postEvent("web_app_set_header_color", { color }),
-    setBackgroundColor: (color) => postEvent("web_app_set_background_color", { color }),
-  };
-  window.Telegram.WebApp.ready();
-})();
-`;
-
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ru" data-scroll-behavior="smooth">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: telegramBootstrap }} />
+        {/* Served through Mira because some Telegram Desktop networks block telegram.org inside WebView. */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/telegram-sdk.js" />
       </head>
       <body className={`${manrope.variable} ${onest.variable}`}>
         <PwaRegister /><AuthSessionRestorer /><TelegramRuntime />{children}
