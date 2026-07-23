@@ -25,7 +25,7 @@ const telegramBootstrap = `
   const hashQuery = rawHash.includes("?") ? rawHash.slice(rawHash.indexOf("?") + 1) : rawHash;
   const hashParams = new URLSearchParams(hashQuery);
   const initData = params.get("tgWebAppData") || hashParams.get("tgWebAppData") || "";
-  const postEvent = (eventType, eventData = {}) => {
+  const postEvent = (eventType, eventData = "") => {
     if (window.TelegramWebviewProxy?.postEvent) {
       window.TelegramWebviewProxy.postEvent(eventType, JSON.stringify(eventData));
       return;
