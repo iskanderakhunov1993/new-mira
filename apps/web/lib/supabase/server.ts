@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { authCookieOptions } from "@/lib/supabase/cookie-options";
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -11,6 +12,7 @@ export async function createClient() {
     url,
     publishableKey,
     {
+      cookieOptions: authCookieOptions,
       cookies: {
         getAll: () => cookieStore.getAll(),
         setAll(cookiesToSet) {

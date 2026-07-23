@@ -3,15 +3,19 @@ import {
   CalendarDays as CalendarBlank,
   ChartNoAxesCombined as ChartLineUp,
   Check,
+  ClipboardCheck,
+  Download,
   Droplet as Drop,
+  FileHeart,
   Heart,
-  KeyRound as LockKey,
   MoonStar as MoonStars,
   Plus,
   ShieldCheck,
   Smile as Smiley,
+  Smartphone,
   Sparkles as Sparkle,
 } from "lucide-react";
+import { PublicPageView, RegisterCta } from "@/components/PublicProductAnalytics";
 
 const benefits = [
   {
@@ -29,12 +33,21 @@ const benefits = [
     className: "benefit-insight",
   },
   {
-    icon: LockKey,
-    eyebrow: "Приватность",
-    title: "Ваши данные принадлежат вам",
-    text: "Вы решаете, что хранить, экспортировать или удалить. Без партнёрского доступа и социальных функций.",
+    icon: FileHeart,
+    eyebrow: "История",
+    title: "Соберите факты для врача",
+    text: "Выберите даты, боль и симптомы для понятной сводки. Личные заметки не включаются без вашего решения.",
     className: "benefit-private",
   },
+];
+
+const faqs = [
+  ["Mira действительно полностью бесплатна?", "Да. В Mira нет подписки, рекламы и платных функций. Все возможности MVP доступны бесплатно."],
+  ["Можно использовать прогноз как контрацепцию?", "Нет. Прогноз — приблизительный календарный диапазон. Mira не является методом контрацепции и не подтверждает овуляцию или беременность."],
+  ["Где хранятся мои данные?", "Постоянная история хранится в базе Supabase и связана с вашим аккаунтом. Браузер не хранит постоянную копию данных о здоровье."],
+  ["Можно скачать или удалить историю?", "Да. В профиле можно скачать данные, очистить историю или полностью удалить аккаунт."],
+  ["Почему нужен email?", "Email нужен для защищённого входа и доступа к одной истории с ваших устройств. Пароль обрабатывает Supabase Auth."],
+  ["Работает ли Mira без интернета?", "Оболочка приложения может открыться, но медицинские записи без соединения не сохраняются, чтобы не создавать конфликтующие версии данных."],
 ];
 
 function Logo() {
@@ -48,7 +61,7 @@ function Logo() {
 
 function PhonePreview() {
   return (
-    <div className="phone-wrap" aria-label="Пример главного экрана приложения Mira">
+    <div className="phone-wrap" role="img" aria-label="Пример актуального главного экрана Mira с прогнозом диапазона, быстрыми отметками и наблюдением">
       <div className="orbit orbit-one" />
       <div className="orbit orbit-two" />
       <div className="phone">
@@ -64,25 +77,25 @@ function PhonePreview() {
             ))}
           </div>
           <section className="cycle-card">
-            <div className="cycle-label"><span className="dot" /> Текущий цикл</div>
-            <strong>Месячные через<br /><b>2 дня</b></strong>
-            <p>Низкая вероятность забеременеть</p>
-            <div className="cycle-visual"><span>25</span><small>день цикла</small></div>
+            <div className="cycle-label"><span className="dot" /> Ориентировочный прогноз</div>
+            <strong>Месячные примерно<br />через <b>2 дня</b></strong>
+            <p>25-й день цикла · диапазон ±3 дня</p>
+            <div className="cycle-visual"><span>±3</span><small>дня</small></div>
           </section>
           <div className="quick-title"><strong>Как вы сегодня?</strong><span>Все отметки</span></div>
           <div className="quick-actions">
-            <button><span><Drop /></span>Месячные</button>
-            <button><span><Plus /></span>Симптомы</button>
-            <button><span><Smiley /></span>Настроение</button>
+            <span><i><Drop /></i>Месячные</span>
+            <span><i><Plus /></i>Симптомы</span>
+            <span><i><Smiley /></i>Самочувствие</span>
           </div>
           <div className="insight-card">
             <span><Sparkle /></span>
-            <div><small>Mira заметила</small><strong>Сон может влиять на самочувствие</strong><p>Основано на 8 отметках</p></div>
+            <div><small>Mira заметила</small><strong>Усталость отмечена 3 раза за неделю</strong><p>Факт из 8 отметок · не диагноз</p></div>
           </div>
         </div>
       </div>
-      <div className="floating-note note-one"><span><Check /></span><div><small>Отметка сохранена</small><strong>Заняло 10 секунд</strong></div></div>
-      <div className="floating-note note-two"><span><ShieldCheck /></span><div><small>Личное остаётся личным</small><strong>Защищённые данные</strong></div></div>
+      <div className="floating-note note-one"><span><Check /></span><div><small>Отметка сохранена</small><strong>Около 20 секунд</strong></div></div>
+      <div className="floating-note note-two"><span><ShieldCheck /></span><div><small>Вы управляете историей</small><strong>Скачать или удалить</strong></div></div>
     </div>
   );
 }
@@ -90,6 +103,7 @@ function PhonePreview() {
 export default function LandingPage() {
   return (
     <main id="top">
+      <PublicPageView name="landing_view" route="/" />
       <header className="header shell">
         <Logo />
         <nav aria-label="Основная навигация">
@@ -97,27 +111,37 @@ export default function LandingPage() {
           <a href="#privacy">Приватность</a>
           <a href="#how">Как это работает</a>
         </nav>
-        <div className="header-actions"><a className="login" href="/login">Войти</a><a className="button button-small" href="/register">Начать бесплатно</a></div>
+        <div className="header-actions"><a className="login" href="/login">Войти</a><RegisterCta className="button button-small">Начать бесплатно</RegisterCta></div>
       </header>
 
       <section className="hero shell">
         <div className="hero-copy">
-          <div className="eyebrow"><span><Heart /></span> Бережно к вашему телу</div>
-          <h1>Понимайте свой цикл.<br /><em>Без тревоги.</em></h1>
-          <p className="hero-lead">Mira помогает отмечать самочувствие, замечать повторения и лучше понимать своё тело — спокойно и без лишнего шума.</p>
+          <div className="eyebrow"><span><Heart /></span> Полностью бесплатно · без рекламы</div>
+          <h1>Понимайте, что меняется.<br /><em>Знайте, что делать дальше.</em></h1>
+          <p className="hero-lead">Отмечайте цикл и самочувствие примерно за 20 секунд. Mira сравнит записи только с вашей обычной картиной и покажет: что изменилось, какие факты были рядом и какой следующий шаг безопасен.</p>
           <div className="hero-actions">
-            <a className="button" href="/register">Начать бесплатно <ArrowRight /></a>
+            <RegisterCta className="button">Начать бесплатно <ArrowRight /></RegisterCta>
             <a className="text-link" href="#how"><span>01</span> Как работает Mira</a>
           </div>
-          <div className="trust-row"><span><Check /> Без рекламы</span><span><Check /> Приватно</span><span><Check /> Можно удалить данные</span></div>
+          <div className="trust-row"><span><Check /> Без подписки</span><span><Check /> Без платных функций</span><span><Check /> Данные можно удалить</span></div>
         </div>
         <PhonePreview />
+      </section>
+
+      <section className="result-proof shell" id="result">
+        <header><span className="section-index">ПЕРВЫЙ ПОЛЕЗНЫЙ РЕЗУЛЬТАТ</span><h2>Не просто календарь.<br /><em>Понятный следующий шаг.</em></h2><p>Пример того, как Mira превращает несколько отметок в осторожное и проверяемое наблюдение.</p></header>
+        <div className="result-proof-grid">
+          <article><span><ClipboardCheck /></span><small>Что отмечено</small><h3>Усталость — 3 раза за последние 7 дней</h3><p>Mira показывает факты из дневника, ничего не додумывая.</p></article>
+          <article><span><ChartLineUp /></span><small>Что изменилось</small><h3>Чаще, чем в предыдущие две недели</h3><p>Сравнение появляется только при достаточном количестве ваших записей.</p></article>
+          <article><span><FileHeart /></span><small>Что сделать дальше</small><h3>Продолжить наблюдение или сохранить факты для врача</h3><p>Причины и диагнозы Mira не определяет.</p></article>
+        </div>
+        <p className="result-proof-note"><ShieldCheck /> Демонстрационный пример · основано на 8 отметках · не медицинский вывод</p>
       </section>
 
       <section className="statement shell" id="possibilities">
         <span className="section-index">01 — ВОЗМОЖНОСТИ</span>
         <h2>Меньше догадок.<br /><em>Больше ясности.</em></h2>
-        <p>Mira собирает важные наблюдения в одном спокойном пространстве.</p>
+        <p>Mira хранит факты и сравнивает их только с вашей собственной историей.</p>
       </section>
 
       <section className="benefits shell">
@@ -135,26 +159,37 @@ export default function LandingPage() {
       <section className="how shell" id="how">
         <div className="how-copy"><span className="section-index">02 — КАК ЭТО РАБОТАЕТ</span><h2>Один небольшой ритуал.<br /><em>Каждый день.</em></h2></div>
         <ol>
-          <li><span>1</span><div><strong>Отмечайте</strong><p>Цикл и самочувствие за 10 секунд.</p></div></li>
+          <li><span>1</span><div><strong>Отмечайте</strong><p>Базовое состояние примерно за 20 секунд.</p></div></li>
           <li><span>2</span><div><strong>Наблюдайте</strong><p>Mira осторожно найдёт повторения.</p></div></li>
           <li><span>3</span><div><strong>Понимайте</strong><p>Смотрите историю или подготовьте факты для врача.</p></div></li>
         </ol>
       </section>
 
+      <section className="pwa-section shell">
+        <div className="pwa-icon"><Smartphone /></div>
+        <div><span className="section-index">PWA ДЛЯ IPHONE И ANDROID</span><h2>Открывается в браузере.<br /><em>Работает как приложение.</em></h2><p>Добавьте Mira на экран «Домой» и открывайте одним касанием. Скачивать приложение из магазина и оплачивать подписку не нужно.</p><div className="pwa-facts"><span><Check /> Полностью бесплатно</span><span><Check /> Без рекламы</span><span><Check /> Все функции доступны сразу</span></div></div>
+        <aside><Download /><strong>Как установить</strong><p>Откройте меню браузера и выберите «На экран Домой» или «Установить приложение».</p></aside>
+      </section>
+
       <section className="privacy shell" id="privacy">
         <div className="privacy-mark"><ShieldCheck /></div>
-        <div><span className="section-index">03 — ПРИВАТНОСТЬ</span><h2>Личное должно<br />оставаться <em>личным.</em></h2><p>Ваш дневник не станет социальной сетью. Вы управляете данными и можете удалить их в любой момент.</p></div>
+        <div><span className="section-index">03 — ПРИВАТНОСТЬ</span><h2>Личное должно<br />оставаться <em>личным.</em></h2><p>История связана только с вашим аккаунтом и хранится в базе Supabase. Браузер не сохраняет постоянную копию данных о здоровье. Вы можете скачать историю или удалить её в любой момент.</p><a className="privacy-link" href="/privacy">Как Mira работает с данными <ArrowRight /></a></div>
+      </section>
+
+      <section className="faq shell" id="faq">
+        <header><span className="section-index">04 — ВОПРОСЫ</span><h2>Коротко о важном.</h2><p>Без мелкого шрифта и скрытых условий.</p></header>
+        <div>{faqs.map(([question, answer]) => <details key={question}><summary>{question}<Plus /></summary><p>{answer}</p></details>)}</div>
       </section>
 
       <section className="final-cta shell">
         <span className="sparkle sparkle-left">✦</span><span className="sparkle sparkle-right">✦</span>
         <div className="eyebrow"><span><Heart /></span> Начните с себя</div>
         <h2>Познакомьтесь со своим<br />циклом <em>по-новому.</em></h2>
-        <p>Первая отметка займёт меньше минуты.</p>
-        <a className="button" href="/register">Создать аккаунт <ArrowRight /></a>
+        <p>Все функции Mira полностью бесплатны. Первая базовая отметка займёт около 20 секунд.</p>
+        <RegisterCta className="button">Создать бесплатный аккаунт <ArrowRight /></RegisterCta>
       </section>
 
-      <footer className="footer shell"><Logo /><p>Трекер цикла и самочувствия</p><div><a href="#privacy">Приватность</a><span>© 2026 Mira</span></div></footer>
+      <footer className="footer shell"><div className="footer-brand"><Logo /><p>Полностью бесплатный трекер цикла и самочувствия.<br />18+ · не медицинская услуга · не метод контрацепции.</p></div><div className="footer-links"><a href="#how">Как работает</a><a href="#faq">Вопросы</a><a href="/privacy">Конфиденциальность</a><a href="/terms">Условия</a><a href="/privacy#operator">Контакты</a><span>© 2026 Mira</span></div></footer>
     </main>
   );
 }

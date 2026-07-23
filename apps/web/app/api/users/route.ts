@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/supabase/auth";
+import { LEGAL_VERSION } from "@/lib/legal";
 
 export const runtime = "nodejs";
 
@@ -134,6 +135,11 @@ export async function POST(request: Request) {
 
   const payload = parsed.data;
   const registeredPrivacyConsent = user.user_metadata?.privacy_policy_consent === true;
+  const registeredHealthDataConsent = user.user_metadata?.health_data_consent === true;
+  const registeredConsentVersion = typeof user.user_metadata?.consent_version === "string" ? user.user_metadata.consent_version : LEGAL_VERSION;
+  const registeredConsentDateValue = typeof user.user_metadata?.consent_accepted_at === "string" ? new Date(user.user_metadata.consent_accepted_at) : new Date();
+  const registeredConsentDate = Number.isNaN(registeredConsentDateValue.getTime()) ? new Date() : registeredConsentDateValue;
+  const registeredConsentsComplete = registeredPrivacyConsent && registeredHealthDataConsent;
   const profile = await prisma.$transaction(async (tx) => {
     await tx.profile.upsert({
       where: { id: user.id },
@@ -151,13 +157,13 @@ export async function POST(request: Request) {
         weightKg: payload.weightKg,
         cycleForecasts: payload.preferences?.cycleForecasts ?? true,
         privateInsights: payload.preferences?.privateInsights ?? false,
-        healthDataConsent: payload.consents?.healthData ?? false,
+        healthDataConsent: payload.consents?.healthData ?? registeredHealthDataConsent,
         privacyConsent: payload.consents?.privacyPolicy ?? registeredPrivacyConsent,
         sensitiveConsent: payload.consents?.sensitiveInsights ?? false,
         firstPromptDismissed: payload.firstPromptDismissed ?? false,
         spotlightStatus: payload.spotlightStatus ?? "pending",
-        consentAcceptedAt: payload.consents?.healthData && (payload.consents?.privacyPolicy ?? registeredPrivacyConsent) ? new Date() : undefined,
-        consentVersion: payload.consents?.healthData && (payload.consents?.privacyPolicy ?? registeredPrivacyConsent) ? "2026-07-22" : undefined,
+        consentAcceptedAt: payload.consents?.healthData && (payload.consents?.privacyPolicy ?? registeredPrivacyConsent) ? new Date() : registeredConsentsComplete ? registeredConsentDate : undefined,
+        consentVersion: payload.consents?.healthData && (payload.consents?.privacyPolicy ?? registeredPrivacyConsent) ? LEGAL_VERSION : registeredConsentsComplete ? registeredConsentVersion : undefined,
       },
       update: {
         email: user.email!,
@@ -178,7 +184,7 @@ export async function POST(request: Request) {
         firstPromptDismissed: payload.firstPromptDismissed,
         spotlightStatus: payload.spotlightStatus,
         consentAcceptedAt: payload.consents?.healthData && payload.consents?.privacyPolicy ? new Date() : undefined,
-        consentVersion: payload.consents?.healthData && payload.consents?.privacyPolicy ? "2026-07-22" : undefined,
+        consentVersion: payload.consents?.healthData && payload.consents?.privacyPolicy ? LEGAL_VERSION : undefined,
       },
     });
 

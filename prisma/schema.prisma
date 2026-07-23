@@ -98,3 +98,13 @@ model ProductEvent {
   @@index([userId, createdAt])
   @@map("product_events")
 }
+
+model PublicProductEvent {
+  id        String   @id @default(cuid())
+  name      String
+  route     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([name, createdAt])
+  @@map("public_product_events")
+}

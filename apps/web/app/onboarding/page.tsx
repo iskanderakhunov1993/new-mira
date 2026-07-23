@@ -18,6 +18,7 @@ export default function OnboardingPage() {
   const [periodLength, setPeriodLength] = useState(5);
   const [cyclePattern, setCyclePattern] = useState<"regular" | "irregular" | "unknown">("regular");
   const [goal, setGoal] = useState("understand");
+  const [consentConfirmed, setConsentConfirmed] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -32,6 +33,7 @@ export default function OnboardingPage() {
       setPeriodLength(profile.periodLength ?? 5);
       setCyclePattern(profile.cyclePattern ?? "regular");
       setGoal(profile.goal ?? "understand");
+      setConsentConfirmed(profile.consents?.healthData === true && profile.consents?.privacyPolicy === true);
       setStep(Math.min(TOTAL_STEPS, Math.max(1, profile.onboardingStep ?? 1)));
       setIsLoading(false);
       if ((profile.onboardingStep ?? 1) === 1) void trackProductEvent("onboarding_started", "/onboarding");
@@ -47,6 +49,7 @@ export default function OnboardingPage() {
     event.preventDefault();
     setError("");
     if (step === 2 && !lastPeriod && !dateUnknown) return setError("Выберите дату или нажмите «Не помню точно»");
+    if (step === 4 && !consentConfirmed) return setError("Подтвердите согласие на обработку данных о цикле и здоровье");
 
     setIsSaving(true);
     try {
@@ -130,6 +133,7 @@ export default function OnboardingPage() {
             <div className="cycle-pattern-options goal-options"><button className={goal === "understand" ? "selected" : ""} type="button" onClick={() => setGoal("understand")}><span><Check /></span>Понимать свой цикл</button><button className={goal === "wellbeing" ? "selected" : ""} type="button" onClick={() => setGoal("wellbeing")}><span><Check /></span>Следить за самочувствием</button><button className={goal === "pms" ? "selected" : ""} type="button" onClick={() => setGoal("pms")}><span><Check /></span>Наблюдать ПМС</button></div>
             {forecast ? <div className="forecast-result"><p>Сегодня примерно <strong>{forecast.cycleDay}-й день цикла</strong>.</p><p>Ориентировочный диапазон: <strong>{formatDate(forecast.rangeStart)} — {formatDate(forecast.rangeEnd)}</strong>.</p></div> : <div className="forecast-result"><p>Первый прогноз появится после отметки начала месячных.</p></div>}
             <p className="forecast-disclaimer">Прогноз не является гарантированной датой и уточняется по мере накопления данных.</p>
+            <label className="consent onboarding-consent"><input type="checkbox" checked={consentConfirmed} onChange={(event) => setConsentConfirmed(event.target.checked)} /><span className="custom-check"><Check /></span><span>Я согласна на обработку данных о цикле и здоровье по <Link href="/privacy" target="_blank">политике конфиденциальности</Link>.</span></label>
           </div>}
 
           {error && <p className="form-error onboarding-error" role="alert">{error}</p>}

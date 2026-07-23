@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addDays, calculateCycle, completedCycles } from "./cycle-engine";
+import { addDays, buildCycleRecords, calculateCycle, completedCycles, periodStarts } from "./cycle-engine";
 
 test("calculates first configured cycle as a range", () => {
   const result = calculateCycle({ entries: [], lastPeriod: "2026-07-05", cycleLength: 28, periodLength: 5, cyclePattern: "regular", today: "2026-07-22" });
@@ -23,6 +23,31 @@ test("builds completed cycles from period starts", () => {
     { date: "2026-01-29", period: "medium" as const, periodStarted: true },
   ];
   assert.deepEqual(completedCycles(entries, "2026-02-01").map((cycle) => cycle.length), [28]);
+});
+
+test("uses explicit period markers when an old period day is missing", () => {
+  const entries = [
+    { date: "2026-01-01", period: "medium" as const, periodStarted: true },
+    { date: "2026-01-03", period: "light" as const },
+    { date: "2026-01-05", period: "light" as const, periodEnded: true },
+    { date: "2026-01-29", period: "medium" as const, periodStarted: true },
+  ];
+
+  assert.deepEqual(periodStarts(entries), ["2026-01-01", "2026-01-29"]);
+  const cycles = buildCycleRecords(entries, "2026-02-01");
+  assert.deepEqual(cycles.map((cycle) => cycle.length), [28, 4]);
+  assert.equal(cycles[0].periodDays, 5);
+});
+
+test("derives observed period duration from explicit start and end dates", () => {
+  const entries = [
+    { date: "2026-01-01", period: "medium" as const, periodStarted: true },
+    { date: "2026-01-05", period: "light" as const, periodEnded: true },
+    { date: "2026-01-29", period: "medium" as const, periodStarted: true },
+  ];
+  const cycles = buildCycleRecords(entries, "2026-02-01");
+
+  assert.equal(cycles[0].periodDays, 5);
 });
 
 test("handles year boundary and missing data", () => {

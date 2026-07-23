@@ -1,14 +1,15 @@
 import { CycleEntry } from "./demo-session";
+import { addDays, buildCycleRecords, calculateCycle, dateDiff, periodStarts as domainPeriodStarts, type CycleRecord as DomainCycleRecord } from "./domain/cycle-engine";
 
-export type CycleRecord = { start: string; end: string; length: number; periodDays: number; current: boolean; entries: CycleEntry[] };
+export type CycleRecord = DomainCycleRecord<CycleEntry>;
 export type PeriodForecast = { latestStart?: string; expectedStart?: string; expectedPeriodDates: string[]; expectedOvulation?: string; fertileWindow: string[]; cycleLength: number; periodLength: number; cycleDay: number; daysUntil: number; uncertaintyDays: number; completedCycles: number; source: "history" | "settings" };
 
 export function daysBetween(first: string, second: string) {
-  return Math.round((new Date(`${second}T12:00:00`).getTime() - new Date(`${first}T12:00:00`).getTime()) / 86400000);
+  return dateDiff(first, second);
 }
 
 export function dateKeyAfter(date: string, offset: number) {
-  const value = new Date(`${date}T12:00:00`); value.setDate(value.getDate() + offset); return value.toISOString().slice(0, 10);
+  return addDays(date, offset);
 }
 
 export function formatCycleDate(date: string) {
@@ -16,23 +17,19 @@ export function formatCycleDate(date: string) {
 }
 
 export function periodStarts(entries: CycleEntry[]) {
-  const dates = entries.filter((entry) => entry.period).map((entry) => entry.date).sort();
-  return dates.filter((date, index) => index === 0 || daysBetween(dates[index - 1], date) > 1);
+  return domainPeriodStarts(entries);
 }
 
 export function buildPeriodForecast(options: { entries: CycleEntry[]; lastPeriod?: string; cycleLength?: number; periodLength?: number; today?: string }): PeriodForecast {
   const today = options.today ?? new Date().toISOString().slice(0, 10);
-  const starts = periodStarts(options.entries);
-  const latestStart = starts.at(-1) ?? options.lastPeriod;
-  const observedLengths = starts.slice(1).map((start, index) => daysBetween(starts[index], start)).filter((length) => length >= 15 && length <= 90).slice(-6);
-  const cycleLength = observedLengths.length ? Math.round(observedLengths.reduce((sum, value) => sum + value, 0) / observedLengths.length) : options.cycleLength ?? 28;
-  const actualPeriodLengths = starts.map((start, index) => { const nextStart = starts[index + 1]; return options.entries.filter((entry) => Boolean(entry.period) && entry.date >= start && (!nextStart || entry.date < nextStart)).length; }).filter((length) => length > 0 && length <= 14).slice(-6);
-  const periodLength = actualPeriodLengths.length ? Math.round(actualPeriodLengths.reduce((sum, value) => sum + value, 0) / actualPeriodLengths.length) : options.periodLength ?? 5;
-  const uncertaintyDays = observedLengths.length >= 3 ? Math.max(1, Math.ceil((Math.max(...observedLengths) - Math.min(...observedLengths)) / 2)) : observedLengths.length ? 2 : 3;
-  const expectedStart = latestStart ? dateKeyAfter(latestStart, cycleLength) : undefined;
+  const core = calculateCycle({ entries: options.entries, lastPeriod: options.lastPeriod, cycleLength: options.cycleLength, periodLength: options.periodLength, today });
+  const cycles = buildCycleRecords(options.entries, today);
+  const observedPeriods = cycles.filter((cycle) => cycle.periodDays > 0 && cycle.periodDays <= 14).map((cycle) => cycle.periodDays).slice(-6);
+  const periodLength = observedPeriods.length ? Math.round(observedPeriods.reduce((sum, length) => sum + length, 0) / observedPeriods.length) : options.periodLength ?? 5;
+  const expectedStart = core.expectedStart;
   const expectedOvulation = expectedStart ? dateKeyAfter(expectedStart, -14) : undefined;
   const fertileWindow = expectedOvulation ? Array.from({ length: 7 }, (_, index) => dateKeyAfter(expectedOvulation, index - 5)) : [];
-  return { latestStart, expectedStart, expectedPeriodDates: expectedStart ? Array.from({ length: periodLength }, (_, index) => dateKeyAfter(expectedStart, index)) : [], expectedOvulation, fertileWindow, cycleLength, periodLength, cycleDay: latestStart ? Math.max(1, daysBetween(latestStart, today) + 1) : 1, daysUntil: expectedStart ? daysBetween(today, expectedStart) : cycleLength, uncertaintyDays, completedCycles: observedLengths.length, source: observedLengths.length ? "history" : "settings" };
+  return { latestStart: core.latestStart, expectedStart, expectedPeriodDates: expectedStart ? Array.from({ length: periodLength }, (_, index) => dateKeyAfter(expectedStart, index)) : [], expectedOvulation, fertileWindow, cycleLength: core.cycleLength, periodLength, cycleDay: core.cycleDay ?? 1, daysUntil: core.daysUntil ?? core.cycleLength, uncertaintyDays: core.uncertaintyDays, completedCycles: core.completedCycles, source: core.completedCycles ? "history" : "settings" };
 }
 
 export function predictedPeriodDates(forecast: PeriodForecast, monthsAhead = 12) {
@@ -58,16 +55,7 @@ export function predictedFertilityDates(forecast: PeriodForecast, monthsAhead = 
 }
 
 export function buildCycles(entries: CycleEntry[], today = new Date().toISOString().slice(0, 10)): CycleRecord[] {
-  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
-  const periodDates = sorted.filter((entry) => entry.period).map((entry) => entry.date);
-  const starts = periodStarts(sorted);
-  return starts.map((start, index) => {
-    const nextStart = starts[index + 1];
-    const current = !nextStart;
-    const end = nextStart ? dateKeyAfter(nextStart, -1) : today;
-    const periodDays = periodDates.filter((date) => date >= start && (!nextStart || date < nextStart)).length;
-    return { start, end, length: daysBetween(start, end) + 1, periodDays, current, entries: sorted.filter((entry) => entry.date >= start && entry.date <= end) };
-  });
+  return buildCycleRecords(entries, today);
 }
 
 export function cycleStatus(cycle: CycleRecord | undefined, completed: CycleRecord[]) {

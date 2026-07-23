@@ -14,7 +14,9 @@ export function addDays(date: string, days: number) {
 
 export function periodStarts(entries: DomainEntry[]) {
   const rows = entries.filter((entry) => entry.period).sort((a, b) => a.date.localeCompare(b.date));
-  return rows.filter((entry, index) => entry.periodStarted || index === 0 || dateDiff(rows[index - 1].date, entry.date) > 1).map((entry) => entry.date);
+  const explicitStarts = rows.filter((entry) => entry.periodStarted).map((entry) => entry.date);
+  if (explicitStarts.length) return explicitStarts;
+  return rows.filter((entry, index) => index === 0 || dateDiff(rows[index - 1].date, entry.date) > 1).map((entry) => entry.date);
 }
 
 export function periodIntervals(entries: DomainEntry[], today?: string) {
@@ -34,19 +36,35 @@ export type CycleSummary = {
   completed: boolean;
 };
 
+export type CycleRecord<T extends DomainEntry = DomainEntry> = CycleSummary & {
+  current: boolean;
+  entries: T[];
+};
+
+export function buildCycleRecords<T extends DomainEntry>(entries: T[], today: string) {
+  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+  const starts = periodStarts(sorted);
+  const intervals = periodIntervals(sorted, today);
+  return starts.map<CycleRecord<T>>((start, index) => {
+    const nextStart = starts[index + 1];
+    const current = !nextStart;
+    const end = nextStart ? addDays(nextStart, -1) : today;
+    const cycleEntries = sorted.filter((entry) => entry.date >= start && entry.date <= end);
+    const interval = intervals.find((item) => item.start === start);
+    const markedPeriodDays = cycleEntries.filter((entry) => entry.period).length;
+    const periodDays = interval?.end ? Math.max(1, dateDiff(start, interval.end) + 1) : markedPeriodDays;
+    return { start, end, length: dateDiff(start, end) + 1, periodDays, completed: !current, current, entries: cycleEntries };
+  });
+}
+
 export function completedCycles(entries: DomainEntry[], today: string) {
-  const starts = periodStarts(entries);
-  return starts.map<CycleSummary>((start, index) => {
-    const next = starts[index + 1];
-    const end = next ? addDays(next, -1) : today;
-    return {
-      start,
-      end,
-      length: dateDiff(start, end) + 1,
-      periodDays: (() => { const interval = periodIntervals(entries).find((item) => item.start === start); return interval?.end ? dateDiff(start, interval.end) + 1 : entries.filter((entry) => entry.period && entry.date >= start && (!next || entry.date < next)).length; })(),
-      completed: Boolean(next),
-    };
-  }).filter((cycle) => cycle.completed);
+  return buildCycleRecords(entries, today).filter((cycle) => cycle.completed).map((cycle) => ({
+    start: cycle.start,
+    end: cycle.end,
+    length: cycle.length,
+    periodDays: cycle.periodDays,
+    completed: cycle.completed,
+  }));
 }
 
 export type CycleForecast = {
@@ -90,7 +108,8 @@ export function calculateCycle(options: {
   const expectedStart = addDays(latestStart, cycleLength);
   const cycleDay = Math.max(1, dateDiff(latestStart, options.today) + 1);
   const daysUntil = dateDiff(options.today, expectedStart);
-  const periodLength = options.periodLength ?? 5;
+  const observedPeriodLengths = buildCycleRecords(options.entries, options.today).filter((cycle) => cycle.periodDays > 0 && cycle.periodDays <= 14).map((cycle) => cycle.periodDays).slice(-6);
+  const periodLength = observedPeriodLengths.length ? Math.round(observedPeriodLengths.reduce((sum, length) => sum + length, 0) / observedPeriodLengths.length) : options.periodLength ?? 5;
   const ovulationDay = Math.max(periodLength + 2, cycleLength - 14);
   const phase = cycleDay <= periodLength ? "menstruation" : Math.abs(cycleDay - ovulationDay) <= 2 ? "ovulation-window" : cycleDay < ovulationDay - 2 ? "follicular" : "luteal";
 

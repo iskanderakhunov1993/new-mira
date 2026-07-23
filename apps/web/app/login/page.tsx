@@ -38,7 +38,7 @@ export default function LoginPage() {
       <form className="auth-form" onSubmit={submit} noValidate>
         <label><span>Email</span><div className="input-wrap"><Mail /><input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></div></label>
         <label><span>Пароль</span><div className="input-wrap"><LockKeyhole /><input name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Ваш пароль" required /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
-        <div className="auth-form-meta"><label className="remember"><input type="checkbox" /> Запомнить меня</label><a href="#">Забыли пароль?</a></div>
+        <div className="auth-form-meta"><span>Вход сохранится на этом устройстве</span><a href="#">Забыли пароль?</a></div>
         {error && <p className="form-error" role="alert">{error}</p>}
         <button className="button auth-submit" type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>Войти <ArrowRight /></button>
       </form>
