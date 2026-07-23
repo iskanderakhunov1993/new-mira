@@ -28,12 +28,16 @@ export function TelegramRuntime() {
       webApp.ready();
     };
     if (window.Telegram?.WebApp) return activate();
-    const script = document.createElement("script");
-    script.src = "https://telegram.org/js/telegram-web-app.js?61";
-    script.async = true;
-    script.onload = activate;
-    document.head.appendChild(script);
-    return () => script.remove();
+    const timer = window.setInterval(() => {
+      if (!window.Telegram?.WebApp) return;
+      window.clearInterval(timer);
+      activate();
+    }, 50);
+    const timeout = window.setTimeout(() => window.clearInterval(timer), 5_000);
+    return () => {
+      window.clearInterval(timer);
+      window.clearTimeout(timeout);
+    };
   }, []);
   return null;
 }
