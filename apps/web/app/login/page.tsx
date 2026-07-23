@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { AuthShell } from "@/components/AuthShell";
 import { loginAccount } from "@/lib/demo-session";
+import { TelegramAuthAction } from "@/components/TelegramAuthAction";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,7 +43,8 @@ export default function LoginPage() {
         {error && <p className="form-error" role="alert">{error}</p>}
         <button className="button auth-submit" type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>Войти <ArrowRight /></button>
       </form>
-      <p className="auth-switch">Нет аккаунта? <Link href="/register">Создать бесплатно</Link></p>
+      <TelegramAuthAction />
+      <p className="auth-switch">Нет аккаунта? <Link href="/register">Создать аккаунт</Link></p>
       <p className="auth-demo-note"><LockKeyhole /> Вход защищён Supabase Auth</p>
     </AuthShell>
   );

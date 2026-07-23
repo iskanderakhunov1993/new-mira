@@ -117,7 +117,7 @@ function loadProfile(userId: string) {
 
 export async function GET() {
   const user = await getAuthenticatedUser();
-  if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const profile = await loadProfile(user.id);
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
@@ -126,7 +126,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const user = await getAuthenticatedUser();
-  if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const parsed = profileSchema.safeParse(await request.json());
   if (!parsed.success) {
@@ -145,7 +145,7 @@ export async function POST(request: Request) {
       where: { id: user.id },
       create: {
         id: user.id,
-        email: user.email!,
+        email: user.email,
         name: payload.name,
         onboardingComplete: payload.onboardingComplete ?? false,
         onboardingStep: payload.onboardingStep ?? 1,
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
         consentVersion: payload.consents?.healthData && (payload.consents?.privacyPolicy ?? registeredPrivacyConsent) ? LEGAL_VERSION : registeredConsentsComplete ? registeredConsentVersion : undefined,
       },
       update: {
-        email: user.email!,
+        email: user.email,
         name: payload.name,
         onboardingComplete: payload.onboardingComplete,
         onboardingStep: payload.onboardingStep,
@@ -200,6 +200,11 @@ export async function POST(request: Request) {
 export async function DELETE() {
   const user = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (user.provider === "telegram") {
+    await prisma.profile.deleteMany({ where: { id: user.id } });
+    return NextResponse.json({ success: true });
+  }
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

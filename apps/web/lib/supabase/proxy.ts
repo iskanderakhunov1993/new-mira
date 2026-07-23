@@ -4,6 +4,7 @@ import { authCookieOptions } from "@/lib/supabase/cookie-options";
 
 const protectedPaths = ["/today", "/track", "/check-in", "/period", "/concerns", "/result", "/diary", "/calendar", "/analytics", "/insights", "/profile", "/onboarding"];
 const authPaths = ["/login", "/register"];
+const telegramSessionCookie = "mira_tg_session";
 
 function copySessionCookies(source: NextResponse, target: NextResponse) {
   source.cookies.getAll().forEach((cookie) => target.cookies.set(cookie));
@@ -34,17 +35,18 @@ export async function updateSession(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
+  const hasTelegramSession = Boolean(request.cookies.get(telegramSessionCookie)?.value);
   const isProtected = protectedPaths.some((path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`));
   const isAuthPage = authPaths.includes(request.nextUrl.pathname);
 
-  if (isProtected && !user) {
+  if (isProtected && !user && !hasTelegramSession) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return copySessionCookies(response, NextResponse.redirect(loginUrl));
   }
 
-  if (isAuthPage && user) {
+  if (isAuthPage && (user || hasTelegramSession)) {
     const appUrl = request.nextUrl.clone();
     appUrl.pathname = "/today";
     appUrl.search = "";

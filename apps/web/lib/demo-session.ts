@@ -236,6 +236,7 @@ export async function syncProfileFromServer(): Promise<MiraProfile | null> {
 
 export async function signOutAccount(): Promise<void> {
   memoryProfile = null;
+  await fetch("/api/auth/telegram", { method: "DELETE" }).catch(() => undefined);
   const supabase = createClient();
   await supabase.auth.signOut();
 }

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Bug, Check, ChevronRight, Database, Download, Eye, FileHeart, HandHeart, Lightbulb, LogOut, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
 import { clearHealthHistory, deleteLocalProfile, getAssessments, getProfile, MiraProfile, saveProfile, signOutAccount } from "@/lib/demo-session";
 import { PwaInstallAction } from "@/components/PwaInstallAction";
+import { TelegramLinkAction } from "@/components/TelegramLinkAction";
 
 type ConfirmAction = "history" | "account" | null;
 type SupportInfo = "bug" | "idea" | "donate" | null;
@@ -83,13 +84,13 @@ export default function ProfilePage() {
   return <main className="profile-page"><div className="profile-shell">
     <header className="profile-top"><Link href="/today" aria-label="Вернуться на главную"><ArrowLeft /></Link><div><small>Аккаунт</small><h1>Профиль</h1></div><span><UserRound /></span></header>
 
-    <section className="profile-identity"><span>{(profile?.name ?? profile?.email ?? "M").slice(0, 1).toUpperCase()}</span><div><h2>{profile?.name || "Пользователь Mira"}</h2><p>{profile?.email || "Профиль загружается"}</p></div><ShieldCheck /></section>
+    <section className="profile-identity"><span>{(profile?.name ?? profile?.email ?? "M").slice(0, 1).toUpperCase()}</span><div><h2>{profile?.name || "Пользователь Mira"}</h2><p>{profile ? (profile.email || "Telegram Mini App") : "Профиль загружается"}</p></div><ShieldCheck /></section>
 
     <section className="profile-section"><header><div><h2>Основные данные</h2><p>Используются для персонального прогноза цикла.</p></div></header><div className="profile-fields"><label><span>Имя</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Как к вам обращаться" /></label><div><label><span>Средняя длина цикла</span><select value={cycleLength} onChange={(event) => setCycleLength(Number(event.target.value))}>{Array.from({ length: 25 }, (_, index) => index + 21).map((value) => <option value={value} key={value}>{value} дней</option>)}</select></label><label><span>Месячные обычно идут</span><select value={periodLength} onChange={(event) => setPeriodLength(Number(event.target.value))}>{Array.from({ length: 9 }, (_, index) => index + 2).map((value) => <option value={value} key={value}>{value} дней</option>)}</select></label></div></div><button className={`profile-save ${saved ? "saved" : ""}`} onClick={updateProfile}>{saved ? <><Check />Сохранено</> : "Сохранить изменения"}</button></section>
 
     <section className="profile-section profile-list"><header><div><h2>Настройки Mira</h2><p>Выберите, как приложение использует ваши отметки.</p></div></header><button onClick={() => updatePreference("cycleForecasts")}><i><Eye /></i><span><strong>Прогнозы цикла</strong><small>Показывать предполагаемые даты</small></span><b className={(profile?.preferences?.cycleForecasts ?? true) ? "on" : ""}><em /></b></button><button onClick={() => updatePreference("privateInsights")}><i><ShieldCheck /></i><span><strong>Чувствительные данные в подсказках</strong><small>Учитывать интимные отметки в личных наблюдениях</small></span><b className={(profile?.preferences?.privateInsights ?? false) ? "on" : ""}><em /></b></button><button onClick={restartSpotlight}><i><UserRound /></i><span><strong>Повторить знакомство</strong><small>Снова показать подсказку первой отметки</small></span><ChevronRight /></button></section>
 
-    <section className="profile-section profile-list profile-install"><header><div><h2>Приложение</h2><p>Установите Mira на устройство и открывайте её без вкладки браузера.</p></div></header><PwaInstallAction /></section>
+    <section className="profile-section profile-list profile-install"><header><div><h2>Приложение</h2><p>Открывайте одну Mira в PWA и Telegram — отметки синхронизируются через ваш профиль.</p></div></header><PwaInstallAction /><TelegramLinkAction /></section>
 
     <section className="profile-section profile-list"><header><div><h2>Данные и приватность</h2><p>Профиль и записи хранятся только в защищённой базе аккаунта.</p></div></header><Link href="/analytics/report"><i><FileHeart /></i><span><strong>Отчёт для врача</strong><small>Настроить состав и сохранить PDF</small></span><ChevronRight /></Link><button onClick={() => void exportData()}><i><Download /></i><span><strong>Скачать все данные</strong><small>Файл JSON · {entryCount} отметок</small></span><ChevronRight /></button><div className="profile-storage"><Database /><p><strong>Supabase PostgreSQL</strong><span>Браузер не хранит постоянную копию данных здоровья.</span></p></div></section>
 
