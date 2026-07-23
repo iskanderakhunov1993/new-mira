@@ -17,7 +17,7 @@ const requestSchema = z.object({
 export async function GET(request: Request) {
   const botUsername = process.env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, "");
   if (!botUsername) return NextResponse.redirect(new URL("/telegram", request.url));
-  return NextResponse.redirect(`https://t.me/${botUsername}?startapp=register`);
+  return NextResponse.redirect(`https://t.me/${botUsername}`);
 }
 
 export async function POST(request: Request) {
