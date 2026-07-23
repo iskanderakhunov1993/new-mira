@@ -18,13 +18,36 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#fbf8fc" };
 
+const telegramBootstrap = `
+(() => {
+  const params = new URLSearchParams(window.location.search);
+  const initData = params.get("tgWebAppData") || "";
+  const postEvent = (eventType, eventData = {}) => {
+    if (window.TelegramWebviewProxy?.postEvent) {
+      window.TelegramWebviewProxy.postEvent(eventType, JSON.stringify(eventData));
+      return;
+    }
+    if (window.parent !== window) {
+      window.parent.postMessage(JSON.stringify({ eventType, eventData }), "*");
+    }
+  };
+  window.Telegram = window.Telegram || {};
+  window.Telegram.WebApp = window.Telegram.WebApp || {
+    initData,
+    ready: () => postEvent("web_app_ready"),
+    expand: () => postEvent("web_app_expand"),
+    setHeaderColor: (color) => postEvent("web_app_set_header_color", { color }),
+    setBackgroundColor: (color) => postEvent("web_app_set_background_color", { color }),
+  };
+  window.Telegram.WebApp.ready();
+})();
+`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ru" data-scroll-behavior="smooth">
       <head>
-        {/* Telegram requires its SDK before application scripts so WebApp.ready() can dismiss the native loader. */}
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script src="https://telegram.org/js/telegram-web-app.js?61" />
+        <script dangerouslySetInnerHTML={{ __html: telegramBootstrap }} />
       </head>
       <body className={`${manrope.variable} ${onest.variable}`}>
         <PwaRegister /><AuthSessionRestorer /><TelegramRuntime />{children}
