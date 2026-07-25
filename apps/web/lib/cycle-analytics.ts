@@ -1,5 +1,5 @@
 import { CycleEntry } from "./demo-session";
-import { addDays, buildCycleRecords, calculateCycle, dateDiff, periodStarts as domainPeriodStarts, type CycleRecord as DomainCycleRecord } from "./domain/cycle-engine";
+import { addDays, buildCycleHistorySummary as domainBuildCycleHistorySummary, buildCycleRecords, calculateCycle, dateDiff, periodStarts as domainPeriodStarts, type CycleRecord as DomainCycleRecord } from "./domain/cycle-engine";
 
 export type CycleRecord = DomainCycleRecord<CycleEntry>;
 export type PeriodForecast = { latestStart?: string; expectedStart?: string; expectedPeriodDates: string[]; expectedOvulation?: string; fertileWindow: string[]; cycleLength: number; periodLength: number; cycleDay: number; daysUntil: number; uncertaintyDays: number; completedCycles: number; source: "history" | "settings" };
@@ -56,6 +56,10 @@ export function predictedFertilityDates(forecast: PeriodForecast, monthsAhead = 
 
 export function buildCycles(entries: CycleEntry[], today = new Date().toISOString().slice(0, 10)): CycleRecord[] {
   return buildCycleRecords(entries, today);
+}
+
+export function buildCycleHistorySummary(entries: CycleEntry[], today = new Date().toISOString().slice(0, 10)) {
+  return domainBuildCycleHistorySummary(entries, today);
 }
 
 export function cycleStatus(cycle: CycleRecord | undefined, completed: CycleRecord[]) {

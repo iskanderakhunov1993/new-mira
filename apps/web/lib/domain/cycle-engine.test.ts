@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addDays, buildCycleRecords, calculateCycle, completedCycles, periodStarts } from "./cycle-engine";
+import { addDays, buildCycleHistorySummary, buildCycleRecords, calculateCycle, completedCycles, periodStarts } from "./cycle-engine";
 
 test("calculates first configured cycle as a range", () => {
   const result = calculateCycle({ entries: [], lastPeriod: "2026-07-05", cycleLength: 28, periodLength: 5, cyclePattern: "regular", today: "2026-07-22" });
@@ -48,6 +48,36 @@ test("derives observed period duration from explicit start and end dates", () =>
   const cycles = buildCycleRecords(entries, "2026-02-01");
 
   assert.equal(cycles[0].periodDays, 5);
+});
+
+test("builds one cycle summary for Today and Analytics", () => {
+  const entries = [
+    { date: "2026-01-01", period: "medium" as const, periodStarted: true },
+    { date: "2026-01-04", period: "light" as const, periodEnded: true },
+    { date: "2026-01-29", period: "medium" as const, periodStarted: true },
+    { date: "2026-02-02", period: "light" as const, periodEnded: true },
+    { date: "2026-02-28", period: "medium" as const, periodStarted: true },
+    { date: "2026-03-04", period: "light" as const, periodEnded: true },
+    { date: "2026-03-30", period: "medium" as const, periodStarted: true },
+  ];
+  const summary = buildCycleHistorySummary(entries, "2026-04-03");
+
+  assert.equal(summary.latestCompleted?.length, 30);
+  assert.equal(summary.latestCompleted?.periodDays, 5);
+  assert.deepEqual(summary.recentRange, { min: 28, max: 30, sampleSize: 3 });
+  assert.equal(summary.remainingForRange, 0);
+  assert.equal(summary.current?.length, 5);
+});
+
+test("does not invent a range before three completed cycles", () => {
+  const entries = [
+    { date: "2026-01-01", period: "medium" as const, periodStarted: true },
+    { date: "2026-01-29", period: "medium" as const, periodStarted: true },
+  ];
+  const summary = buildCycleHistorySummary(entries, "2026-02-01");
+
+  assert.equal(summary.recentRange, undefined);
+  assert.equal(summary.remainingForRange, 2);
 });
 
 test("handles year boundary and missing data", () => {

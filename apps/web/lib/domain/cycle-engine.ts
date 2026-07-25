@@ -57,6 +57,30 @@ export function buildCycleRecords<T extends DomainEntry>(entries: T[], today: st
   });
 }
 
+export function buildCycleHistorySummary<T extends DomainEntry>(entries: T[], today: string) {
+  const cycles = buildCycleRecords(entries, today);
+  const completed = cycles.filter((cycle) => cycle.completed);
+  const current = cycles.find((cycle) => cycle.current);
+  const latestCompleted = completed.at(-1);
+  const recentForRange = completed.slice(-3);
+  const recentRange = recentForRange.length === 3
+    ? {
+        min: Math.min(...recentForRange.map((cycle) => cycle.length)),
+        max: Math.max(...recentForRange.map((cycle) => cycle.length)),
+        sampleSize: recentForRange.length,
+      }
+    : undefined;
+
+  return {
+    cycles,
+    completed,
+    current,
+    latestCompleted,
+    recentRange,
+    remainingForRange: Math.max(0, 3 - completed.length),
+  };
+}
+
 export function completedCycles(entries: DomainEntry[], today: string) {
   return buildCycleRecords(entries, today).filter((cycle) => cycle.completed).map((cycle) => ({
     start: cycle.start,

@@ -7,7 +7,7 @@ import { CalendarDays, ChevronRight, CircleUserRound, Droplet, Heart, Plus, Spar
 import { getProfile, MiraProfile } from "@/lib/demo-session";
 import { AppTabBar } from "@/components/AppTabBar";
 import { Spotlight } from "@/components/Spotlight";
-import { buildPeriodForecast } from "@/lib/cycle-analytics";
+import { buildCycleHistorySummary, buildPeriodForecast } from "@/lib/cycle-analytics";
 import { buildPersonalization } from "@/lib/personalization";
 import { cyclePhaseForDate } from "@/lib/domain/cycle-phase";
 import { buildTodayCards, type TodayCard } from "@/lib/domain/today-cards";
@@ -20,6 +20,14 @@ function dayWord(value: number) {
   if (value % 10 === 1) return "день";
   if (value % 10 >= 2 && value % 10 <= 4) return "дня";
   return "дней";
+}
+
+function cycleWord(value: number) {
+  const lastTwo = value % 100;
+  if (lastTwo >= 11 && lastTwo <= 14) return "циклов";
+  if (value % 10 === 1) return "цикл";
+  if (value % 10 >= 2 && value % 10 <= 4) return "цикла";
+  return "циклов";
 }
 
 export default function TodayPage() {
@@ -55,6 +63,7 @@ export default function TodayPage() {
   const today = new Date();
   const dates = Array.from({ length: 7 }, (_, index) => { const date = new Date(today); date.setDate(today.getDate() + index - 3); return date; });
   const personalization = useMemo(() => buildPersonalization(profile?.entries ?? []), [profile]);
+  const cycleHistory = useMemo(() => buildCycleHistorySummary(profile?.entries ?? []), [profile]);
   const nextPattern = personalization.completed.length >= 3 ? personalization.patterns.find((pattern) => pattern.typicalDay >= cycle.day && pattern.typicalDay <= cycle.day + 7) : undefined;
   const todayKey = today.toISOString().slice(0, 10);
   const todayPhase = cyclePhaseForDate({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, date: todayKey });
@@ -79,6 +88,14 @@ export default function TodayPage() {
         <section className="today-quick-actions flo-actions" aria-label="Быстрые отметки"><Link className="primary" href="/calendar?action=period"><span><Droplet /></span><strong>Отметить<br />месячные</strong></Link><Link href="/diary?section=symptoms"><span><Plus /></span><strong>Симптомы</strong></Link><Link href="/diary?section=intimacy"><span><Heart /></span><strong>Секс</strong></Link></section>
         <section className="today-safety-links" aria-label="Что вас беспокоит"><h2>Что вас беспокоит?</h2><div>{cycle.until < -cycle.uncertaintyDays && <Link href="/concerns/delay">Месячные не начались</Link>}<Link href="/concerns/pain">Сильная боль</Link><Link href="/concerns/heavy-flow">Обильные месячные</Link></div></section>
         <section className="daily-advice"><div className="daily-advice-heading"><h2>Полезное сегодня</h2><Link href="/knowledge">Все материалы</Link></div><div className="daily-advice-scroll">{todayCards.map((card) => { const accessiblePrefix = card.kind === "cycle" ? "Прогноз" : card.kind === "observation" ? "Наблюдение недели" : card.eyebrow; return <Link aria-label={`${accessiblePrefix}: ${card.title}`} className={`advice-card advice-${card.tone} advice-card-minimal`} href={card.href} key={card.kind}><h3>{card.title}</h3></Link>; })}</div></section>
+        <section className="today-cycles-summary" aria-labelledby="today-cycles-title">
+          <div className="today-cycles-heading"><h2 id="today-cycles-title">Мои циклы</h2><Link href="/analytics">Подробнее <ChevronRight /></Link></div>
+          {cycleHistory.latestCompleted ? <Link className="today-cycles-card" href="/analytics" aria-label="Открыть историю и динамику циклов">
+            <div><span>Длина предыдущего цикла</span><strong>{cycleHistory.latestCompleted.length} {dayWord(cycleHistory.latestCompleted.length)}</strong></div>
+            <div><span>Месячные в предыдущем цикле</span><strong>{cycleHistory.latestCompleted.periodDays} {dayWord(cycleHistory.latestCompleted.periodDays)}</strong></div>
+            <div><span>Диапазон длины цикла</span>{cycleHistory.recentRange ? <><strong>{cycleHistory.recentRange.min}–{cycleHistory.recentRange.max} {dayWord(cycleHistory.recentRange.max)}</strong><small>Последние 3 завершённых цикла</small></> : <><strong>Ещё {cycleHistory.remainingForRange} {cycleWord(cycleHistory.remainingForRange)}</strong><small>Диапазон появится после 3 завершённых циклов</small></>}</div>
+          </Link> : <div className="today-cycles-empty"><strong>История пока собирается</strong><p>Отметьте начало следующих месячных, чтобы появился первый завершённый цикл.</p><Link href="/calendar?action=period">Отметить месячные</Link></div>}
+        </section>
       </div>
       <AppTabBar active="today" />
       {showSpotlight && <Spotlight onClose={() => setShowSpotlight(false)} />}

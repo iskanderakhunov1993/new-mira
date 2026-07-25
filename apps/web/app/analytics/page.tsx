@@ -6,7 +6,7 @@ import { CalendarDays, ChevronRight, Droplet, FileHeart, HeartPulse, Sparkles, T
 import { AppTabBar } from "@/components/AppTabBar";
 import { AppPageState } from "@/components/AppPageState";
 import { getProfile, MiraProfile } from "@/lib/demo-session";
-import { buildCycles, CycleRecord, daysBetween, formatCycleDate } from "@/lib/cycle-analytics";
+import { buildCycleHistorySummary, CycleRecord, daysBetween, formatCycleDate } from "@/lib/cycle-analytics";
 
 const flowLabels = { spotting: "Мажущие", light: "Слабые", medium: "Средние", heavy: "Обильные" } as const;
 
@@ -111,15 +111,12 @@ export default function AnalyticsPage() {
   };
   useEffect(() => { void getProfile().then((nextProfile) => { setProfile(nextProfile); setLoadState("ready"); }).catch(() => setLoadState("error")); }, []);
 
-  const cycles = useMemo(() => buildCycles(profile?.entries ?? []), [profile]);
-  const completed = cycles.filter((cycle) => !cycle.current);
-  const current = cycles.find((cycle) => cycle.current);
+  const cycleHistory = useMemo(() => buildCycleHistorySummary(profile?.entries ?? []), [profile]);
+  const { cycles, completed, current, latestCompleted, recentRange } = cycleHistory;
   const chartCycles = completed.slice(-6);
   const recentTrackedCycles = cycles.slice(-3);
-  const latestCompleted = completed.at(-1);
-  const personalRangeCycles = completed.slice(-3);
-  const personalRange = personalRangeCycles.length >= 3
-    ? `${Math.min(...personalRangeCycles.map((cycle) => cycle.length))}–${Math.max(...personalRangeCycles.map((cycle) => cycle.length))} дней`
+  const personalRange = recentRange
+    ? `${recentRange.min}–${recentRange.max} дней`
     : "—";
   const rhythm = getRhythmInsight(completed);
 
@@ -129,7 +126,7 @@ export default function AnalyticsPage() {
   return <main className="analytics-page cycles-product-page"><div className="analytics-shell"><header className="analytics-header"><div><small>История и динамика</small><h1>Мой цикл</h1><p>Факты и сравнение последних циклов.</p></div><span><TrendingUp /></span></header>
     {!cycles.length ? <section className="analytics-empty"><Sparkles /><h2>Пока нет завершённых циклов</h2><p>Отметьте начало месячных в календаре — здесь появится история.</p><Link href="/calendar?action=period">Отметить месячные</Link></section> : <>
       <section className={`cycle-status-card ${rhythm.tone}`}><Sparkles /><div><small>Ваш ритм</small><h2>{rhythm.title}</h2><p>{rhythm.text}</p><span>{rhythm.basis}</span></div></section>
-      <section className="cycle-summary-grid"><article><CalendarDays /><strong>{latestCompleted ? formatDays(latestCompleted.length) : "—"}</strong><span>предыдущий цикл</span></article><article><Droplet /><strong>{latestCompleted?.periodDays ? formatDays(latestCompleted.periodDays) : "—"}</strong><span>отмеченные месячные</span></article><article><TrendingUp /><strong>{personalRange}</strong><span>{personalRangeCycles.length >= 3 ? "диапазон последних 3 циклов" : "появится после 3 циклов"}</span></article></section>
+      <section className="cycle-summary-grid"><article><CalendarDays /><strong>{latestCompleted ? formatDays(latestCompleted.length) : "—"}</strong><span>предыдущий цикл</span></article><article><Droplet /><strong>{latestCompleted?.periodDays ? formatDays(latestCompleted.periodDays) : "—"}</strong><span>отмеченные месячные</span></article><article><TrendingUp /><strong>{personalRange}</strong><span>{recentRange ? "диапазон последних 3 циклов" : "появится после 3 циклов"}</span></article></section>
       <section className="cycle-history-preview"><header><h2>История циклов</h2><Link href="/analytics/cycles">Все циклы <ChevronRight /></Link></header><div>{[...(current ? [current] : []), ...completed.slice(-2).reverse()].map((cycle) => <Link href={`/analytics/cycles/${cycle.start}`} key={cycle.start}><div><strong>{cycle.current ? `Текущий цикл: ${cycle.length}-й день` : formatDays(cycle.length)}</strong><span>{cycle.current ? `Начался ${formatCycleDate(cycle.start)}` : `${formatCycleDate(cycle.start)} — ${formatCycleDate(cycle.end)}`}</span><CycleDots cycle={cycle} /></div><ChevronRight /></Link>)}</div></section>
       <section className="cycle-dynamics-card redesigned"><header><div><small>Только завершённые циклы</small><h2>Динамика длины цикла</h2></div><span>{chartCycles.length} из истории</span></header><CycleChart cycles={chartCycles} /><footer><strong>{rhythm.title}</strong><span>{chartCycles.length >= 2 ? `${rhythm.text} Нажмите на точку, чтобы открыть цикл.` : "Динамика появится после второго завершённого цикла."}</span></footer></section>
       <details className="cycle-more-data"><summary>Подробные отметки <ChevronRight /></summary><section className="p1-analytics-card"><header><div><small>Фактические данные</small><h2>Интенсивность месячных</h2><p>Сравнение последних циклов по дням.</p></div><span><Droplet /></span></header><FlowHeatmap cycles={recentTrackedCycles} /></section><section className="p1-analytics-card"><header><div><small>Фактические данные</small><h2>Боль по дням цикла</h2><p>Чем насыщеннее точка, тем сильнее отмеченная боль.</p></div><span className="pain"><HeartPulse /></span></header><PainMap cycles={recentTrackedCycles} /></section></details>
