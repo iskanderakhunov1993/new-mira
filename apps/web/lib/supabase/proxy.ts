@@ -13,6 +13,21 @@ function copySessionCookies(source: NextResponse, target: NextResponse) {
 }
 
 export async function updateSession(request: NextRequest) {
+  const localDemoRequested = request.nextUrl.searchParams.get("demo") === "1";
+  const localDemoEnabled = process.env.NODE_ENV === "development"
+    && (localDemoRequested || request.cookies.get("mira-local-demo")?.value === "1");
+  if (localDemoEnabled) {
+    const demoResponse = NextResponse.next({ request });
+    if (localDemoRequested) {
+      demoResponse.cookies.set("mira-local-demo", "1", {
+        httpOnly: false,
+        sameSite: "lax",
+        path: "/",
+      });
+    }
+    return demoResponse;
+  }
+
   let response = NextResponse.next({ request });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
