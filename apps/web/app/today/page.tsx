@@ -7,8 +7,9 @@ import { Activity, CalendarDays, ChevronRight, CircleUserRound, Droplet, GlassWa
 import { getProfile, MiraProfile } from "@/lib/demo-session";
 import { AppTabBar } from "@/components/AppTabBar";
 import { Spotlight } from "@/components/Spotlight";
-import { buildCycleHistorySummary, buildCycles, buildPeriodForecast, formatCycleDate } from "@/lib/cycle-analytics";
+import { buildCycleHistorySummary, buildCycles, formatCycleDate } from "@/lib/cycle-analytics";
 import { buildPersonalization } from "@/lib/personalization";
+import { calculateCycle } from "@/lib/domain/cycle-engine";
 import { cyclePhaseForDate } from "@/lib/domain/cycle-phase";
 import { buildTodayCards, type TodayCard } from "@/lib/domain/today-cards";
 import { buildDailyRecommendations } from "@/lib/domain/daily-recommendations";
