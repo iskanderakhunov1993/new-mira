@@ -1729,6 +1729,16 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .concern-shell header small { color: #a34d7c; font-size: 8px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
 .concern-shell header h1 { margin: 4px 0 0; font-size: 26px; }
 .concern-lead { margin: 18px 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.concern-picker .concern-lead { max-width: 500px; margin: 20px 0 16px; }
+.concern-choice-list { display: grid; gap: 10px; }
+.concern-choice { min-height: 94px; display: grid; grid-template-columns: 52px 1fr 20px; align-items: center; gap: 14px; padding: 18px; border-radius: 24px; background: white; box-shadow: 0 10px 28px rgba(72,45,64,.055); }
+.concern-choice > span { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 17px; color: #9a4d78; background: #f7e8ef; }
+.concern-choice-flow > span { color: #a5436c; background: #fae4ec; }
+.concern-choice-delay > span { color: #75608d; background: #eee8f4; }
+.concern-choice svg { width: 22px; }
+.concern-choice > svg { width: 18px; color: #aaa0a7; }
+.concern-choice h2 { margin: 0; font-size: 16px; }
+.concern-choice p { margin: 5px 0 0; color: var(--muted); font-size: 9px; line-height: 1.45; }
 .concern-field,.concern-card { display: block; margin-top: 12px; padding: 20px; border-radius: 24px; background: #fff; }
 .concern-field > span,.concern-card label > span { display: block; margin-bottom: 8px; color: #8d496f; font-size: 9px; font-weight: 800; }
 .concern-field input,.concern-card select { width: 100%; min-height: 44px; padding: 10px 12px; border: 0; border-radius: 14px; outline: 0; background: #f7f4f5; }
@@ -1737,6 +1747,7 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .concern-options { display: flex; flex-wrap: wrap; gap: 7px; }
 .concern-options button { min-height: 40px; padding: 8px 13px; border: 1px solid transparent; border-radius: 999px; color: #655b61; background: #f7f3f5; font-size: 9px; font-weight: 800; }
 .concern-options button.selected { color: #963f70; border-color: #e4a3c1; background: #fae9f1; }
+.concern-impact-effects { margin-top: 12px; }
 .concern-range { display: flex; align-items: center; justify-content: space-between; }.concern-range h2 { margin: 0; }.concern-range strong { color: #a54277; font-size: 12px; }.concern-card input[type="range"] { width: 100%; margin-top: 14px; accent-color: #c7558b; }
 .concern-checks { display: grid; gap: 9px; }.concern-checks label { display: flex; align-items: center; gap: 9px; padding: 11px; border-radius: 14px; background: #f8f5f6; }.concern-checks input { width: 18px; height: 18px; accent-color: #c7558b; }.concern-checks label > span { margin: 0; color: #5d535a; }
 .concern-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; }.concern-grid label { margin: 0; }.concern-grid label:last-child { grid-column: 1 / -1; }

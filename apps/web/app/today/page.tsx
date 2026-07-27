@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ChevronRight, CircleUserRound, Droplet, Heart, Plus, Sparkles, TrendingUp } from "lucide-react";
+import { CalendarDays, ChevronRight, CircleUserRound, Droplet, Plus, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
 import { getProfile, MiraProfile } from "@/lib/demo-session";
 import { AppTabBar } from "@/components/AppTabBar";
 import { Spotlight } from "@/components/Spotlight";
@@ -85,7 +85,7 @@ export default function TodayPage() {
           {nextPattern ? <Link className="today-pattern" href={`/insights/symptoms/${encodeURIComponent(nextPattern.name)}`}><Sparkles /><div><small>Ближайшие 7 дней · наблюдение</small><h2>Возможен симптом: {nextPattern.name}</h2><p>Он повторялся в {nextPattern.matchedCycles} из 3 циклов примерно на {nextPattern.typicalDay}-й день.</p></div><ChevronRight /></Link> : <Link className="today-pattern quiet" href="/insights"><Sparkles /><div><small>Ближайшие 7 дней</small><h2>Нет повторяющихся симптомов</h2><p>Продолжайте отмечать самочувствие — прогноз станет точнее.</p></div><ChevronRight /></Link>}
           {personalization.currentComparison && <Link className={`today-comparison ${personalization.currentComparison.tone}`} href="/insights"><TrendingUp /><div><small>Текущий и типичный цикл</small><h2>{personalization.currentComparison.label}</h2><p>{personalization.currentComparison.text}</p></div><ChevronRight /></Link>}
         </section>}
-        <section className="today-quick-actions flo-actions" aria-label="Быстрые отметки"><Link className="primary" href="/calendar?action=period"><span><Droplet /></span><strong>Отметить<br />месячные</strong></Link><Link href="/diary?section=symptoms"><span><Plus /></span><strong>Симптомы</strong></Link><Link href="/diary?section=intimacy"><span><Heart /></span><strong>Секс</strong></Link></section>
+        <section className="today-quick-actions flo-actions" aria-label="Быстрые отметки"><Link className="primary" href="/calendar?action=period"><span><Droplet /></span><strong>Отметить<br />месячные</strong></Link><Link href="/diary?section=symptoms"><span><Plus /></span><strong>Симптомы</strong></Link><Link href="/concerns"><span><ShieldAlert /></span><strong>Мне<br />плохо</strong></Link></section>
         <section className="today-safety-links" aria-label="Что вас беспокоит"><h2>Что вас беспокоит?</h2><div>{cycle.until < -cycle.uncertaintyDays && <Link href="/concerns/delay">Месячные не начались</Link>}<Link href="/concerns/pain">Сильная боль</Link><Link href="/concerns/heavy-flow">Обильные месячные</Link></div></section>
         <section className="daily-advice"><div className="daily-advice-heading"><h2>Полезное сегодня</h2><Link href="/knowledge">Все материалы</Link></div><div className="daily-advice-scroll">{todayCards.map((card) => { const accessiblePrefix = card.kind === "cycle" ? "Прогноз" : card.kind === "observation" ? "Наблюдение недели" : card.eyebrow; return <Link aria-label={`${accessiblePrefix}: ${card.title}`} className={`advice-card advice-${card.tone} advice-card-minimal`} href={card.href} key={card.kind}><h3>{card.title}</h3></Link>; })}</div></section>
         <section className="today-cycles-summary" aria-labelledby="today-cycles-title">

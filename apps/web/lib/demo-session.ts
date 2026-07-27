@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import type { AssessmentAnswers, AssessmentType, HealthAssessment } from "@/lib/domain/assessment";
+import { evaluateAssessment, type AssessmentAnswers, type AssessmentType, type HealthAssessment } from "@/lib/domain/assessment";
 
 export type MiraProfile = {
   email?: string;
@@ -217,6 +217,10 @@ export async function deletePeriod(start: string) {
 }
 
 export async function getAssessments(): Promise<HealthAssessment[]> {
+  if (isLocalDemoMode()) {
+    const profile = memoryProfile ?? await getProfile();
+    return profile?.assessments ?? [];
+  }
   return await fetchJson("/api/assessments") as unknown as HealthAssessment[];
 }
 
@@ -225,10 +229,23 @@ export async function getAssessment(id: string): Promise<HealthAssessment> {
 }
 
 export async function saveAssessment(input: { date: string; type: AssessmentType; answers: AssessmentAnswers }): Promise<HealthAssessment> {
+  if (isLocalDemoMode()) {
+    const profile = memoryProfile ?? await getProfile();
+    if (!profile) throw new Error("Профиль не найден");
+    const now = new Date().toISOString();
+    const assessment: HealthAssessment = { id: `demo-${Date.now()}`, ...input, resultCode: evaluateAssessment(input.type, input.answers), createdAt: now, updatedAt: now };
+    memoryProfile = { ...profile, assessments: [assessment, ...(profile.assessments ?? [])] };
+    return assessment;
+  }
   return await fetchJson("/api/assessments", { method: "POST", body: JSON.stringify(input) }) as unknown as HealthAssessment;
 }
 
 export async function deleteAssessment(id: string): Promise<void> {
+  if (isLocalDemoMode()) {
+    const profile = memoryProfile ?? await getProfile();
+    if (profile) memoryProfile = { ...profile, assessments: (profile.assessments ?? []).filter((assessment) => assessment.id !== id) };
+    return;
+  }
   await fetchJson(`/api/assessments/${id}`, { method: "DELETE" });
 }
 
