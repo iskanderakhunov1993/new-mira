@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/client";
-import type { AssessmentAnswers, AssessmentType, HealthAssessment } from "@/lib/domain/assessment";
+import { evaluateAssessment, type AssessmentAnswers, type AssessmentType, type HealthAssessment } from "@/lib/domain/assessment";
+import type { MedicationIntake } from "@/lib/domain/medication";
 
 export type MiraProfile = {
-  email: string;
+  email?: string;
   name?: string;
   lastPeriod?: string;
   cycleLength?: number;
@@ -46,6 +47,7 @@ export type CycleEntry = {
   energy?: "low" | "normal" | "high";
   symptoms?: string[];
   symptomIntensity?: Record<string, 1 | 2 | 3>;
+  medicationIntakes?: MedicationIntake[];
   sleepHours?: number;
   waterMl?: number;
   weightKg?: number;
@@ -59,6 +61,51 @@ type ApiResult = Record<string, unknown>;
 // the sole persistent source of truth; no health data is written to web storage.
 let memoryProfile: MiraProfile | null = null;
 let legacyStoragePurged = false;
+
+function isLocalDemoMode(): boolean {
+  return process.env.NODE_ENV === "development"
+    && typeof document !== "undefined"
+    && document.cookie.split("; ").includes("mira-local-demo=1");
+}
+
+function localDate(offset: number): string {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() + offset);
+  return date.toISOString().slice(0, 10);
+}
+
+function buildLocalDemoProfile(): MiraProfile {
+  const starts = [-118, -90, -59, -31, -5];
+  const flows: NonNullable<CycleEntry["period"]>[] = ["medium", "heavy", "medium", "light"];
+  const entries = starts.flatMap((startOffset, cycleIndex) => (
+    flows.map((period, dayIndex) => ({
+      date: localDate(startOffset + dayIndex),
+      period,
+      periodStarted: dayIndex === 0,
+      periodEnded: dayIndex === flows.length - 1,
+      pain: dayIndex === 0 ? (cycleIndex % 3) + 3 : undefined,
+      mood: dayIndex === 1 ? "low" as const : undefined,
+      energy: dayIndex === 1 ? "low" as const : undefined,
+      symptoms: dayIndex === 1 ? ["Усталость"] : [],
+      sleepHours: dayIndex === 1 ? 6.5 : undefined,
+    }))
+  ));
+  return {
+    email: "demo@mira.local",
+    name: "Анна",
+    onboardingComplete: true,
+    onboardingStep: 4,
+    lastPeriod: localDate(starts.at(-1)!),
+    cycleLength: 28,
+    cyclePattern: "irregular",
+    periodLength: 4,
+    entries,
+    assessments: [],
+    preferences: { cycleForecasts: true, privateInsights: false },
+    consents: { healthData: true, privacyPolicy: true, sensitiveInsights: false },
+  };
+}
 
 function purgeLegacyBrowserData(): void {
   if (legacyStoragePurged || typeof window === "undefined") return;
@@ -87,6 +134,10 @@ async function createEmptyProfile(): Promise<MiraProfile> {
 
 export async function getProfile(options: { refresh?: boolean } = {}): Promise<MiraProfile | null> {
   purgeLegacyBrowserData();
+  if (isLocalDemoMode()) {
+    if (!memoryProfile || options.refresh) memoryProfile = buildLocalDemoProfile();
+    return memoryProfile;
+  }
   if (memoryProfile && !options.refresh) return memoryProfile;
   try {
     memoryProfile = await fetchJson("/api/users") as MiraProfile;
@@ -131,6 +182,13 @@ export async function deleteLocalProfile(): Promise<void> {
 }
 
 export async function saveEntry(entry: CycleEntry): Promise<MiraProfile> {
+  if (isLocalDemoMode()) {
+    const current = memoryProfile ?? await getProfile();
+    if (!current) throw new Error("Профиль не найден");
+    const entries = [...(current.entries ?? []).filter((item) => item.date !== entry.date), entry].sort((a, b) => a.date.localeCompare(b.date));
+    memoryProfile = { ...current, entries };
+    return memoryProfile;
+  }
   const { date, ...payload } = entry;
   await fetchJson(`/api/entries/${date}`, { method: "PUT", body: JSON.stringify(payload) });
   const profile = await getProfile({ refresh: true });
@@ -168,6 +226,10 @@ export async function deletePeriod(start: string) {
 }
 
 export async function getAssessments(): Promise<HealthAssessment[]> {
+  if (isLocalDemoMode()) {
+    const profile = memoryProfile ?? await getProfile();
+    return profile?.assessments ?? [];
+  }
   return await fetchJson("/api/assessments") as unknown as HealthAssessment[];
 }
 
@@ -176,10 +238,23 @@ export async function getAssessment(id: string): Promise<HealthAssessment> {
 }
 
 export async function saveAssessment(input: { date: string; type: AssessmentType; answers: AssessmentAnswers }): Promise<HealthAssessment> {
+  if (isLocalDemoMode()) {
+    const profile = memoryProfile ?? await getProfile();
+    if (!profile) throw new Error("Профиль не найден");
+    const now = new Date().toISOString();
+    const assessment: HealthAssessment = { id: `demo-${Date.now()}`, ...input, resultCode: evaluateAssessment(input.type, input.answers), createdAt: now, updatedAt: now };
+    memoryProfile = { ...profile, assessments: [assessment, ...(profile.assessments ?? [])] };
+    return assessment;
+  }
   return await fetchJson("/api/assessments", { method: "POST", body: JSON.stringify(input) }) as unknown as HealthAssessment;
 }
 
 export async function deleteAssessment(id: string): Promise<void> {
+  if (isLocalDemoMode()) {
+    const profile = memoryProfile ?? await getProfile();
+    if (profile) memoryProfile = { ...profile, assessments: (profile.assessments ?? []).filter((assessment) => assessment.id !== id) };
+    return;
+  }
   await fetchJson(`/api/assessments/${id}`, { method: "DELETE" });
 }
 
@@ -236,6 +311,7 @@ export async function syncProfileFromServer(): Promise<MiraProfile | null> {
 
 export async function signOutAccount(): Promise<void> {
   memoryProfile = null;
+  await fetch("/api/auth/telegram", { method: "DELETE" }).catch(() => undefined);
   const supabase = createClient();
   await supabase.auth.signOut();
 }

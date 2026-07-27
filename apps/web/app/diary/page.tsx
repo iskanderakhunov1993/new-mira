@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Activity, BarChart3, BatteryMedium, CalendarDays, Check, ChevronLeft, ChevronRight, CircleAlert, Droplet, FileText, GlassWater, Heart, HeartPulse, Leaf, Minus, MoonStar, Pill, Plus, Save, Scale, Search, Smile, Sparkles, TestTube, Thermometer, Waves, X } from "lucide-react";
 import { AppTabBar } from "@/components/AppTabBar";
 import { CycleEntry, getProfile, MiraProfile, saveEntry, saveProfile } from "@/lib/demo-session";
+import { MEDICATION_EFFECT_LABELS, MEDICATION_REASON_LABELS, type MedicationEffect, type MedicationIntake, type MedicationReason } from "@/lib/domain/medication";
 
 type Section = "period" | "symptoms" | "mood" | "sleep" | "notes" | "digestion" | "discharge" | "energy" | "intimacy" | "medication" | "lifestyle" | "tests";
 
@@ -14,7 +15,6 @@ const symptomGroups = [
   { id: "discharge", title: "Выделения", description: "Характер выделений в течение дня", icon: Waves, tone: "discharge", options: ["Выделений нет", "Кремообразные", "Водянистые", "Липкие", "Слизистые", "Кровомажущие", "Нетипичные", "Белые комковатые", "Серые", "С неприятным запахом"] },
   { id: "energy", title: "Энергия и стресс", description: "Ресурс и эмоциональная нагрузка", icon: BatteryMedium, tone: "energy", options: ["Высокая энергия", "Нормальная энергия", "Мало энергии", "Стресс", "Тревога", "Раздражительность", "Апатия", "Спокойствие", "Перепады настроения", "Подавленность", "Навязчивые мысли"] },
   { id: "intimacy", title: "Интимная жизнь", description: "Личная отметка — не включается в отчёт автоматически", icon: Heart, tone: "intimacy", options: ["Секса не было", "Секс с защитой", "Секс без защиты", "Оральный секс", "Анальный секс", "Мастурбация", "Интимные прикосновения", "Секс-игрушки", "Оргазм", "Сильное желание", "Среднее желание", "Слабое желание"] },
-  { id: "medication", title: "Лекарства", description: "Что вы принимали сегодня", icon: Pill, tone: "medication", options: ["Ничего не принимала", "Контрацептив вовремя", "Пропуск контрацептива", "Обезболивающее", "Витамины", "Добавки", "Другое лекарство"] },
   { id: "lifestyle", title: "Активность и события", description: "Нагрузка и события, которые могут влиять на самочувствие", icon: Activity, tone: "lifestyle", options: ["Тренировка", "Йога", "Бег", "Ходьба", "Плавание", "Алкоголь", "Путешествие", "Медитация", "Болезнь или травма", "Высокая нагрузка"] },
   { id: "tests", title: "Тесты и измерения", description: "Результаты домашних тестов и наблюдений", icon: TestTube, tone: "tests", options: ["Тест на беременность: отрицательный", "Тест на беременность: положительный", "Тест на овуляцию: отрицательный", "Тест на овуляцию: положительный", "Измерена базальная температура"] },
 ];
@@ -75,6 +75,13 @@ function DiaryContent() {
   const [periodHourlyChange, setPeriodHourlyChange] = useState(false);
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [symptomIntensity, setSymptomIntensity] = useState<Record<string, 1 | 2 | 3>>({});
+  const [medicationIntakes, setMedicationIntakes] = useState<MedicationIntake[]>([]);
+  const [medicationName, setMedicationName] = useState("");
+  const [medicationIngredient, setMedicationIngredient] = useState("");
+  const [medicationDose, setMedicationDose] = useState("");
+  const [medicationTime, setMedicationTime] = useState(() => new Date().toTimeString().slice(0, 5));
+  const [medicationReason, setMedicationReason] = useState<MedicationReason>("pain");
+  const [medicationPrescribed, setMedicationPrescribed] = useState(false);
   const [mood, setMood] = useState<CycleEntry["mood"]>();
   const [sleepHours, setSleepHours] = useState<number>();
   const [notes, setNotes] = useState("");
@@ -97,6 +104,7 @@ function DiaryContent() {
       setPeriod(entry?.period); setPain(entry?.pain ?? 0); setPainLocations(entry?.painLocations ?? []); setPainTypes(entry?.painTypes ?? []); setPainImpact(entry?.painImpact ?? "none");
       setPeriodClots(Boolean(entry?.periodClots)); setPeriodLeak(Boolean(entry?.periodLeak)); setPeriodNightChange(Boolean(entry?.periodNightChange)); setPeriodHourlyChange(Boolean(entry?.periodHourlyChange));
       setSymptoms(entry?.symptoms ?? []); setSymptomIntensity(entry?.symptomIntensity ?? {});
+      setMedicationIntakes(entry?.medicationIntakes ?? []);
       setMood(entry?.mood); setSleepHours(entry?.sleepHours); setNotes(entry?.notes ?? ""); setSaved(false);
       setWaterMl(entry?.waterMl ?? 0); setWeightKg(entry?.weightKg ?? currentProfile?.weightKg ?? ""); setBasalTemperature(entry?.basalTemperature ?? ""); setOpenChart(null);
     }).catch(() => setProfile(null));
@@ -140,9 +148,29 @@ function DiaryContent() {
     setSymptomIntensity((current) => ({ ...current, [symptom]: level }));
   }
 
+  function addMedicationIntake() {
+    const name = medicationName.trim();
+    if (!name) return;
+    setMedicationIntakes((current) => [...current, {
+      id: `${date}-${Date.now()}`,
+      name,
+      activeIngredient: medicationIngredient.trim() || undefined,
+      dose: medicationDose.trim() || undefined,
+      takenAt: medicationTime,
+      reason: medicationReason,
+      prescribedByDoctor: medicationPrescribed,
+      effect: "pending",
+    }]);
+    setMedicationName(""); setMedicationIngredient(""); setMedicationDose("");
+  }
+
+  function updateMedication(id: string, update: Partial<MedicationIntake>) {
+    setMedicationIntakes((current) => current.map((item) => item.id === id ? { ...item, ...update } : item));
+  }
+
   async function save() {
     const numericWeight = weightKg === "" ? undefined : weightKg;
-    let updated = await saveEntry({ date, period, periodClots: period ? periodClots || undefined : undefined, periodLeak: period ? periodLeak || undefined : undefined, periodNightChange: period ? periodNightChange || undefined : undefined, periodHourlyChange: period ? periodHourlyChange || undefined : undefined, pain: pain || undefined, painLocations: pain && painLocations.length ? painLocations : undefined, painTypes: pain && painTypes.length ? painTypes : undefined, painImpact: pain ? painImpact : undefined, symptoms: symptoms.length ? symptoms : undefined, symptomIntensity: Object.keys(symptomIntensity).length ? symptomIntensity : undefined, mood, sleepHours, waterMl: waterMl || undefined, weightKg: numericWeight, basalTemperature: basalTemperature === "" ? undefined : basalTemperature, notes: notes.trim() || undefined });
+    let updated = await saveEntry({ date, period, periodClots: period ? periodClots || undefined : undefined, periodLeak: period ? periodLeak || undefined : undefined, periodNightChange: period ? periodNightChange || undefined : undefined, periodHourlyChange: period ? periodHourlyChange || undefined : undefined, pain: pain || undefined, painLocations: pain && painLocations.length ? painLocations : undefined, painTypes: pain && painTypes.length ? painTypes : undefined, painImpact: pain ? painImpact : undefined, symptoms: symptoms.length ? symptoms : undefined, symptomIntensity: Object.keys(symptomIntensity).length ? symptomIntensity : undefined, medicationIntakes: medicationIntakes.length ? medicationIntakes : undefined, mood, sleepHours, waterMl: waterMl || undefined, weightKg: numericWeight, basalTemperature: basalTemperature === "" ? undefined : basalTemperature, notes: notes.trim() || undefined });
     if (numericWeight) updated = await saveProfile({ weightKg: numericWeight });
     setProfile(updated);
     setSaved(true); window.setTimeout(() => setSaved(false), 2400);
@@ -154,7 +182,7 @@ function DiaryContent() {
   const intimacyMode = requested === "intimacy";
   const visibleSymptomGroups = symptomGroups.map((group) => ({ ...group, options: group.options.filter(matches) })).filter((group) => !hiddenGroups.includes(group.id) && (!normalizedQuery || matches(group.title) || group.options.length > 0));
   const selectedMood = moodOptions.find((item) => item.value === mood);
-  const hasSelection = Boolean(period || pain || symptoms.length || mood || notes.trim());
+  const hasSelection = Boolean(period || pain || symptoms.length || medicationIntakes.length || mood || notes.trim());
   const todayKey = new Date().toISOString().slice(0, 10);
   const cycleDay = profile?.lastPeriod ? Math.max(1, Math.floor((new Date(`${date}T12:00:00`).getTime() - new Date(`${profile.lastPeriod}T12:00:00`).getTime()) / 86400000) + 1) : 1;
   const waterTarget = weightKg === "" ? 1800 : Math.min(4500, Math.max(1200, Math.round((weightKg * 30) / 300) * 300));
@@ -182,7 +210,7 @@ function DiaryContent() {
         {!symptomsMode && <header className="diary-header"><span>Дневник</span><h1>Что было сегодня?</h1><p>Выберите всё, что описывает ваш день.</p></header>}
         {dateNavigator(symptomsMode)}
         <label className="state-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Найти состояние или симптом" /></label>
-        {symptomsMode ? <section className="feeling-today-card"><h2>Как вы себя чувствуете сегодня?</h2><div>{quickFeelings.map((item) => <button className={item.selected ? "selected" : ""} type="button" onClick={item.action} key={item.label}><span>{item.icon}</span><strong>{item.label}</strong></button>)}</div></section> : <section className={`daily-summary ${hasSelection ? "has-selection" : ""}`}><div className="summary-heading"><div><small>Выбрано сегодня</small><h2>{hasSelection ? "Ваше состояние" : "Пока ничего не отмечено"}</h2></div><span>{[period, pain > 0, ...symptoms, mood, notes.trim()].filter(Boolean).length}</span></div>{hasSelection && <div className="summary-chips">{selectedMood && <span className="summary-chip mood"><i>{selectedMood.emoji}</i>{selectedMood.label}</span>}{period && <span className="summary-chip period"><Droplet />{period === "spotting" ? "Мажущие" : period === "light" ? "Слабые" : period === "medium" ? "Средние" : "Обильные"}</span>}{symptoms.slice(0, 3).map((item) => <span className="summary-chip symptom" key={item}><Sparkles />{item}</span>)}{symptoms.length > 3 && <span className="summary-chip more">+{symptoms.length - 3}</span>}</div>}</section>}
+        {symptomsMode ? <section className="feeling-today-card"><h2>Как вы себя чувствуете сегодня?</h2><div>{quickFeelings.map((item) => <button className={item.selected ? "selected" : ""} type="button" onClick={item.action} key={item.label}><span>{item.icon}</span><strong>{item.label}</strong></button>)}</div></section> : <section className={`daily-summary ${hasSelection ? "has-selection" : ""}`}><div className="summary-heading"><div><small>Выбрано сегодня</small><h2>{hasSelection ? "Ваше состояние" : "Пока ничего не отмечено"}</h2></div><span>{[period, pain > 0, ...symptoms, ...medicationIntakes, mood, notes.trim()].filter(Boolean).length}</span></div>{hasSelection && <div className="summary-chips">{selectedMood && <span className="summary-chip mood"><i>{selectedMood.emoji}</i>{selectedMood.label}</span>}{period && <span className="summary-chip period"><Droplet />{period === "spotting" ? "Мажущие" : period === "light" ? "Слабые" : period === "medium" ? "Средние" : "Обильные"}</span>}{medicationIntakes.length > 0 && <span className="summary-chip medication"><Pill />{medicationIntakes.length} приём</span>}{symptoms.slice(0, 3).map((item) => <span className="summary-chip symptom" key={item}><Sparkles />{item}</span>)}{symptoms.length > 3 && <span className="summary-chip more">+{symptoms.length - 3}</span>}</div>}</section>}
         <div className={`state-category-heading ${symptomsMode ? "symptom-category-heading" : ""}`}><div><h2>Категории</h2>{symptomsMode && <small>{trackingOptionCount} симптом и событие</small>}</div>{symptomsMode ? <button type="button" onClick={() => setEditingCategories((value) => !value)}>{editingCategories ? "Готово" : "Редактировать"}</button> : <span>Можно выбрать несколько</span>}</div>
         {symptomsMode && editingCategories && <div className="category-editor">{symptomGroups.map((group) => <button className={hiddenGroups.includes(group.id) ? "" : "selected"} type="button" onClick={() => setHiddenGroups((current) => current.includes(group.id) ? current.filter((id) => id !== group.id) : [...current, group.id])} key={group.id}><Check />{group.title}</button>)}</div>}
         {!symptomsMode && (matches("месячные") || matches("боль") || matches("интенсивность")) && <section className="state-card state-period period-p0-card" id="diary-period">
@@ -195,6 +223,24 @@ function DiaryContent() {
         </section>}
         {(matches("настроение") || matches("тяжело") || matches("спокойно") || matches("хорошо")) && <section className="state-card state-mood" id="diary-mood"><div className="state-card-title"><span><Smile /></span><div><h2>Настроение</h2><p>Как вы ощущали себя большую часть дня?</p></div></div><div className="state-chips mood-chips">{moodOptions.map((item) => <button className={mood === item.value ? "selected" : ""} type="button" onClick={() => setMood(item.value)} key={item.value}><i>{item.emoji}</i>{item.label}</button>)}</div></section>}
         {visibleSymptomGroups.map((group) => { const Icon = group.icon; const options = normalizedQuery && matches(group.title) ? symptomGroups.find((item) => item.id === group.id)!.options : group.options; const selectedInGroup = group.options.filter((item) => symptoms.includes(item) && !emptyGroupOptions.includes(item)); return <section className={`state-card state-group ${group.tone}`} id={group.id === "symptoms" ? "diary-symptoms" : `diary-${group.id}`} key={group.id}><div className="state-card-title"><span><Icon /></span><div><h2>{group.title}</h2><p>{group.description}</p></div></div><div className="state-chips grouped-chips">{options.map((item) => <button className={symptoms.includes(item) ? "selected" : ""} type="button" onClick={() => toggleSymptom(item)} key={item}><i>{item.includes("энерг") || item === "Спокойствие" ? "✦" : item.includes("Выдел") ? "○" : item === "Головная боль" ? "◉" : item.includes("аппетит") ? "◒" : "●"}</i>{item}</button>)}</div>{intensityGroupIds.has(group.id) && selectedInGroup.length > 0 && <div className="symptom-intensity-list"><h3>Интенсивность <small>необязательно</small></h3>{selectedInGroup.map((item) => <div key={item}><span>{item}</span><div>{([1, 2, 3] as const).map((level) => <button className={symptomIntensity[item] === level ? "selected" : ""} type="button" aria-label={`${item}: ${level === 1 ? "слабо" : level === 2 ? "средне" : "сильно"}`} onClick={() => setIntensity(item, level)} key={level}>{level === 1 ? "Слабо" : level === 2 ? "Средне" : "Сильно"}</button>)}</div></div>)}</div>}</section>; })}
+        {(matches("лекарства") || matches("препарат") || matches("таблетка")) && <section className="state-card medication-log-card" id="diary-medication">
+          <div className="state-card-title"><span><Pill /></span><div><h2>Лекарства</h2><p>Фиксируем только то, что вы уже решили принять или что назначил врач</p></div></div>
+          <div className="medication-form-grid">
+            <label><span>Название *</span><input value={medicationName} maxLength={120} placeholder="Как на упаковке" onChange={(event) => setMedicationName(event.target.value)} /></label>
+            <label><span>Действующее вещество</span><input value={medicationIngredient} maxLength={120} placeholder="Если известно" onChange={(event) => setMedicationIngredient(event.target.value)} /></label>
+            <label><span>Дозировка и форма</span><input value={medicationDose} maxLength={80} placeholder="Например, 200 мг, таблетка" onChange={(event) => setMedicationDose(event.target.value)} /></label>
+            <label><span>Время</span><input type="time" value={medicationTime} onChange={(event) => setMedicationTime(event.target.value)} /></label>
+            <label><span>Причина</span><select value={medicationReason} onChange={(event) => setMedicationReason(event.target.value as MedicationReason)}>{Object.entries(MEDICATION_REASON_LABELS).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+          </div>
+          <label className="medication-prescribed"><input type="checkbox" checked={medicationPrescribed} onChange={(event) => setMedicationPrescribed(event.target.checked)} /><span>Назначено врачом</span></label>
+          <button className="medication-add" type="button" disabled={!medicationName.trim()} onClick={addMedicationIntake}><Plus />Добавить приём</button>
+          {medicationIntakes.length > 0 && <div className="medication-intake-list">{medicationIntakes.map((intake) => <article key={intake.id}>
+            <header><div><strong>{intake.name}</strong><span>{intake.takenAt}{intake.dose ? ` · ${intake.dose}` : ""} · {MEDICATION_REASON_LABELS[intake.reason]}</span></div><button type="button" aria-label={`Удалить ${intake.name}`} onClick={() => setMedicationIntakes((current) => current.filter((item) => item.id !== intake.id))}><X /></button></header>
+            <label><span>Как изменилось состояние?</span><select value={intake.effect} onChange={(event) => updateMedication(intake.id, { effect: event.target.value as MedicationEffect })}>{Object.entries(MEDICATION_EFFECT_LABELS).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+            <label><span>Побочные эффекты</span><input value={intake.sideEffects ?? ""} maxLength={500} placeholder="Необязательно" onChange={(event) => updateMedication(intake.id, { sideEffects: event.target.value || undefined })} /></label>
+          </article>)}</div>}
+          <aside className="medication-safety-note"><CircleAlert /><p>Mira не назначает препараты и дозировки. При ухудшении состояния или необычной реакции обратитесь к врачу или фармацевту.</p></aside>
+        </section>}
         {(matches("сон") || matches("часы")) && <section className="state-card state-sleep" id="diary-sleep"><div className="state-card-title"><span><MoonStar /></span><div><h2>Сон</h2><p>Примерная продолжительность сна</p></div></div><div className="compact-sleep"><button type="button" onClick={() => setSleepHours(Math.max(3, (sleepHours ?? 8) - .5))}>−</button><strong>{sleepHours ?? "—"}<small> часов</small></strong><button type="button" onClick={() => setSleepHours(Math.min(12, (sleepHours ?? 8) + .5))}>+</button></div>{sleepHours !== undefined && <button className="track-clear-value" type="button" onClick={() => setSleepHours(undefined)}>Не сохранять сон</button>}</section>}
         {symptomsMode && <section className="measurements-section" aria-labelledby="measurements-title">
           <div className="measurements-heading"><div><h2 id="measurements-title">Измерения</h2><p>Вода, вес и базальная температура</p></div><BarChart3 /></div>

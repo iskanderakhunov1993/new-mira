@@ -27,7 +27,11 @@ export async function PUT(request: Request, requestContext: { params: Promise<{ 
   const parsed = entryUpdateSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid entry data", details: parsed.error.flatten() }, { status: 400 });
   const payload = parsed.data;
-  const data = { ...payload, symptomIntensity: payload.symptomIntensity === null ? Prisma.JsonNull : payload.symptomIntensity };
+  const data = {
+    ...payload,
+    symptomIntensity: payload.symptomIntensity === null ? Prisma.JsonNull : payload.symptomIntensity,
+    medicationIntakes: payload.medicationIntakes === null ? Prisma.JsonNull : payload.medicationIntakes,
+  };
   const entry = await prisma.entry.upsert({
     where: { userId_date: { userId: current.user.id, date: current.dateValue } },
     create: { userId: current.user.id, date: current.dateValue, painLocations: [], painTypes: [], symptoms: [], ...data },

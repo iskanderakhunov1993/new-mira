@@ -24,6 +24,17 @@ const entrySchema = z.object({
   energy: z.enum(["low", "normal", "high"]).optional(),
   symptoms: z.array(z.string().max(80)).max(50).default([]),
   symptomIntensity: z.record(z.string(), z.number().int().min(1).max(3)).optional(),
+  medicationIntakes: z.array(z.object({
+    id: z.string().max(80),
+    name: z.string().max(120),
+    activeIngredient: z.string().max(120).optional(),
+    dose: z.string().max(80).optional(),
+    takenAt: z.string().max(5),
+    reason: z.enum(["pain", "migraine", "iron", "contraception", "heavy_bleeding", "supplement", "other"]),
+    prescribedByDoctor: z.boolean(),
+    effect: z.enum(["pending", "full", "partial", "none", "worse"]),
+    sideEffects: z.string().max(500).optional(),
+  }).strict()).max(20).optional(),
   sleepHours: z.number().min(0).max(24).optional(),
   waterMl: z.number().int().min(0).max(20000).optional(),
   weightKg: z.number().min(20).max(500).optional(),
@@ -97,6 +108,7 @@ function serializeProfile(profile: Awaited<ReturnType<typeof loadProfile>>) {
       energy: entry.energy ?? undefined,
       symptoms: entry.symptoms,
       symptomIntensity: entry.symptomIntensity ?? undefined,
+      medicationIntakes: entry.medicationIntakes ?? undefined,
       sleepHours: entry.sleepHours ?? undefined,
       waterMl: entry.waterMl ?? undefined,
       weightKg: entry.weightKg ?? undefined,
@@ -117,7 +129,7 @@ function loadProfile(userId: string) {
 
 export async function GET() {
   const user = await getAuthenticatedUser();
-  if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const profile = await loadProfile(user.id);
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
@@ -126,7 +138,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const user = await getAuthenticatedUser();
-  if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const parsed = profileSchema.safeParse(await request.json());
   if (!parsed.success) {
@@ -145,7 +157,7 @@ export async function POST(request: Request) {
       where: { id: user.id },
       create: {
         id: user.id,
-        email: user.email!,
+        email: user.email,
         name: payload.name,
         onboardingComplete: payload.onboardingComplete ?? false,
         onboardingStep: payload.onboardingStep ?? 1,
@@ -166,7 +178,7 @@ export async function POST(request: Request) {
         consentVersion: payload.consents?.healthData && (payload.consents?.privacyPolicy ?? registeredPrivacyConsent) ? LEGAL_VERSION : registeredConsentsComplete ? registeredConsentVersion : undefined,
       },
       update: {
-        email: user.email!,
+        email: user.email,
         name: payload.name,
         onboardingComplete: payload.onboardingComplete,
         onboardingStep: payload.onboardingStep,
@@ -200,6 +212,11 @@ export async function POST(request: Request) {
 export async function DELETE() {
   const user = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (user.provider === "telegram") {
+    await prisma.profile.deleteMany({ where: { id: user.id } });
+    return NextResponse.json({ success: true });
+  }
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

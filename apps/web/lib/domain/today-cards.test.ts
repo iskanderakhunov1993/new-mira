@@ -36,7 +36,7 @@ test("shows a weekly fact only after three check-ins", () => {
 test("prioritizes a strong-pain flow over educational content", () => {
   const cards = buildTodayCards({ entries: [{ date: "2026-07-22", pain: 8 }], today: "2026-07-22", hasCycleData: true, cycleDay: 3, phase: "menstruation" });
   assert.equal(cards[1].href, "/concerns/pain");
-  assert.equal(cards[1].title, "Важно проверить!");
+  assert.equal(cards[1].title, "Сильная боль сегодня");
 });
 
 test("keeps a minimal reading card when the observation card is hidden", () => {
@@ -44,4 +44,11 @@ test("keeps a minimal reading card when the observation card is hidden", () => {
   assert.equal(cards[1].href, "/knowledge");
   assert.equal(cards[1].title, "Для прочтения");
   assert.equal(cards[1].eyebrow, "Для прочтения");
+});
+
+test("routes two heavy days to assessment without recommending iron", () => {
+  const cards = buildTodayCards({ entries: [{ date: "2026-07-21", period: "heavy" }, { date: "2026-07-22", period: "heavy" }], today: "2026-07-22", hasCycleData: true });
+  const action = cards.find((card) => card.kind === "action");
+  assert.equal(action?.title, "Обильные месячные второй день");
+  assert.doesNotMatch(action?.description ?? "", /примите железо/i);
 });

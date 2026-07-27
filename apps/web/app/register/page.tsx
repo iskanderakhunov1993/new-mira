@@ -8,6 +8,7 @@ import { AuthShell } from "@/components/AuthShell";
 import { PublicPageView } from "@/components/PublicProductAnalytics";
 import { registerAccount } from "@/lib/demo-session";
 import { LEGAL_VERSION } from "@/lib/legal";
+import { TelegramAuthAction } from "@/components/TelegramAuthAction";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -81,6 +82,7 @@ export default function RegisterPage() {
         {error && <p className="form-error" role="alert">{error}</p>}
         <button className="button auth-submit" type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>Создать аккаунт <ArrowRight /></button>
       </form>}
+      {!success && <TelegramAuthAction />}
       <p className="auth-switch">Уже есть аккаунт? <Link href="/login">Войти</Link></p>
       <p className="auth-demo-note"><LockKeyhole /> Пароль обрабатывается Supabase Auth и не хранится в Mira</p>
     </AuthShell>

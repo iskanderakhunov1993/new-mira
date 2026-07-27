@@ -57,10 +57,12 @@ function buildObservation(entries: DomainEntry[], today: string): TodayCard | un
 function buildNextAction(input: TodayCardsInput): TodayCard | undefined {
   const todayEntry = input.entries.find((entry) => entry.date === input.today);
   if ((todayEntry?.pain ?? 0) >= 7) {
-    return { kind: "action", eyebrow: "Важно проверить", title: "Важно проверить!", description: "Открыть проверку сильной боли.", href: "/concerns/pain", tone: "dark" };
+    return { kind: "action", eyebrow: "Важно проверить", title: "Сильная боль сегодня", description: "Открыть проверку сильной боли.", href: "/concerns/pain", tone: "dark" };
   }
   if (todayEntry?.period === "heavy") {
-    return { kind: "action", eyebrow: "Важно проверить", title: "Важно проверить!", description: "Открыть проверку обильных месячных.", href: "/concerns/heavy-flow", tone: "dark" };
+    const yesterday = addDays(input.today, -1);
+    const twoDays = input.entries.some((entry) => entry.date === yesterday && entry.period === "heavy");
+    return { kind: "action", eyebrow: "Важно проверить", title: twoDays ? "Обильные месячные второй день" : "Отмечены обильные месячные", description: "Проверьте сопутствующие признаки. Mira не рекомендует начинать препараты железа без медицинской оценки.", href: "/concerns/heavy-flow", tone: "dark" };
   }
   if (input.delayed) {
     return { kind: "action", eyebrow: "Важно проверить", title: "Важно проверить!", description: "Открыть проверку задержки.", href: "/concerns/delay", tone: "dark" };

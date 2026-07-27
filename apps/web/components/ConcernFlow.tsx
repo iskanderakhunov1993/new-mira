@@ -5,18 +5,34 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, LoaderCircle, ShieldAlert } from "lucide-react";
 import { saveAssessment } from "@/lib/demo-session";
-import type { AssessmentAnswers, AssessmentType, DelayAnswers, HeavyFlowAnswers, PainAnswers } from "@/lib/domain/assessment";
+import type { AssessmentAnswers, AssessmentType, DelayAnswers, DischargeAnswers, HeavyFlowAnswers, PainAnswers, PostcoitalAnswers, WeaknessAnswers } from "@/lib/domain/assessment";
 
 const today = () => new Date().toISOString().slice(0, 10);
-const delayDefault: DelayAnswers = { delayedDays: 1, pregnancyPossible: false, pregnancyTest: "unknown", pain: 0, unusualBleeding: false, faintOrDizzy: false, shoulderPain: false, factors: [] };
-const painDefault: PainAnswers = { intensity: 0, locations: ["lower_abdomen"], duration: "hours", pattern: "constant", impact: "none", worsening: false, faintOrDizzy: false, feverOrVomiting: false, pregnancyPossible: false, unusualBleeding: false, actions: [] };
-const heavyDefault: HeavyFlowAnswers = { heavierThanUsual: false, changeFrequency: "four_plus_hours", nightChanges: false, leaks: false, clots: false, durationDays: 1, weakOrDizzy: false, pain: 0, pregnancyPossible: false };
+const commonDefault = { lifeImpact: "none" as const, lifeEffects: [] };
+const delayDefault: DelayAnswers = { ...commonDefault, delayedDays: 1, pregnancyPossible: false, pregnancyTest: "unknown", pain: 0, unusualBleeding: false, faintOrDizzy: false, shoulderPain: false, factors: [] };
+const painDefault: PainAnswers = { ...commonDefault, intensity: 0, locations: ["lower_abdomen"], duration: "hours", pattern: "constant", impact: "none", worsening: false, faintOrDizzy: false, feverOrVomiting: false, pregnancyPossible: false, unusualBleeding: false, actions: [] };
+const heavyDefault: HeavyFlowAnswers = { ...commonDefault, heavierThanUsual: false, changeFrequency: "four_plus_hours", nightChanges: false, leaks: false, clots: false, durationDays: 1, weakOrDizzy: false, pain: 0, pregnancyPossible: false };
+const dischargeDefault: DischargeAnswers = { ...commonDefault, changes: [], itchOrSore: false, burningUrination: false, pelvicPain: 0, fever: false, unusualBleeding: false, pregnancyPossible: false, faintOrDizzy: false };
+const postcoitalDefault: PostcoitalAnswers = { ...commonDefault, pain: 0, painTiming: [], bleeding: "none", dryness: false, dischargeOrBurning: false, pregnancyPossible: false, faintOrDizzy: false };
+const weaknessDefault: WeaknessAnswers = { ...commonDefault, severity: "mild", dizzy: false, fainted: false, shortOfBreath: false, racingHeart: false, heavyBleeding: false, pain: 0, pregnancyPossible: false, unusualBleeding: false };
 
 const meta = {
   delay: { eyebrow: "Цикл", title: "Месячные не начались", text: "Сравним отклонение с прогнозом и проверим признаки, требующие внимания." },
   pain: { eyebrow: "Самочувствие", title: "Расскажите о боли", text: "Mira сохранит факты и предложит безопасный следующий шаг без диагноза." },
   heavy_flow: { eyebrow: "Месячные", title: "Обильные выделения", text: "Отметьте отличие от вашей обычной картины и сопутствующие симптомы." },
+  discharge: { eyebrow: "Интимное здоровье", title: "Что изменилось?", text: "Опишите только заметные изменения. По ответам нельзя определить причину без осмотра и анализов." },
+  postcoital: { eyebrow: "Интимное здоровье", title: "После секса", text: "Отметьте боль, кровотечение и другие изменения. Эти данные сохраняются как чувствительные." },
+  weakness: { eyebrow: "Самочувствие", title: "Слабость или головокружение", text: "Проверим сочетание с кровотечением, болью и другими признаками." },
 } as const;
+
+function defaultAnswers(type: AssessmentType): AssessmentAnswers {
+  if (type === "delay") return delayDefault;
+  if (type === "pain") return painDefault;
+  if (type === "heavy_flow") return heavyDefault;
+  if (type === "discharge") return dischargeDefault;
+  if (type === "postcoital") return postcoitalDefault;
+  return weaknessDefault;
+}
 
 function Toggle({ checked, onChange, children }: { checked: boolean; onChange: (value: boolean) => void; children: React.ReactNode }) {
   return <button className={checked ? "selected" : ""} type="button" aria-pressed={checked} onClick={() => onChange(!checked)}>{children}</button>;
@@ -25,10 +41,10 @@ function Toggle({ checked, onChange, children }: { checked: boolean; onChange: (
 export function ConcernFlow({ type }: { type: AssessmentType }) {
   const router = useRouter();
   const [date, setDate] = useState(today());
-  const [answers, setAnswers] = useState<AssessmentAnswers>(type === "delay" ? delayDefault : type === "pain" ? painDefault : heavyDefault);
+  const [answers, setAnswers] = useState<AssessmentAnswers>(() => defaultAnswers(type));
   const [status, setStatus] = useState<"ready" | "saving" | "error">("ready");
   const update = (value: Partial<AssessmentAnswers>) => setAnswers((current) => ({ ...current, ...value } as AssessmentAnswers));
-  const toggleArray = (key: "factors" | "locations" | "actions", value: string) => setAnswers((current) => { const list = ((current as unknown as Record<string, string[]>)[key] ?? []); return { ...current, [key]: list.includes(value) ? list.filter((item) => item !== value) : [...list, value] } as AssessmentAnswers; });
+  const toggleArray = (key: "factors" | "locations" | "actions" | "changes" | "painTiming" | "lifeEffects", value: string) => setAnswers((current) => { const list = ((current as unknown as Record<string, string[]>)[key] ?? []); return { ...current, [key]: list.includes(value) ? list.filter((item) => item !== value) : [...list, value] } as AssessmentAnswers; });
 
   async function submit() {
     setStatus("saving");
@@ -58,6 +74,34 @@ export function ConcernFlow({ type }: { type: AssessmentType }) {
       <Range label="Боль" value={a.pain} onChange={(pain) => update({ pain })} />
       <Checks items={[["Сильнее обычного", a.heavierThanUsual, "heavierThanUsual"], ["Нужно менять ночью", a.nightChanges, "nightChanges"], ["Есть протекания", a.leaks, "leaks"], ["Есть сгустки", a.clots, "clots"], ["Слабость или головокружение", a.weakOrDizzy, "weakOrDizzy"], ["Беременность возможна", a.pregnancyPossible, "pregnancyPossible"]]} update={update} />
     </>; })()}
+    {type === "discharge" && (() => { const a = answers as DischargeAnswers; return <>
+      <section className="concern-card"><h2>Что отличается от обычного состояния?</h2><div className="concern-options">{[["color","Цвет"],["smell","Запах"],["texture","Консистенция"],["amount","Количество"]].map(([value,label]) => <Toggle key={value} checked={a.changes.includes(value as DischargeAnswers["changes"][number])} onChange={() => toggleArray("changes", value)}>{label}</Toggle>)}</div></section>
+      <Range label="Тазовая боль" value={a.pelvicPain} onChange={(pelvicPain) => update({ pelvicPain })} />
+      <Checks items={[["Есть зуд, болезненность или раздражение", a.itchOrSore, "itchOrSore"], ["Боль или жжение при мочеиспускании", a.burningUrination, "burningUrination"], ["Температура или озноб", a.fever, "fever"], ["Кровотечение вне месячных", a.unusualBleeding, "unusualBleeding"], ["Беременность возможна", a.pregnancyPossible, "pregnancyPossible"], ["Слабость или головокружение", a.faintOrDizzy, "faintOrDizzy"]]} update={update} />
+    </>; })()}
+    {type === "postcoital" && (() => { const a = answers as PostcoitalAnswers; return <>
+      <Range label="Интенсивность боли" value={a.pain} onChange={(pain) => update({ pain })} />
+      <section className="concern-card"><h2>Когда возникает боль?</h2><div className="concern-options">{[["entry","При входе"],["deep","Глубоко внутри"],["after","После секса"]].map(([value,label]) => <Toggle key={value} checked={a.painTiming.includes(value as PostcoitalAnswers["painTiming"][number])} onChange={() => toggleArray("painTiming", value)}>{label}</Toggle>)}</div></section>
+      <section className="concern-card"><h2>Было кровотечение?</h2><select value={a.bleeding} onChange={(event) => update({ bleeding: event.target.value as PostcoitalAnswers["bleeding"] })}><option value="none">Нет</option><option value="spotting">Небольшие кровянистые выделения</option><option value="heavy">Обильное кровотечение</option></select></section>
+      <Checks items={[["Сухость или раздражение", a.dryness, "dryness"], ["Необычные выделения или жжение", a.dischargeOrBurning, "dischargeOrBurning"], ["Беременность возможна", a.pregnancyPossible, "pregnancyPossible"], ["Слабость или головокружение", a.faintOrDizzy, "faintOrDizzy"]]} update={update} />
+    </>; })()}
+    {type === "weakness" && (() => { const a = answers as WeaknessAnswers; return <>
+      <section className="concern-card"><h2>Насколько это мешает?</h2><select value={a.severity} onChange={(event) => update({ severity: event.target.value as WeaknessAnswers["severity"] })}><option value="mild">Немного, обычные дела возможны</option><option value="marked">Заметно мешает обычным делам</option><option value="cannot_function">Не могу заниматься обычными делами</option></select></section>
+      <Range label="Боль" value={a.pain} onChange={(pain) => update({ pain })} />
+      <Checks items={[["Кружится голова", a.dizzy, "dizzy"], ["Был обморок или потеря сознания", a.fainted, "fainted"], ["Трудно дышать", a.shortOfBreath, "shortOfBreath"], ["Сердце бьётся необычно быстро", a.racingHeart, "racingHeart"], ["Есть обильное кровотечение", a.heavyBleeding, "heavyBleeding"], ["Беременность возможна", a.pregnancyPossible, "pregnancyPossible"], ["Есть необычное кровотечение", a.unusualBleeding, "unusualBleeding"]]} update={update} />
+    </>; })()}
+    <section className="concern-card">
+      <h2>Как это повлияло на вашу жизнь?</h2>
+      <select value={answers.lifeImpact ?? "none"} onChange={(event) => update({ lifeImpact: event.target.value as NonNullable<AssessmentAnswers["lifeImpact"]> })}>
+        <option value="none">Не мешает</option>
+        <option value="some">Немного мешает</option>
+        <option value="strong">Сильно мешает</option>
+        <option value="cannot_function">Не могу заниматься обычными делами</option>
+      </select>
+      <div className="concern-options concern-impact-effects">
+        {[["missed_work_or_study","Пропустила работу или учёбу"],["sleep_disrupted","Нарушился сон"],["could_not_exercise","Не смогла тренироваться"],["took_medicine","Пришлось принять лекарство"],["sought_medical_help","Обратилась за медицинской помощью"]].map(([value,label]) => <Toggle key={value} checked={(answers.lifeEffects ?? []).includes(value as NonNullable<AssessmentAnswers["lifeEffects"]>[number])} onChange={() => toggleArray("lifeEffects", value)}>{label}</Toggle>)}
+      </div>
+    </section>
     {status === "error" && <p className="concern-error" role="alert">Не удалось сохранить. Проверьте соединение и попробуйте снова.</p>}
     <button className="button concern-submit" type="button" disabled={status === "saving"} onClick={submit}>{status === "saving" ? <><LoaderCircle className="spin" />Сохраняем</> : <>Показать результат <ArrowRight /></>}</button>
     <p className="concern-disclaimer">Mira не ставит диагноз и не заменяет консультацию врача.</p>
