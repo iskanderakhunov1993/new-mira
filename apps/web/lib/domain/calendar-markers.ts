@@ -16,6 +16,7 @@ export function buildCalendarMarkers(entry?: DomainEntry): CalendarMarker[] {
   if ((entry.pain ?? 0) > 0 || entry.symptoms?.length) markers.push({ key: "symptoms", emoji: "🤕", label: "боль или симптомы" });
   if (entry.energy) markers.push({ key: "energy", emoji: "⚡", label: "энергия отмечена" });
   if (entry.sleepHours !== undefined) markers.push({ key: "sleep", emoji: "😴", label: "сон отмечен" });
+  if (entry.medicationIntakes?.length) markers.push({ key: "medication", emoji: "💊", label: "лекарство отмечено" });
   if (entry.notes?.trim()) markers.push({ key: "notes", emoji: "📝", label: "есть заметка" });
   return markers;
 }

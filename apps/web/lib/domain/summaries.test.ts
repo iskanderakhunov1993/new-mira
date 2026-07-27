@@ -8,6 +8,10 @@ test("does not invent sleep or an entry from an empty object", () => {
   assert.equal(hasDailyEntry({ date: "2026-07-22" }), false);
 });
 
+test("recognizes a medication intake as a daily entry", () => {
+  assert.equal(hasDailyEntry({ date: "2026-07-22", medicationIntakes: [{ id: "1", name: "Назначенный препарат", takenAt: "09:00", reason: "iron", prescribedByDoctor: true, effect: "pending" }] }), true);
+});
+
 test("hides patterns with insufficient completed cycles", () => {
   const summary = buildAnalyticsSummary([{ date: "2026-01-01", period: "medium", periodStarted: true }], "2026-01-10");
   assert.equal(summary.enoughForPatterns, false);

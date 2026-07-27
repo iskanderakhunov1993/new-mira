@@ -121,6 +121,7 @@ model Entry {
   energy             String?
   symptoms           String[]
   symptomIntensity   Json?
+  medicationIntakes  Json?
   sleepHours         Float?
   waterMl            Int?
   weightKg           Float?

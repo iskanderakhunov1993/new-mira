@@ -1,7 +1,7 @@
 import type { DomainEntry } from "./types";
 
 export function hasDailyEntry(entry?: DomainEntry) {
-  return Boolean(entry && (entry.period || entry.mood || entry.energy || typeof entry.pain === "number" || entry.symptoms?.length || entry.notes));
+  return Boolean(entry && (entry.period || entry.mood || entry.energy || typeof entry.pain === "number" || entry.symptoms?.length || entry.medicationIntakes?.length || entry.notes));
 }
 
 export function summarizeEntry(entry?: DomainEntry) {
@@ -12,5 +12,6 @@ export function summarizeEntry(entry?: DomainEntry) {
   if (typeof entry?.pain === "number") labels.push(entry.pain ? `Боль ${entry.pain}/10` : "Без боли");
   if (entry?.period) labels.push("Есть выделения");
   if (entry?.symptoms?.length) labels.push(`${entry.symptoms.length} симптома`);
+  if (entry?.medicationIntakes?.length) labels.push(`${entry.medicationIntakes.length} приём лекарства`);
   return { hasEntry: true, labels };
 }

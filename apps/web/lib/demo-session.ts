@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { evaluateAssessment, type AssessmentAnswers, type AssessmentType, type HealthAssessment } from "@/lib/domain/assessment";
+import type { MedicationIntake } from "@/lib/domain/medication";
 
 export type MiraProfile = {
   email?: string;
@@ -46,6 +47,7 @@ export type CycleEntry = {
   energy?: "low" | "normal" | "high";
   symptoms?: string[];
   symptomIntensity?: Record<string, 1 | 2 | 3>;
+  medicationIntakes?: MedicationIntake[];
   sleepHours?: number;
   waterMl?: number;
   weightKg?: number;
@@ -180,6 +182,13 @@ export async function deleteLocalProfile(): Promise<void> {
 }
 
 export async function saveEntry(entry: CycleEntry): Promise<MiraProfile> {
+  if (isLocalDemoMode()) {
+    const current = memoryProfile ?? await getProfile();
+    if (!current) throw new Error("Профиль не найден");
+    const entries = [...(current.entries ?? []).filter((item) => item.date !== entry.date), entry].sort((a, b) => a.date.localeCompare(b.date));
+    memoryProfile = { ...current, entries };
+    return memoryProfile;
+  }
   const { date, ...payload } = entry;
   await fetchJson(`/api/entries/${date}`, { method: "PUT", body: JSON.stringify(payload) });
   const profile = await getProfile({ refresh: true });

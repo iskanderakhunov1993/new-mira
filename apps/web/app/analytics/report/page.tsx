@@ -6,15 +6,17 @@ import { ArrowLeft, CalendarRange, Check, FileHeart, LockKeyhole, Printer, Shiel
 import { AppTabBar } from "@/components/AppTabBar";
 import { getAssessments, getProfile, MiraProfile } from "@/lib/demo-session";
 import type { HealthAssessment, LifeEffect, LifeImpact } from "@/lib/domain/assessment";
+import { MEDICATION_EFFECT_LABELS, MEDICATION_REASON_LABELS } from "@/lib/domain/medication";
 import { buildCycles, daysBetween, formatCycleDate } from "@/lib/cycle-analytics";
 import { buildPersonalization } from "@/lib/personalization";
 
-type ReportKey = "periods" | "pain" | "symptoms" | "assessments" | "mood" | "sleep" | "patterns" | "comparison" | "questions" | "notes" | "intimacy";
+type ReportKey = "periods" | "pain" | "symptoms" | "medications" | "assessments" | "mood" | "sleep" | "patterns" | "comparison" | "questions" | "notes" | "intimacy";
 
 const REPORT_ITEMS: { id: ReportKey; label: string; hint: string; sensitive?: boolean }[] = [
   { id: "periods", label: "Даты и длительность циклов", hint: "Месячные и длина каждого цикла" },
   { id: "pain", label: "Боль", hint: "Дни и отмеченная интенсивность" },
   { id: "symptoms", label: "Симптомы", hint: "Частота отмеченных состояний" },
+  { id: "medications", label: "Лекарства и эффект", hint: "Фактические приёмы и пользовательская оценка" },
   { id: "assessments", label: "Оценки самочувствия", hint: "Жалобы, влияние на жизнь и предупреждения" },
   { id: "mood", label: "Настроение", hint: "Только общая сводка" },
   { id: "sleep", label: "Сон", hint: "Средняя продолжительность" },
@@ -25,7 +27,7 @@ const REPORT_ITEMS: { id: ReportKey; label: string; hint: string; sensitive?: bo
   { id: "intimacy", label: "Интимные данные", hint: "Сексуальная активность и желание", sensitive: true },
 ];
 
-const DEFAULT_SELECTION: Record<ReportKey, boolean> = { periods: true, pain: true, symptoms: true, assessments: true, mood: true, sleep: true, patterns: true, comparison: true, questions: true, notes: false, intimacy: false };
+const DEFAULT_SELECTION: Record<ReportKey, boolean> = { periods: true, pain: true, symptoms: true, medications: true, assessments: true, mood: true, sleep: true, patterns: true, comparison: true, questions: true, notes: false, intimacy: false };
 
 const ASSESSMENT_LABELS: Record<HealthAssessment["type"], string> = { delay: "Задержка месячных", pain: "Боль", heavy_flow: "Обильное кровотечение", discharge: "Выделения, зуд или жжение", postcoital: "Боль или кровь после секса", weakness: "Слабость или головокружение" };
 const RESULT_LABELS: Record<HealthAssessment["resultCode"], string> = { self_care: "Продолжить наблюдение", routine_care: "Обсудить с врачом", urgent_care: "Медицинская оценка сегодня", emergency: "Срочная помощь" };
@@ -64,6 +66,7 @@ export default function DoctorReportPage() {
     const symptomCounts = new Map<string, number>();
     entries.forEach((entry) => entry.symptoms?.forEach((symptom) => symptomCounts.set(symptom, (symptomCounts.get(symptom) ?? 0) + 1)));
     const symptoms = [...symptomCounts.entries()].sort((a, b) => b[1] - a[1]);
+    const medicationIntakes = entries.flatMap((entry) => (entry.medicationIntakes ?? []).map((intake) => ({ date: entry.date, intake })));
     const moods = entries.filter((entry) => entry.mood).reduce<Record<string, number>>((sum, entry) => { const key = entry.mood ?? "calm"; sum[key] = (sum[key] ?? 0) + 1; return sum; }, {});
     const flowCounts = periodEntries.reduce<Record<string, number>>((sum, entry) => { if (entry.period) sum[entry.period] = (sum[entry.period] ?? 0) + 1; return sum; }, {});
     const periodSignals = { clots: periodEntries.filter((entry) => entry.periodClots).length, leaks: periodEntries.filter((entry) => entry.periodLeak).length, night: periodEntries.filter((entry) => entry.periodNightChange).length, hourly: periodEntries.filter((entry) => entry.periodHourlyChange).length };
@@ -78,7 +81,7 @@ export default function DoctorReportPage() {
       personalization.patterns[0] ? `Повторяется «${personalization.patterns[0].name}» в ${personalization.patterns[0].matchedCycles} из 3 циклов: требует ли это дополнительного наблюдения?` : null,
       personalization.sleep.difference && personalization.sleep.difference >= 1 ? `В дни с усталостью сон короче на ${personalization.sleep.difference.toFixed(1)} ч: что стоит учитывать?` : null,
     ].filter((question): question is string => Boolean(question));
-    return { fromKey, lastDate, entries, cycles, completed, pain, sleep, symptoms, moods, flowCounts, periodSignals, painLocations, painTypes, strongImpactDays, coverage, personalization, questions, generalAssessments, intimateAssessments };
+    return { fromKey, lastDate, entries, cycles, completed, pain, sleep, symptoms, medicationIntakes, moods, flowCounts, periodSignals, painLocations, painTypes, strongImpactDays, coverage, personalization, questions, generalAssessments, intimateAssessments };
   }, [profile, assessments, months]);
 
   const toggle = (id: ReportKey) => setSelected((current) => ({ ...current, [id]: !current[id] }));
@@ -98,6 +101,7 @@ export default function DoctorReportPage() {
       {selected.periods && <article><h3>Циклы и месячные</h3>{report.cycles.length ? <><div className="report-metrics"><p><strong>{report.completed.length || report.cycles.length}</strong><span>цикла в отчёте</span></p><p><strong>{report.completed.length ? `${Math.round(report.completed.reduce((sum, cycle) => sum + cycle.length, 0) / report.completed.length)} дн.` : "—"}</strong><span>средняя длина</span></p><p><strong>{report.cycles.length ? `${Math.round(report.cycles.reduce((sum, cycle) => sum + cycle.periodDays, 0) / report.cycles.length)} дн.` : "—"}</strong><span>месячные</span></p></div><ul>{report.cycles.map((cycle) => <li key={cycle.start}><span>{cycle.current ? "Текущий цикл" : `${formatCycleDate(cycle.start)} — ${formatCycleDate(cycle.end)}`}</span><strong>{cycle.length} дн. · месячные {cycle.periodDays} дн.</strong></li>)}</ul><p className="report-finding">Фактическая интенсивность по дням: мажущие — {report.flowCounts.spotting ?? 0}, слабые — {report.flowCounts.light ?? 0}, средние — {report.flowCounts.medium ?? 0}, обильные — {report.flowCounts.heavy ?? 0}.</p>{Object.values(report.periodSignals).some(Boolean) && <p className="report-finding">Дополнительные отметки: сгустки — {report.periodSignals.clots}, протекания — {report.periodSignals.leaks}, смена ночью — {report.periodSignals.night}, смена каждый час — {report.periodSignals.hourly}.</p>}</> : <p className="report-empty">За выбранный период циклы не отмечены.</p>}</article>}
       {selected.pain && <article><h3>Боль</h3>{report.pain.length ? <><p className="report-finding">Отмечена в {report.pain.length} {report.pain.length === 1 ? "дне" : "днях"}. Средняя интенсивность — <strong>{(report.pain.reduce((sum, entry) => sum + (entry.pain ?? 0), 0) / report.pain.length).toFixed(1)} из 10</strong>.</p>{Object.keys(report.painLocations).length > 0 && <p className="report-finding">Локализация: {Object.entries(report.painLocations).map(([name, count]) => `${name} — ${count}`).join(", ")}.</p>}{Object.keys(report.painTypes).length > 0 && <p className="report-finding">Характер: {Object.entries(report.painTypes).map(([name, count]) => `${name} — ${count}`).join(", ")}.</p>}{report.strongImpactDays > 0 && <p className="report-finding">Боль мешала обычным делам в {report.strongImpactDays} {report.strongImpactDays === 1 ? "дне" : "днях"}.</p>}</> : <p className="report-empty">Отметок боли нет.</p>}<small>Это пользовательские отметки, а не медицинская оценка.</small></article>}
       {selected.symptoms && <article><h3>Часто отмеченные симптомы</h3>{report.symptoms.length ? <div className="report-tags">{report.symptoms.slice(0, 8).map(([name, count]) => { const levels = report.entries.map((entry) => entry.symptomIntensity?.[name]).filter((level): level is 1 | 2 | 3 => Boolean(level)); const average = levels.length ? (levels.reduce((sum, level) => sum + level, 0) / levels.length).toFixed(1) : null; return <span key={name}>{name} <b>{count}{average ? ` · ${average}/3` : ""}</b></span>; })}</div> : <p className="report-empty">Симптомы не отмечены.</p>}<small>Интенсивность показана только для дней, где пользователь её указал.</small></article>}
+      {selected.medications && <article><h3>Лекарства и эффект</h3>{report.medicationIntakes.length ? <ul>{report.medicationIntakes.map(({ date, intake }) => <li key={`${date}-${intake.id}`}><span>{formatFullDate(date)} · {intake.takenAt}</span><strong>{intake.name}{intake.dose ? `, ${intake.dose}` : ""}. Причина: {MEDICATION_REASON_LABELS[intake.reason]}. Эффект: {MEDICATION_EFFECT_LABELS[intake.effect]}{intake.sideEffects ? `. Побочные эффекты: ${intake.sideEffects}` : ""}.</strong></li>)}</ul> : <p className="report-empty">Приёмы лекарств не отмечены.</p>}<small>В отчёте показаны введённые пользователем факты, а не назначения Mira.</small></article>}
       {selected.assessments && <AssessmentReportSection title="Оценки самочувствия" assessments={report.generalAssessments} />}
       {selected.mood && <article><h3>Настроение</h3>{Object.keys(report.moods).length ? <p className="report-finding">Хорошее — {report.moods.good ?? 0} дн., спокойное — {report.moods.calm ?? 0} дн., сниженное — {report.moods.low ?? 0} дн.</p> : <p className="report-empty">Отметок настроения нет.</p>}</article>}
       {selected.sleep && <article><h3>Сон</h3>{report.sleep.length ? <p className="report-finding">Средняя продолжительность — <strong>{(report.sleep.reduce((sum, entry) => sum + (entry.sleepHours ?? 0), 0) / report.sleep.length).toFixed(1)} ч.</strong> Основано на {report.sleep.length} отметках.</p> : <p className="report-empty">Отметок сна нет.</p>}</article>}
