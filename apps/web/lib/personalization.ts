@@ -1,15 +1,17 @@
 import { CycleEntry } from "./demo-session";
-import { buildCycles, CycleRecord, daysBetween } from "./cycle-analytics";
-
-const excludedSymptoms = new Set(["Всё в порядке", "Без изменений", "Выделений нет", "Секса не было", "Ничего не принимала"]);
-const sensitivePrefixes = ["Секс ", "Оральный", "Анальный", "Мастурбация", "Интимные", "Секс-игрушки", "Оргазм"];
+import { buildCycles, CycleRecord } from "./cycle-analytics";
+import { buildSymptomPatternEvidence, type PatternConfidence } from "./domain/symptom-pattern-engine";
 
 export type SymptomPattern = {
   name: string;
   occurrences: number;
   matchedCycles: number;
+  evaluatedCycles: number;
+  recurrenceRate: number;
   typicalDay: number;
+  dayRange: { min: number; max: number };
   phase: string;
+  confidence: PatternConfidence;
   cycles: { cycle: CycleRecord; days: number[]; averageIntensity?: number }[];
 };
 
@@ -23,41 +25,8 @@ export type Personalization = {
   currentComparison?: { label: string; text: string; tone: "good" | "neutral" | "attention" };
 };
 
-function phaseForDay(day: number, cycle: CycleRecord) {
-  if (day <= cycle.periodDays) return "во время месячных";
-  const ovulationDay = Math.max(cycle.periodDays + 2, cycle.length - 14);
-  if (Math.abs(day - ovulationDay) <= 2) return "около овуляции";
-  if (day > ovulationDay + 2) return "во второй половине цикла";
-  return "в первой половине цикла";
-}
-
 function average(values: number[]) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : undefined;
-}
-
-function symptomPatterns(cycles: CycleRecord[]) {
-  const occurrences = new Map<string, Map<string, { days: number[]; intensity: number[] }>>();
-  cycles.forEach((cycle) => cycle.entries.forEach((entry) => entry.symptoms?.forEach((name) => {
-    if (excludedSymptoms.has(name) || sensitivePrefixes.some((prefix) => name.startsWith(prefix))) return;
-    const matches = occurrences.get(name) ?? new Map();
-    const match = matches.get(cycle.start) ?? { days: [], intensity: [] };
-    match.days.push(daysBetween(cycle.start, entry.date) + 1);
-    const intensity = entry.symptomIntensity?.[name];
-    if (intensity) match.intensity.push(intensity);
-    matches.set(cycle.start, match);
-    occurrences.set(name, matches);
-  })));
-
-  return [...occurrences.entries()].map(([name, matches]) => {
-    const matched = cycles.filter((cycle) => matches.has(cycle.start)).map((cycle) => {
-      const match = matches.get(cycle.start)!;
-      return { cycle, days: match.days, averageIntensity: average(match.intensity) };
-    });
-    const allDays = matched.flatMap((item) => item.days);
-    const typicalDay = Math.round(average(allDays) ?? 1);
-    return { name, occurrences: allDays.length, matchedCycles: matched.length, typicalDay, phase: phaseForDay(typicalDay, matched[0]?.cycle ?? cycles[0]), cycles: matched };
-  }).filter((pattern) => pattern.matchedCycles >= 2)
-    .sort((first, second) => second.matchedCycles - first.matchedCycles || second.occurrences - first.occurrences);
 }
 
 function buildRelief(cycles: CycleRecord[]) {
@@ -75,9 +44,9 @@ function buildRelief(cycles: CycleRecord[]) {
 
 export function buildPersonalization(entries: CycleEntry[]): Personalization {
   const allCycles = buildCycles(entries);
-  const completed = allCycles.filter((cycle) => !cycle.current).slice(-3);
+  const completed = allCycles.filter((cycle) => !cycle.current).slice(-6);
   const current = allCycles.find((cycle) => cycle.current);
-  const patterns = completed.length >= 3 ? symptomPatterns(completed) : [];
+  const patterns = completed.length >= 3 ? buildSymptomPatternEvidence(entries).map((pattern) => ({ ...pattern, cycles: pattern.cycles.map((item) => ({ cycle: completed.find((cycle) => cycle.start === item.cycleStart)!, days: item.days, averageIntensity: item.averageIntensity })).filter((item) => item.cycle) })) : [];
   const sleepEntries = completed.flatMap((cycle) => cycle.entries).filter((entry) => entry.sleepHours !== undefined);
   const lowEnergySleep = sleepEntries.filter((entry) => entry.symptoms?.some((symptom) => symptom === "Усталость" || symptom === "Мало энергии"));
   const sleepAverage = average(sleepEntries.map((entry) => entry.sleepHours!)) ?? 0;
