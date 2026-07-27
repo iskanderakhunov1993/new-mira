@@ -1,223 +1,212 @@
+import type { Metadata, Viewport } from "next";
 import {
   ArrowRight,
-  BadgeCheck,
-  Ban,
-  CalendarDays as CalendarBlank,
-  ChartNoAxesCombined as ChartLineUp,
+  BarChart3,
+  BatteryMedium,
+  CalendarDays,
   Check,
-  ClipboardCheck,
+  ChevronRight,
+  CircleUserRound,
+  ClipboardList,
+  CloudSun,
   Download,
-  Droplet as Drop,
   FileHeart,
-  Heart,
-  MoonStar as MoonStars,
-  Plus,
+  HeartPulse,
+  LockKeyhole,
+  MessageCircleHeart,
+  MoonStar,
+  Pill,
   ShieldCheck,
-  Smile as Smiley,
-  Smartphone,
-  Sparkles as Sparkle,
-  WalletCards,
+  Sparkles,
+  Stethoscope,
+  Trash2,
 } from "lucide-react";
 import { LandingMotion } from "@/components/LandingMotion";
+import { LandingMobileMenu } from "@/components/LandingMobileMenu";
+import { LandingTrackerDemo } from "@/components/LandingTrackerDemo";
 import { PublicPageView, RegisterCta } from "@/components/PublicProductAnalytics";
 
-const benefits = [
-  {
-    icon: CalendarBlank,
-    eyebrow: "Цикл",
-    title: "Всё важное — за пару касаний",
-    text: "Отмечайте месячные, боль, настроение и симптомы без длинных анкет.",
-    className: "benefit-cycle",
+export const metadata: Metadata = {
+  title: "Mira — трекер менструального цикла и самочувствия",
+  description: "Отслеживайте цикл, симптомы, настроение и самочувствие. Замечайте изменения и сохраняйте понятную историю наблюдений для себя и врача.",
+  openGraph: {
+    title: "Mira — слушай себя",
+    description: "Бережный трекер цикла, самочувствия и личных наблюдений.",
+    type: "website",
+    locale: "ru_RU",
   },
-  {
-    icon: ChartLineUp,
-    eyebrow: "Наблюдения",
-    title: "Замечайте, что повторяется",
-    text: "Mira бережно покажет первые закономерности и всегда объяснит, на каких отметках они основаны.",
-    className: "benefit-insight",
-  },
-  {
-    icon: FileHeart,
-    eyebrow: "История",
-    title: "Соберите факты для врача",
-    text: "Выберите даты, боль и симптомы для понятной сводки. Личные заметки не включаются без вашего решения.",
-    className: "benefit-private",
-  },
+};
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#f7f4ee" };
+
+const principles = [
+  { icon: ClipboardList, title: "Простые ежедневные отметки", text: "Сохраняйте только то, что важно сегодня." },
+  { icon: BarChart3, title: "Понятная аналитика", text: "Факты и повторения без сложных медицинских выводов." },
+  { icon: ShieldCheck, title: "Контроль над данными", text: "Скачивайте историю и управляйте сохранёнными записями." },
 ];
 
-const faqs = [
-  ["Mira действительно полностью бесплатна?", "Да. В Mira нет подписки, рекламы и платных функций. Все возможности MVP доступны бесплатно."],
-  ["Можно использовать прогноз как контрацепцию?", "Нет. Прогноз — приблизительный календарный диапазон. Mira не является методом контрацепции и не подтверждает овуляцию или беременность."],
-  ["Где хранятся мои данные?", "Постоянная история хранится в базе Supabase и связана с вашим аккаунтом. Браузер не хранит постоянную копию данных о здоровье."],
-  ["Можно скачать или удалить историю?", "Да. В профиле можно скачать данные, очистить историю или полностью удалить аккаунт."],
-  ["Почему нужен email?", "Email нужен для защищённого входа и доступа к одной истории с ваших устройств. Пароль обрабатывает Supabase Auth."],
-  ["Работает ли Mira без интернета?", "Оболочка приложения может открыться, но медицинские записи без соединения не сохраняются, чтобы не создавать конфликтующие версии данных."],
+const steps = [
+  ["01", "Отмечайте состояние за минуту", "Цикл, боль, энергия, настроение, сон и лекарства — в одном дневнике."],
+  ["02", "Наблюдайте изменения", "Mira показывает повторения только тогда, когда для сравнения достаточно ваших отметок."],
+  ["03", "Готовьтесь к разговору с врачом", "Соберите нужный период в аккуратную сводку без попыток поставить диагноз."],
+];
+
+const analytics = [
+  ["Средняя длина", "28 дней", "4 завершённых цикла"],
+  ["Колебания", "26–31 день", "Ваш фактический диапазон"],
+  ["Менструация", "4–5 дней", "По сохранённым отметкам"],
+  ["Частый симптом", "Головная боль", "3 отметки за 2 цикла"],
 ];
 
 function Logo() {
   return (
-    <a className="logo" href="#top" aria-label="Mira — на главную">
-      <span className="logo-mark"><MoonStars /></span>
-      <span>Mira</span>
+    <a className="ml-logo" href="#top" aria-label="Mira — к началу страницы">
+      <span><MoonStar aria-hidden="true" /></span>
+      <b>Mira</b>
+      <small>Слушай себя</small>
     </a>
   );
 }
 
-function PhonePreview() {
+function Header() {
   return (
-    <div className="phone-wrap" role="img" aria-label="Пример актуального главного экрана Mira с прогнозом диапазона, быстрыми отметками и наблюдением">
-      <div className="orbit orbit-one" />
-      <div className="orbit orbit-two" />
-      <div className="phone">
-        <div className="phone-top"><span>9:41</span><span className="island" /><span>● ◒</span></div>
-        <div className="phone-content">
-          <div className="app-heading">
-            <div><span>Доброе утро</span><strong>Сегодня, 19 июля</strong></div>
-            <span className="avatar">М</span>
-          </div>
-          <div className="week">
-            {[['ПН','15'],['ВТ','16'],['СР','17'],['ЧТ','18'],['ПТ','19'],['СБ','20'],['ВС','21']].map(([day, date]) => (
-              <div className={date === '19' ? 'today' : ''} key={date}><small>{day}</small><span>{date}</span></div>
-            ))}
-          </div>
-          <section className="cycle-card">
-            <div className="cycle-label"><span className="dot" /> Ориентировочный прогноз</div>
-            <strong>Месячные примерно<br />через <b>2 дня</b></strong>
-            <p>25-й день цикла · диапазон ±3 дня</p>
-            <div className="cycle-visual"><span>±3</span><small>дня</small></div>
-          </section>
-          <div className="quick-title"><strong>Как вы сегодня?</strong><span>Все отметки</span></div>
-          <div className="quick-actions">
-            <span><i><Drop /></i>Месячные</span>
-            <span><i><Plus /></i>Симптомы</span>
-            <span><i><Smiley /></i>Самочувствие</span>
-          </div>
-          <div className="insight-card">
-            <span><Sparkle /></span>
-            <div><small>Mira заметила</small><strong>Усталость отмечена 3 раза за неделю</strong><p>Факт из 8 отметок · не диагноз</p></div>
-          </div>
+    <header className="ml-header" data-landing-header>
+      <div className="ml-shell ml-header-inner">
+        <Logo />
+        <nav className="ml-desktop-nav" aria-label="Основная навигация">
+          <a href="#features">Возможности</a>
+          <a href="#how">Как работает</a>
+          <a href="#analytics">Аналитика</a>
+          <a href="#doctor">Для врача</a>
+          <a href="#privacy">Безопасность</a>
+        </nav>
+        <div className="ml-header-actions">
+          <a className="ml-login" href="/login">Войти</a>
+          <RegisterCta className="ml-button ml-button-small">Попробовать бесплатно</RegisterCta>
         </div>
+        <LandingMobileMenu />
       </div>
-      <div className="floating-note note-one"><span><Check /></span><div><small>Отметка сохранена</small><strong>Около 20 секунд</strong></div></div>
-      <div className="floating-note note-two"><span><ShieldCheck /></span><div><small>Вы управляете историей</small><strong>Скачать или удалить</strong></div></div>
+    </header>
+  );
+}
+
+function PhoneMockup() {
+  return (
+    <div className="ml-phone-stage" aria-label="Демонстрация главного экрана Mira">
+      <div className="ml-phone">
+        <div className="ml-phone-status"><span>9:41</span><i /><span>● ◒</span></div>
+        <div className="ml-phone-head"><div><small>Сегодня</small><strong>18 июля</strong></div><CircleUserRound /></div>
+        <div className="ml-phase-card">
+          <div className="ml-cycle-ring"><div><strong>18</strong><span>день цикла</span></div></div>
+          <div><small>Следующие месячные</small><strong>примерно через 10 дней</strong><p>Прогноз ±3 дня</p></div>
+        </div>
+        <div className="ml-phone-metrics">
+          <article><BatteryMedium /><span>Энергия</span><strong>Средняя</strong></article>
+          <article><CloudSun /><span>Настроение</span><strong>Спокойное</strong></article>
+          <article><HeartPulse /><span>Симптомы</span><strong>1 отметка</strong></article>
+        </div>
+        <div className="ml-phone-tip"><Sparkles /><div><small>Рекомендация дня</small><strong>Запишите, как меняется энергия к вечеру</strong></div></div>
+      </div>
+      <div className="ml-phone-note ml-note-top"><Check /><span><small>Дневник</small><strong>Отметка сохранена</strong></span></div>
+      <div className="ml-phone-note ml-note-bottom"><ShieldCheck /><span><small>Приватность</small><strong>Данные принадлежат вам</strong></span></div>
+    </div>
+  );
+}
+
+function AnalyticsPreview() {
+  return (
+    <div className="ml-analytics-preview">
+      <header><div><small>Личная динамика</small><strong>Последние 4 цикла</strong></div><span>Демо</span></header>
+      <div className="ml-chart" role="img" aria-label="Пример графика длины четырёх циклов: 28, 31, 28 и 26 дней">
+        <svg viewBox="0 0 640 250" aria-hidden="true">
+          <path className="ml-chart-grid" d="M30 42H610M30 96H610M30 150H610M30 204H610" />
+          <path className="ml-chart-area" d="M52 147 C135 130 155 54 235 72 S352 166 428 132 S526 180 588 188 L588 204 L52 204 Z" />
+          <path className="ml-chart-line" d="M52 147 C135 130 155 54 235 72 S352 166 428 132 S526 180 588 188" />
+          {[["52", "147"], ["235", "72"], ["428", "132"], ["588", "188"]].map(([cx, cy]) => <circle cx={cx} cy={cy} r="8" key={cx} />)}
+        </svg>
+        <div><span>28 дней</span><span>31 день</span><span>28 дней</span><span>26 дней</span></div>
+      </div>
+      <p><Sparkles /> Последний цикл короче трёх предыдущих. Это наблюдение по вашей истории, а не медицинская оценка.</p>
+    </div>
+  );
+}
+
+function DoctorReportPreview() {
+  return (
+    <div className="ml-report-preview" aria-label="Демонстрационный пример отчёта для врача">
+      <header><div><span><FileHeart /></span><div><small>Сводка наблюдений</small><strong>Май — июль 2026</strong></div></div><b>Mira</b></header>
+      <div className="ml-report-metrics"><span><small>Циклы</small><strong>4</strong></span><span><small>Диапазон</small><strong>26–31</strong></span><span><small>Месячные</small><strong>4–5 дней</strong></span></div>
+      <section><strong>Что войдёт в отчёт</strong><ul><li><Check /> История и длительность циклов</li><li><Check /> Интенсивность и симптомы</li><li><Check /> Лекарства и оценка эффекта</li><li><Check /> Выбранные пользователем заметки</li></ul></section>
+      <footer><ShieldCheck /><span>Отчёт помогает вспомнить факты, но не заменяет консультацию и медицинскую документацию.</span></footer>
     </div>
   );
 }
 
 export default function LandingPage() {
   return (
-    <main id="top" className="landing-page">
+    <main id="top" className="mira-landing">
       <LandingMotion />
       <PublicPageView name="landing_view" route="/" />
-      <header className="header shell">
-        <Logo />
-        <nav aria-label="Основная навигация">
-          <a href="#possibilities">Возможности</a>
-          <a href="#free">Почему бесплатно</a>
-          <a href="#privacy">Приватность</a>
-        </nav>
-        <div className="header-actions"><a className="login" href="/login">Войти</a><RegisterCta className="button button-small">Попробовать Mira</RegisterCta></div>
-      </header>
+      <Header />
 
-      <section className="hero shell">
-        <div className="hero-copy">
-          <div className="eyebrow"><span><Heart /></span> Без подписки и рекламы</div>
-          <h1>Ваш цикл.<br />Ваш ритм.<br /><em>Всё понятнее.</em></h1>
-          <p className="hero-lead">Отмечайте месячные и самочувствие за несколько секунд. Mira поможет увидеть личную картину цикла и сохранить важные факты для себя или врача.</p>
-          <div className="hero-actions">
-            <RegisterCta className="button">Начать вести цикл <ArrowRight /></RegisterCta>
-            <a className="text-link" href="#how"><span>01</span> Посмотреть, как работает</a>
+      <section className="ml-hero ml-shell" aria-labelledby="ml-hero-title">
+        <div className="ml-hero-copy">
+          <span className="ml-kicker"><HeartPulse /> Бережный трекер женского здоровья</span>
+          <h1 id="ml-hero-title">Понимай свой цикл.<br /><em>Слушай себя.</em></h1>
+          <p>Mira помогает отслеживать цикл, замечать изменения в самочувствии и готовить понятные данные для разговора с врачом.</p>
+          <div className="ml-hero-actions">
+            <RegisterCta className="ml-button">Начать бесплатно <ArrowRight /></RegisterCta>
+            <a className="ml-button-secondary" href="#features">Посмотреть возможности <ChevronRight /></a>
           </div>
-          <div className="trust-row"><span><Check /> Все функции сразу</span><span><Check /> Без банковской карты</span><span><Check /> Историю можно удалить</span></div>
+          <span className="ml-private-note"><LockKeyhole /> Без рекламы. Данные принадлежат вам.</span>
         </div>
-        <PhonePreview />
+        <PhoneMockup />
       </section>
 
-      <section className="free-manifesto shell" id="free">
-        <div className="free-manifesto-copy">
-          <span className="section-index">ПОЧЕМУ MIRA БЕСПЛАТНА</span>
-          <h2>Понимание своего тела<br />не должно начинаться<br /><em>с оплаты.</em></h2>
-          <p>Базовые инструменты для отслеживания цикла должны быть доступны каждой. Поэтому Mira не прячет календарь, дневник, историю и аналитику за подпиской.</p>
-          <span className="manifesto-sign">Это не акция. Это принцип Mira.</span>
+      <section className="ml-trust ml-shell" aria-label="Принципы Mira">
+        {principles.map(({ icon: Icon, title, text }) => <article key={title}><span><Icon /></span><div><strong>{title}</strong><p>{text}</p></div></article>)}
+      </section>
+
+      <section className="ml-section ml-how ml-shell" id="how" data-reveal>
+        <div className="ml-section-heading"><span>Как работает Mira</span><h2>Одна минута сегодня.<br />Больше ясности со временем.</h2><p>Простой ежедневный ритуал превращается в историю, которую легче понять и обсудить.</p></div>
+        <ol>{steps.map(([index, title, text]) => <li key={index}><span>{index}</span><div><strong>{title}</strong><p>{text}</p></div></li>)}</ol>
+      </section>
+
+      <section className="ml-feature-section ml-shell" id="features" data-reveal>
+        <div className="ml-feature-copy"><span className="ml-section-label">Ежедневный трекинг</span><h2>Важное — без длинных анкет</h2><p>Интерактивный пример показывает, как быстро можно отметить состояние. Данные в демо не сохраняются.</p><ul><li><Check /> Удобно одной рукой</li><li><Check /> Можно заполнить только нужное</li><li><Check /> Никаких оценок «правильно» или «неправильно»</li></ul></div>
+        <LandingTrackerDemo />
+      </section>
+
+      <section className="ml-analytics ml-shell" id="analytics" data-reveal>
+        <div className="ml-section-heading"><span>Аналитика без сложных графиков</span><h2>Не просто цифры —<br />то, что повторяется.</h2><p>Mira помогает увидеть изменения и подготовить вопросы. Причины симптомов и диагнозы определяет врач.</p></div>
+        <div className="ml-analytics-layout">
+          <div className="ml-analytics-cards">{analytics.map(([title, value, note]) => <article key={title}><small>{title}</small><strong>{value}</strong><span>{note}</span></article>)}</div>
+          <AnalyticsPreview />
         </div>
-        <div className="free-principles">
-          <article>
-            <span><WalletCards /></span>
-            <div><strong>Никакой подписки</strong><p>Банковская карта не нужна. Все функции доступны сразу после регистрации.</p></div>
-          </article>
-          <article>
-            <span><Ban /></span>
-            <div><strong>Никакой рекламы</strong><p>Личное пространство не должно отвлекать или продавать ваше внимание.</p></div>
-          </article>
-          <article>
-            <span><BadgeCheck /></span>
-            <div><strong>История принадлежит вам</strong><p>Скачивайте данные, очищайте записи или удаляйте аккаунт в любой момент.</p></div>
-          </article>
-        </div>
       </section>
 
-      <section className="result-proof shell" id="result">
-        <header><span className="section-index">ПЕРВЫЙ ПОЛЕЗНЫЙ РЕЗУЛЬТАТ</span><h2>Не просто календарь.<br /><em>Понятный следующий шаг.</em></h2><p>Пример того, как Mira превращает несколько отметок в осторожное и проверяемое наблюдение.</p></header>
-        <div className="result-proof-grid">
-          <article><span><ClipboardCheck /></span><small>Что отмечено</small><h3>Усталость — 3 раза за последние 7 дней</h3><p>Mira показывает факты из дневника, ничего не додумывая.</p></article>
-          <article><span><ChartLineUp /></span><small>Что изменилось</small><h3>Чаще, чем в предыдущие две недели</h3><p>Сравнение появляется только при достаточном количестве ваших записей.</p></article>
-          <article><span><FileHeart /></span><small>Что сделать дальше</small><h3>Продолжить наблюдение или сохранить факты для врача</h3><p>Причины и диагнозы Mira не определяет.</p></article>
-        </div>
-        <p className="result-proof-note"><ShieldCheck /> Демонстрационный пример · основано на 8 отметках · не медицинский вывод</p>
+      <section className="ml-personal-day ml-shell" data-reveal>
+        <div className="ml-day-visual"><span><CalendarDays /></span><strong>18</strong><small>день цикла</small><i>Информационный пример</i></div>
+        <div className="ml-day-copy"><span className="ml-section-label">Персональный день</span><h2>Контекст, который помогает решить, что отметить сегодня</h2><ul><li><BatteryMedium /><span><strong>Энергия может быть ниже обычного</strong><small>Сравнение с вашими предыдущими отметками</small></span></li><li><MessageCircleHeart /><span><strong>Вчера отмечалась головная боль</strong><small>Можно продолжить наблюдение сегодня</small></span></li><li><Pill /><span><strong>Не забудьте записать приём лекарства</strong><small>Только если вы уже принимаете его по своему плану</small></span></li><li><Stethoscope /><span><strong>Сильная или необычная боль</strong><small>Обратитесь за медицинской помощью</small></span></li></ul><p>Рекомендации носят информационный характер и не являются назначением.</p></div>
       </section>
 
-      <section className="statement shell" id="possibilities">
-        <span className="section-index">01 — ВОЗМОЖНОСТИ</span>
-        <h2>Не просто запоминайте даты.<br /><em>Начните понимать цикл.</em></h2>
-        <p>Mira хранит факты и осторожно сравнивает их только с вашей личной историей.</p>
+      <section className="ml-doctor ml-shell" id="doctor" data-reveal>
+        <div className="ml-doctor-copy"><span className="ml-section-label">Отчёт для врача</span><h2>Приходите не с воспоминаниями, а с аккуратно собранной историей</h2><p>Выберите период и категории данных. Mira соберёт фактические отметки в понятную сводку — без предположений о диагнозе.</p><a className="ml-button-secondary" href="/analytics/report">Посмотреть пример отчёта <ArrowRight /></a></div>
+        <DoctorReportPreview />
       </section>
 
-      <section className="benefits shell">
-        {benefits.map(({ icon: Icon, eyebrow, title, text, className }, index) => (
-          <article className={`benefit ${className}`} key={title}>
-            <div className="benefit-top"><span className="benefit-icon"><Icon /></span><small>0{index + 1}</small></div>
-            <span className="benefit-eyebrow">{eyebrow}</span>
-            <h3>{title}</h3>
-            <p>{text}</p>
-            <div className="benefit-art" aria-hidden="true"><span /><span /><span /></div>
-          </article>
-        ))}
+      <section className="ml-privacy ml-shell" id="privacy" data-reveal>
+        <div className="ml-privacy-symbol"><ShieldCheck /></div>
+        <div><span className="ml-section-label">Конфиденциальность — основа</span><h2>Личная история остаётся под вашим контролем</h2><p>Доступ защищён аккаунтом. Mira не показывает рекламу и не продаёт личные данные. В профиле можно скачать историю, очистить записи или удалить аккаунт.</p><div className="ml-privacy-grid"><span><LockKeyhole /> Защита чувствительных данных</span><span><Download /> Выгрузка истории</span><span><Trash2 /> Удаление данных</span><span><ShieldCheck /> Понятные настройки</span></div><a href="/privacy">Подробнее о конфиденциальности <ArrowRight /></a></div>
       </section>
 
-      <section className="how shell" id="how">
-        <div className="how-copy"><span className="section-index">02 — КАК ЭТО РАБОТАЕТ</span><h2>Несколько секунд сегодня.<br /><em>Больше ясности со временем.</em></h2></div>
-        <ol>
-          <li><span>1</span><div><strong>Отмечайте</strong><p>Записывайте месячные и самочувствие в удобный момент.</p></div></li>
-          <li><span>2</span><div><strong>Наблюдайте</strong><p>Mira покажет повторения, когда данных станет достаточно.</p></div></li>
-          <li><span>3</span><div><strong>Действуйте</strong><p>Следите за изменениями или подготовьте факты для врача.</p></div></li>
-        </ol>
+      <section className="ml-final ml-shell" data-reveal>
+        <span><MoonStar /></span><h2>Начните лучше понимать своё самочувствие</h2><p>Одна минута в день помогает сохранить историю, которую легко забыть.</p><RegisterCta className="ml-button">Начать бесплатно <ArrowRight /></RegisterCta><small>Mira не ставит диагнозы и не заменяет врача.</small>
       </section>
 
-      <section className="pwa-section shell">
-        <div className="pwa-icon"><Smartphone /></div>
-        <div><span className="section-index">PWA ДЛЯ IPHONE И ANDROID</span><h2>Открывается в браузере.<br /><em>Работает как приложение.</em></h2><p>Добавьте Mira на экран «Домой» и открывайте одним касанием. Магазин приложений и банковская карта не нужны.</p><div className="pwa-facts"><span><Check /> Один аккаунт</span><span><Check /> Быстрый доступ</span><span><Check /> Все функции сразу</span></div></div>
-        <aside><Download /><strong>Как установить</strong><p>Откройте меню браузера и выберите «На экран Домой» или «Установить приложение».</p></aside>
-      </section>
-
-      <section className="privacy shell" id="privacy">
-        <div className="privacy-mark"><ShieldCheck /></div>
-        <div><span className="section-index">03 — ПРИВАТНОСТЬ</span><h2>Ваши данные —<br />не плата за <em>продукт.</em></h2><p>Mira не показывает рекламу и не продаёт доступ к функциям. История защищена вашим аккаунтом. Вы можете скачать данные, очистить записи или полностью удалить аккаунт.</p><a className="privacy-link" href="/privacy">Как Mira работает с данными <ArrowRight /></a></div>
-      </section>
-
-      <section className="faq shell" id="faq">
-        <header><span className="section-index">04 — ВОПРОСЫ</span><h2>Коротко о важном.</h2><p>Без мелкого шрифта и скрытых условий.</p></header>
-        <div>{faqs.map(([question, answer]) => <details key={question}><summary>{question}<Plus /></summary><p>{answer}</p></details>)}</div>
-      </section>
-
-      <section className="final-cta shell">
-        <span className="sparkle sparkle-left">✦</span><span className="sparkle sparkle-right">✦</span>
-        <div className="eyebrow"><span><Heart /></span> Mira всегда остаётся бесплатной</div>
-        <h2>Начните лучше понимать<br />свой <em>цикл.</em></h2>
-        <p>Первая отметка займёт меньше минуты. Подписка и банковская карта не нужны.</p>
-        <RegisterCta className="button">Начать вести цикл <ArrowRight /></RegisterCta>
-      </section>
-
-      <footer className="footer shell"><div className="footer-brand"><Logo /><p>Цикл — ваш. Данные — ваши. Доступ — бесплатный.<br />18+ · не медицинская услуга · не метод контрацепции.</p></div><div className="footer-links"><a href="#how">Как работает</a><a href="#free">Почему бесплатно</a><a href="#faq">Вопросы</a><a href="/privacy">Конфиденциальность</a><a href="/terms">Условия</a><a href="/privacy#operator">Контакты</a><span>© 2026 Mira</span></div></footer>
+      <footer className="ml-footer">
+        <div className="ml-shell ml-footer-inner"><div><Logo /><p>Бережный дневник цикла и самочувствия.<br />Информационный сервис 18+.</p></div><nav aria-label="Навигация в подвале"><a href="#features">Возможности</a><a href="/privacy">Конфиденциальность</a><a href="/terms">Условия использования</a><a href="/privacy#operator">Связаться с нами</a></nav><p>Mira не является медицинской услугой, методом контрацепции и не заменяет консультацию врача.<br />© 2026 Mira</p></div>
+      </footer>
     </main>
   );
 }
