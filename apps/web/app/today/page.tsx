@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, CalendarDays, ChevronRight, CircleUserRound, Droplet, GlassWater, Info, Package, Pill, Plus, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
-import { getProfile, MiraProfile, trackProductEvent } from "@/lib/demo-session";
+import { getProfile, MiraProfile } from "@/lib/demo-session";
 import { AppTabBar } from "@/components/AppTabBar";
 import { Spotlight } from "@/components/Spotlight";
 import { buildCycleHistorySummary, buildCycles, formatCycleDate } from "@/lib/cycle-analytics";
@@ -14,7 +14,6 @@ import { cyclePhaseForDate } from "@/lib/domain/cycle-phase";
 import { buildTodayCards, type TodayCard } from "@/lib/domain/today-cards";
 import { buildDailyRecommendations } from "@/lib/domain/daily-recommendations";
 import { buildCycleDynamics } from "@/lib/domain/cycle-dynamics";
-import { buildTodayPrimaryAction } from "@/lib/domain/today-primary-action";
 
 const monthNames = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
 
@@ -40,7 +39,6 @@ export default function TodayPage() {
   const [showSpotlight, setShowSpotlight] = useState(false);
   const previewCards = process.env.NODE_ENV === "development";
   useEffect(() => {
-    void trackProductEvent("today_view", "/today");
     void getProfile().then((current) => {
       if (current && !current.onboardingComplete) return router.replace("/onboarding");
       setProfile(current);
@@ -78,12 +76,6 @@ export default function TodayPage() {
   const todayPhase = cyclePhaseForDate({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, date: todayKey });
   const actualTodayCards = buildTodayCards({ entries: profile?.entries ?? [], today: todayKey, hasCycleData: cycle.hasCycleStart, cycleDay: cycle.day, phase: todayPhase, delayed: cycle.until < -cycle.uncertaintyDays, expectedStart: cycle.expectedStart, uncertaintyDays: cycle.uncertaintyDays, periodActive: cycle.active, periodDay: cycle.periodDay });
   const dailyRecommendations = buildDailyRecommendations({ entries: profile?.entries ?? [], today: todayKey, weightKg: profile?.weightKg });
-  const primaryAction = buildTodayPrimaryAction({
-    goal: profile?.goal,
-    today: todayKey,
-    entries: profile?.entries ?? [],
-    delayed: cycle.until < -cycle.uncertaintyDays,
-  });
   const todayCards: TodayCard[] = previewCards ? [
     actualTodayCards.find((card) => card.kind === "cycle")!,
     actualTodayCards.find((card) => card.kind === "observation") ?? { kind: "observation", eyebrow: "Последние 7 дней", title: "Усталость — 3 раза", description: "Тестовый пример наблюдения.", href: "/insights", tone: "pink" },
@@ -97,14 +89,6 @@ export default function TodayPage() {
         <header className="app-top"><Link className="app-top-action" href="/profile" aria-label="Профиль"><CircleUserRound /></Link><h1>{today.getDate()} {monthNames[today.getMonth()]}</h1><Link className="app-top-action" href="/calendar" aria-label="Календарь"><CalendarDays /></Link></header>
         <section className="app-week" aria-label="Дни недели">{dates.map((date, index) => { const key = date.toISOString().slice(0, 10); const hasPeriod = profile?.entries?.some((entry) => entry.date === key && entry.period); const phase = cyclePhaseForDate({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, date: key }); return <Link aria-label={`Открыть ${date.getDate()} ${monthNames[date.getMonth()]} в календаре`} className={`${index === 3 ? "active" : ""} ${hasPeriod ? "has-period" : ""} ${phase ? `phase-${phase}` : ""}`} href={`/calendar?date=${key}`} key={key}><small>{["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"][date.getDay()]}</small><span>{date.getDate()}</span></Link>; })}</section>
         <section className="flo-cycle-hero"><div className="flo-orb flo-orb-one" /><div className="flo-orb flo-orb-two" /><p>{!cycle.hasCycleStart ? "Первый прогноз" : cycle.active ? "Месячные идут" : cycle.until < 0 ? "Предполагаемая задержка" : cycle.until === 0 ? "Возможное начало месячных" : "Месячные примерно через"}</p><h2>{!cycle.hasCycleStart ? <>пока <span>без дат</span></> : cycle.active ? <>{cycle.periodDay} <span>{dayWord(cycle.periodDay)}</span></> : cycle.until < 0 ? <>{Math.abs(cycle.until)} <span>{dayWord(Math.abs(cycle.until))}</span></> : cycle.until === 0 ? "сегодня" : <>{cycle.until} <span>{dayWord(cycle.until)}</span></>}</h2><div className="fertility-copy"><strong>{!cycle.hasCycleStart ? "Отметьте первый день месячных" : cycle.active ? "Фактическая продолжительность" : cycle.expectedStart ? `Ожидаемое начало: ${new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" }).format(new Date(`${cycle.expectedStart}T12:00:00`))}` : "Отметьте начало месячных"}</strong><span>{!cycle.hasCycleStart ? "После первой отметки Mira рассчитает ориентировочные даты" : cycle.active ? `${cycle.day}-й день цикла` : `${cycle.day}-й день цикла · прогноз ±${cycle.uncertaintyDays} ${dayWord(cycle.uncertaintyDays)}`}</span></div></section>
-        <section className={`today-next-action ${primaryAction.tone}`} aria-labelledby="today-next-action-title">
-          <div>
-            <small>{primaryAction.eyebrow}</small>
-            <h2 id="today-next-action-title">{primaryAction.title}</h2>
-            <p>{primaryAction.description}</p>
-          </div>
-          <Link href={primaryAction.href} onClick={() => void trackProductEvent("today_primary_action_clicked", "/today")}>{primaryAction.actionLabel}<ChevronRight /></Link>
-        </section>
         {personalization.completed.length >= 3 && <section className="today-personalization" aria-label="Персональные наблюдения">
           {nextPattern ? <Link className="today-pattern" href={`/insights/symptoms/${encodeURIComponent(nextPattern.name)}`}><Sparkles /><div><small>Ближайшие 7 дней · наблюдение</small><h2>Раньше вы отмечали: {nextPattern.name}</h2><p>В {nextPattern.matchedCycles} из {nextPattern.evaluatedCycles} циклов примерно на {nextPattern.dayRange.min}–{nextPattern.dayRange.max}-й день.</p></div><ChevronRight /></Link> : <Link className="today-pattern quiet" href="/insights"><Sparkles /><div><small>Ближайшие 7 дней</small><h2>Нет повторяющихся симптомов</h2><p>Продолжайте отмечать самочувствие — прогноз станет точнее.</p></div><ChevronRight /></Link>}
           {personalization.currentComparison && <Link className={`today-comparison ${personalization.currentComparison.tone}`} href="/insights"><TrendingUp /><div><small>Текущий и типичный цикл</small><h2>{personalization.currentComparison.label}</h2><p>{personalization.currentComparison.text}</p></div><ChevronRight /></Link>}

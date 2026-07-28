@@ -263,7 +263,7 @@ export async function updatePeriod(start: string, update: { startDate: string; e
   return getProfile({ refresh: true });
 }
 
-export type ProductEventName = "onboarding_started" | "onboarding_step_completed" | "onboarding_completed" | "today_view" | "today_primary_action_clicked" | "spotlight_shown" | "spotlight_skipped" | "spotlight_completed" | "checkin_started" | "checkin_completed" | "entry_updated" | "entry_deleted" | "period_started" | "period_ended" | "period_updated" | "period_deleted";
+export type ProductEventName = "onboarding_started" | "onboarding_step_completed" | "onboarding_completed" | "spotlight_shown" | "spotlight_skipped" | "spotlight_completed" | "checkin_started" | "checkin_completed" | "entry_updated" | "entry_deleted" | "period_started" | "period_ended" | "period_updated" | "period_deleted";
 
 export async function trackProductEvent(name: ProductEventName, route: string) {
   try { await fetchJson("/api/product-events", { method: "POST", body: JSON.stringify({ name, route }) }); } catch { /* аналитика не блокирует основной сценарий */ }
