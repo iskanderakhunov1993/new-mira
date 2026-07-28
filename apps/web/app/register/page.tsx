@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { AuthShell } from "@/components/AuthShell";
-import { PublicPageView } from "@/components/PublicProductAnalytics";
+import { PublicPageView, sendPublicEvent } from "@/components/PublicProductAnalytics";
 import { registerAccount } from "@/lib/demo-session";
 import { LEGAL_VERSION } from "@/lib/legal";
 import { TelegramAuthAction } from "@/components/TelegramAuthAction";
@@ -34,6 +34,7 @@ export default function RegisterPage() {
     if (!healthDataConsent) return setError("Нужно отдельно согласиться на обработку данных о цикле и здоровье");
 
     setIsSubmitting(true);
+    sendPublicEvent("register_submitted", "/register");
     try {
       const result = await registerAccount(normalizedEmail, password, { terms: true, privacyPolicy: true, healthData: true, version: LEGAL_VERSION });
       if (result.requiresEmailConfirmation) {
@@ -77,8 +78,13 @@ export default function RegisterPage() {
       </div> : <form className="auth-form" onSubmit={submit} noValidate>
         <label><span>Email</span><div className="input-wrap"><Mail /><input name="email" type="email" autoComplete="email" placeholder="you@example.com" required value={email} onChange={(event) => setEmail(event.target.value)} /></div></label>
         <label><span>Пароль</span><div className="input-wrap"><LockKeyhole /><input name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Минимум 8 символов" required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
-        <label className="consent"><input name="termsConsent" type="checkbox" /><span className="custom-check"><Check /></span><span>Мне исполнилось 18 лет, я принимаю <Link href="/terms" target="_blank">условия использования</Link> и ознакомилась с <Link href="/privacy" target="_blank">политикой конфиденциальности</Link>.</span></label>
-        <label className="consent"><input name="healthDataConsent" type="checkbox" /><span className="custom-check"><Check /></span><span>Я отдельно соглашаюсь на обработку чувствительных данных о цикле, симптомах и самочувствии для работы Mira. Согласие можно отозвать удалением истории или аккаунта.</span></label>
+        <fieldset className="auth-consents">
+          <legend>Согласия и ваши данные</legend>
+          <p>Для аккаунта нужно подтвердить возраст и отдельно разрешить обработку данных о здоровье.</p>
+          <label className="consent"><input name="termsConsent" type="checkbox" /><span className="custom-check"><Check /></span><span>Мне исполнилось 18 лет, я принимаю <Link href="/terms" target="_blank">условия использования</Link> и ознакомилась с <Link href="/privacy" target="_blank">политикой конфиденциальности</Link>.</span></label>
+          <label className="consent"><input name="healthDataConsent" type="checkbox" /><span className="custom-check"><Check /></span><span>Я отдельно соглашаюсь на обработку чувствительных данных о цикле, симптомах и самочувствии для работы Mira.</span></label>
+          <details><summary>Как Mira использует эти данные</summary><p>Только для работы дневника, осторожной аналитики и выбранного вами отчёта. Согласие можно отозвать удалением истории или аккаунта.</p></details>
+        </fieldset>
         {error && <p className="form-error" role="alert">{error}</p>}
         <button className="button auth-submit" type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>Создать аккаунт <ArrowRight /></button>
       </form>}

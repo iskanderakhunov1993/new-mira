@@ -24,7 +24,7 @@ import {
 import { LandingMotion } from "@/components/LandingMotion";
 import { LandingMobileMenu } from "@/components/LandingMobileMenu";
 import { LandingTrackerDemo } from "@/components/LandingTrackerDemo";
-import { PublicPageView, RegisterCta } from "@/components/PublicProductAnalytics";
+import { DemoCta, PublicPageView, RegisterCta } from "@/components/PublicProductAnalytics";
 
 export const metadata: Metadata = {
   title: "Mira — трекер менструального цикла и самочувствия",
@@ -155,7 +155,7 @@ export default function LandingPage() {
           <h1 id="ml-hero-title">Понимай свой цикл.<br /><em>Слушай себя.</em></h1>
           <p>Mira помогает отслеживать цикл, замечать изменения в самочувствии и готовить понятные данные для разговора с врачом.</p>
           <div className="ml-hero-actions">
-            <RegisterCta className="ml-button">Начать бесплатно <ArrowRight /></RegisterCta>
+            <DemoCta className="ml-button">Попробовать за минуту <ArrowRight /></DemoCta>
             <a className="ml-button-secondary" href="#features">Посмотреть возможности <ChevronRight /></a>
           </div>
           <span className="ml-private-note"><LockKeyhole /> Без рекламы. Данные принадлежат вам.</span>
@@ -201,7 +201,7 @@ export default function LandingPage() {
       </section>
 
       <section className="ml-final ml-shell" data-reveal>
-        <span><MoonStar /></span><h2>Начните лучше понимать своё самочувствие</h2><p>Одна минута в день помогает сохранить историю, которую легко забыть.</p><RegisterCta className="ml-button">Начать бесплатно <ArrowRight /></RegisterCta><small>Mira не ставит диагнозы и не заменяет врача.</small>
+        <span><MoonStar /></span><h2>Начните лучше понимать своё самочувствие</h2><p>Одна минута в день помогает сохранить историю, которую легко забыть.</p><DemoCta className="ml-button">Сделать первую отметку <ArrowRight /></DemoCta><small>Mira не ставит диагнозы и не заменяет врача.</small>
       </section>
 
       <footer className="ml-footer">

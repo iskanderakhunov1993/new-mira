@@ -9,6 +9,8 @@ export type DomainEntry = {
   period?: PeriodFlow;
   periodStarted?: boolean;
   periodEnded?: boolean;
+  periodLeak?: boolean;
+  periodHourlyChange?: boolean;
   mood?: Mood;
   energy?: Energy;
   pain?: number;

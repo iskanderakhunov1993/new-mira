@@ -132,7 +132,16 @@ export default function OnboardingPage() {
             <span className="ready-check"><Check /></span>
             <small>Последний шаг</small>
             <h1>Что для вас важнее сейчас?</h1>
-            <div className="cycle-pattern-options goal-options"><button className={goal === "understand" ? "selected" : ""} type="button" onClick={() => setGoal("understand")}><span><Check /></span>Понимать свой цикл</button><button className={goal === "wellbeing" ? "selected" : ""} type="button" onClick={() => setGoal("wellbeing")}><span><Check /></span>Следить за самочувствием</button><button className={goal === "pms" ? "selected" : ""} type="button" onClick={() => setGoal("pms")}><span><Check /></span>Наблюдать ПМС</button></div>
+            <div className="cycle-pattern-options goal-options">
+              {[
+                ["understand", "Понимать свой цикл"],
+                ["pain", "Наблюдать боль"],
+                ["heavy_flow", "Следить за кровотечением"],
+                ["medication", "Оценивать лекарства"],
+                ["doctor", "Подготовиться к врачу"],
+                ["pms", "Наблюдать ПМС"],
+              ].map(([value, label]) => <button className={goal === value ? "selected" : ""} type="button" onClick={() => setGoal(value)} key={value}><span><Check /></span>{label}</button>)}
+            </div>
             {forecast ? <div className="forecast-result"><p>Сегодня примерно <strong>{forecast.cycleDay}-й день цикла</strong>.</p><p>Ориентировочный диапазон: <strong>{formatDate(forecast.rangeStart)} — {formatDate(forecast.rangeEnd)}</strong>.</p></div> : <div className="forecast-result"><p>Первый прогноз появится после отметки начала месячных.</p></div>}
             <p className="forecast-disclaimer">Прогноз не является гарантированной датой и уточняется по мере накопления данных.</p>
             <label className="consent onboarding-consent"><input type="checkbox" checked={consentConfirmed} onChange={(event) => setConsentConfirmed(event.target.checked)} /><span className="custom-check"><Check /></span><span>Я согласна на обработку данных о цикле и здоровье по <Link href="/privacy" target="_blank">политике конфиденциальности</Link>.</span></label>
