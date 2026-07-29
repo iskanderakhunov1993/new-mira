@@ -1,0 +1,31 @@
+{
+  "description": "Lightweight Mira context and hygiene checks.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/session_start.py\"",
+            "statusMessage": "Loading Mira project context",
+            "additionalContextLimit": 1200,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/stop_check.py\"",
+            "statusMessage": "Checking the Mira diff",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -36,6 +36,9 @@ new-mira/
 ├── apps/web/
 │   ├── app/                 # страницы, layouts и API routes Next.js
 │   ├── components/          # общие UI-компоненты
+│   ├── lib/client/          # клиентские API по областям и memory-cache профиля
+│   ├── lib/contracts/       # общие Zod-контракты и DTO клиента/сервера
+│   ├── lib/demo/            # только локальные demo-fixtures
 │   ├── lib/domain/          # чистая продуктовая логика и unit-тесты
 │   ├── lib/server/          # серверные контракты и валидация
 │   ├── lib/supabase/        # browser/server/proxy auth clients

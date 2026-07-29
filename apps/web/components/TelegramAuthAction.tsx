@@ -5,7 +5,7 @@ export function TelegramAuthAction() {
     <div className="auth-divider"><span>или</span></div>
     <a className="telegram-auth-action" href="/api/auth/telegram">
       <Send />
-      <span><strong>Продолжить через Telegram</strong><small>Без почты и пароля</small></span>
+      <strong>Без почты и пароля</strong>
     </a>
   </>;
 }

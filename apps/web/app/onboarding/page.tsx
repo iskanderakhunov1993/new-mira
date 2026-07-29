@@ -24,7 +24,7 @@ export default function OnboardingPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    void getProfile({ refresh: true }).then((profile) => {
+    void getProfile({ refresh: true, includeEntries: false }).then((profile) => {
       // Telegram profiles intentionally have no email. Authentication has
       // already been verified server-side, so a profile is enough to onboard.
       if (!profile) return router.replace("/register");

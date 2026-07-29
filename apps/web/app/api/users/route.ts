@@ -1,71 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/supabase/auth";
 import { LEGAL_VERSION } from "@/lib/legal";
+import { profileUpdateSchema } from "@/lib/contracts/profile";
 
 export const runtime = "nodejs";
-
-const entrySchema = z.object({
-  date: z.iso.date(),
-  period: z.enum(["spotting", "light", "medium", "heavy"]).optional(),
-  periodClots: z.boolean().optional(),
-  periodLeak: z.boolean().optional(),
-  periodNightChange: z.boolean().optional(),
-  periodHourlyChange: z.boolean().optional(),
-  periodStarted: z.boolean().optional(),
-  periodEnded: z.boolean().optional(),
-  pain: z.number().int().min(0).max(10).optional(),
-  painLocations: z.array(z.string().max(80)).max(20).default([]),
-  painTypes: z.array(z.string().max(80)).max(20).default([]),
-  painImpact: z.enum(["none", "some", "strong"]).optional(),
-  mood: z.enum(["low", "calm", "good"]).optional(),
-  energy: z.enum(["low", "normal", "high"]).optional(),
-  symptoms: z.array(z.string().max(80)).max(50).default([]),
-  symptomIntensity: z.record(z.string(), z.number().int().min(1).max(3)).optional(),
-  medicationIntakes: z.array(z.object({
-    id: z.string().max(80),
-    name: z.string().max(120),
-    activeIngredient: z.string().max(120).optional(),
-    dose: z.string().max(80).optional(),
-    takenAt: z.string().max(5),
-    reason: z.enum(["pain", "migraine", "iron", "contraception", "heavy_bleeding", "supplement", "other"]),
-    prescribedByDoctor: z.boolean(),
-    effect: z.enum(["pending", "full", "partial", "none", "worse"]),
-    sideEffects: z.string().max(500).optional(),
-  }).strict()).max(20).optional(),
-  sleepHours: z.number().min(0).max(24).optional(),
-  waterMl: z.number().int().min(0).max(20000).optional(),
-  weightKg: z.number().min(20).max(500).optional(),
-  basalTemperature: z.number().min(30).max(45).optional(),
-  notes: z.string().max(4000).optional(),
-});
-
-const profileSchema = z.object({
-  email: z.email().optional(),
-  name: z.string().trim().min(1).max(80).optional(),
-  onboardingComplete: z.boolean().optional(),
-  onboardingStep: z.number().int().min(1).max(4).optional(),
-  goal: z.string().max(80).optional(),
-  lastPeriod: z.iso.date().nullable().optional(),
-  cycleLength: z.number().int().min(15).max(60).optional(),
-  cyclePattern: z.enum(["regular", "irregular", "unknown"]).optional(),
-  periodLength: z.number().int().min(1).max(14).optional(),
-  weightKg: z.number().min(20).max(500).optional(),
-  preferences: z.object({
-    cycleForecasts: z.boolean().optional(),
-    privateInsights: z.boolean().optional(),
-  }).optional(),
-  consents: z.object({
-    healthData: z.boolean().optional(),
-    privacyPolicy: z.boolean().optional(),
-    sensitiveInsights: z.boolean().optional(),
-  }).optional(),
-  entries: z.array(entrySchema).max(5000).optional(),
-  firstPromptDismissed: z.boolean().optional(),
-  spotlightStatus: z.enum(["pending", "shown", "skipped", "completed"]).optional(),
-});
 
 function serializeProfile(profile: Awaited<ReturnType<typeof loadProfile>>) {
   if (!profile) return null;
@@ -91,30 +31,6 @@ function serializeProfile(profile: Awaited<ReturnType<typeof loadProfile>>) {
       acceptedAt: profile.consentAcceptedAt?.toISOString(),
       version: profile.consentVersion ?? undefined,
     },
-    entries: profile.entries.map((entry) => ({
-      date: entry.date.toISOString().slice(0, 10),
-      period: entry.period ?? undefined,
-      periodClots: entry.periodClots ?? undefined,
-      periodLeak: entry.periodLeak ?? undefined,
-      periodNightChange: entry.periodNightChange ?? undefined,
-      periodHourlyChange: entry.periodHourlyChange ?? undefined,
-      periodStarted: entry.periodStarted || undefined,
-      periodEnded: entry.periodEnded || undefined,
-      pain: entry.pain ?? undefined,
-      painLocations: entry.painLocations,
-      painTypes: entry.painTypes,
-      painImpact: entry.painImpact ?? undefined,
-      mood: entry.mood ?? undefined,
-      energy: entry.energy ?? undefined,
-      symptoms: entry.symptoms,
-      symptomIntensity: entry.symptomIntensity ?? undefined,
-      medicationIntakes: entry.medicationIntakes ?? undefined,
-      sleepHours: entry.sleepHours ?? undefined,
-      waterMl: entry.waterMl ?? undefined,
-      weightKg: entry.weightKg ?? undefined,
-      basalTemperature: entry.basalTemperature ?? undefined,
-      notes: entry.notes ?? undefined,
-    })),
     firstPromptDismissed: profile.firstPromptDismissed,
     spotlightStatus: profile.spotlightStatus,
   };
@@ -123,7 +39,6 @@ function serializeProfile(profile: Awaited<ReturnType<typeof loadProfile>>) {
 function loadProfile(userId: string) {
   return prisma.profile.findUnique({
     where: { id: userId },
-    include: { entries: { orderBy: { date: "asc" } } },
   });
 }
 
@@ -140,7 +55,7 @@ export async function POST(request: Request) {
   const user = await getAuthenticatedUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const parsed = profileSchema.safeParse(await request.json());
+  const parsed = profileUpdateSchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid profile data", details: parsed.error.flatten() }, { status: 400 });
   }
@@ -202,7 +117,6 @@ export async function POST(request: Request) {
 
     return tx.profile.findUniqueOrThrow({
       where: { id: user.id },
-      include: { entries: { orderBy: { date: "asc" } } },
     });
   });
 

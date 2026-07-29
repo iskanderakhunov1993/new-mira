@@ -1,61 +1,50 @@
-# Design QA — Today cycle history and dynamics
+# Mira landing — Design QA
 
-- Source visual truth:
-  - `/Users/iskander/Desktop/IMG_0181.PNG`
-  - `/Users/iskander/Desktop/IMG_0182.PNG`
-- Implementation:
-  - `http://127.0.0.1:3002/today?demo=1`
-  - `/private/tmp/mira-health-check-entry/design-qa-history-final.png`
-  - `/private/tmp/mira-health-check-entry/design-qa-dynamics-final.png`
-- Comparison boards:
-  - `/private/tmp/mira-health-check-entry/design-qa-history-comparison-final.png`
-  - `/private/tmp/mira-health-check-entry/design-qa-dynamics-comparison-final.png`
-- Viewport: implementation `684 × 969` CSS px, device scale factor 1.
-- Source pixels: `1206 × 2622`; the relevant regions were cropped and normalized to a width of 684 px before comparison.
-- State: demo profile with one current and three completed cycles. The source and implementation use different cycle values, but the same populated history and dynamics states.
+- Source visual truth: `/Users/iskander/.codex/generated_images/019f95ee-5b56-75c1-9e9d-2f5cc1f1ec99/call_thXoRmX5AbqIyHmieeQoZ37A.png`
+- Implementation: `http://localhost:3001/`
+- Desktop screenshot: `/Users/iskander/.codex/visualizations/2026/07/24/019f95ee-5b56-75c1-9e9d-2f5cc1f1ec99/mira-landing-v3-qa/implementation-desktop.png`
+- Mobile screenshot: `/Users/iskander/.codex/visualizations/2026/07/24/019f95ee-5b56-75c1-9e9d-2f5cc1f1ec99/mira-landing-v3-qa/implementation-mobile.png`
+- Combined hero comparison: `/Users/iskander/.codex/visualizations/2026/07/24/019f95ee-5b56-75c1-9e9d-2f5cc1f1ec99/mira-landing-v3-qa/design-comparison-hero.png`
+- Combined focused comparison: `/Users/iskander/.codex/visualizations/2026/07/24/019f95ee-5b56-75c1-9e9d-2f5cc1f1ec99/mira-landing-v3-qa/design-comparison-feature.png`
+- State: public landing, unauthenticated, light theme.
+- Desktop viewport: 1440 × 1000 requested; browser-reported CSS viewport 1800 × 1250 at device scale 0.8. Screenshot 2250 × 1563.
+- Mobile viewport: 390 × 844 requested; browser-reported CSS viewport 487 × 1055 at device scale 0.8. Screenshot 609 × 1319.
+- Source pixels: 864 × 1821.
+- Density normalization: combined comparisons resize implementation evidence to the source width before placing both images in one canvas.
 
-## Full-view comparison evidence
+## Findings
 
-- The implementation keeps the source hierarchy: white rounded history card, header action, three cycle rows, compact day markers, followed by a separate dynamics card.
-- The graph preserves the source structure: subdued grid, personal range band, connected cycle points, one highlighted differing point, explanatory copy, and a rounded gradient action.
-- The implementation intentionally uses Mira typography, navigation, colors, and real routes instead of copying Flo branding or the Premium paywall.
-
-## Focused comparison evidence
-
-- History: row density, title/date hierarchy, chevrons, separators, and dot rhythm were checked on the combined history board.
-- Dynamics: chart height, range band, line contrast, point emphasis, explanatory copy, and action placement were checked on the combined dynamics board.
-- No source image asset was required. The red floating media panel in the references is a phone/system overlay and was correctly excluded.
+- No actionable P0/P1/P2 mismatch remains.
+- The selected option’s story structure is preserved: split hero with a daily timeline, trust strip, alternating 01/02/03 sections, and a centered final CTA.
+- The visual system intentionally uses Mira UI Kit rather than the mock’s generic palette: Mira Pink `#FBA0E4`, Pink Pressed `#E889D0`, Lavender `#887BB8`, Lavender Soft `#F2EFF9`, Milk `#FAF8F5`, Surface `#FFFFFF`, Graphite `#24222A`, and Muted `#77737E`.
+- Typography uses the UI Kit’s Apple-style system stack with Cyrillic fallbacks. Display weight, wrapping, and compact UI labels preserve the reference hierarchy.
+- Spacing follows the UI Kit’s 8 pt rhythm. Cards use the documented 20–28 px radii; buttons use 13–15 px radii.
+- Icons come from the project’s existing Lucide set at stroke 1.6, matching the UI Kit. No emoji, custom SVG, or placeholder asset is used.
+- The pattern matrix and doctor report use semantic table roles and the same pink/lavender data language as the UI Kit.
+- Copy remains factual and cautious: Mira does not diagnose or prescribe.
+- Desktop and mobile have no horizontal document overflow.
+- Primary interactions checked: demo CTA, registration CTA, login link, anchor navigation, privacy/terms links, and report link are present with valid destinations.
+- Console review found an existing Telegram SDK hydration warning caused by runtime styles on the root element, plus Telegram 6.0 capability warnings. No landing-specific runtime error was found.
 
 ## Comparison history
 
-### Pass 1 — blocked
-
-- P2: history rows were visibly denser than the reference.
-- P2: the graph was too shallow, weakening the visual hierarchy.
-
-Fixes:
-
-- Increased history header and row height, type sizes, vertical padding, and marker size.
-- Increased the chart viewBox height and vertical plotting range.
-
-### Pass 2 — passed
-
-- Revised browser captures show the history rows and chart now have the intended vertical rhythm.
-- No remaining P0, P1, or P2 visual mismatch was found.
+1. Initial mobile capture showed the display headline too large for narrow Cyrillic wrapping.
+   - Fix: reduced the mobile display clamp from `45–62 px` to `42–54 px`.
+   - Post-fix evidence: `implementation-mobile.png`; the document remains at `scrollWidth === innerWidth`.
+2. Initial full-page capture hid unrevealed sections because the motion observer had not scrolled them into view.
+   - Fix: content is now visible by default; motion no longer gates access to sections.
+   - Post-fix evidence: `implementation-full.png` and the focused comparison.
 
 ## Required fidelity surfaces
 
-- Typography: Mira’s existing Onest/Manrope hierarchy is retained; weights and wrapping remain readable.
-- Spacing: card radii, separators, padding, row height, and chart proportions align with the selected reference.
-- Colors: neutral white/grey surfaces, pink period markers, teal current-day marker, and orange attention state remain consistent with Mira.
-- Image quality: no image assets are part of these components; the source’s unrelated media overlay was excluded.
-- Copy: medical language is deliberately safer than the source. “Отличается” compares with the user’s own three previous cycles and explicitly states that it is not a medical assessment.
+- Fonts and typography: passed.
+- Spacing and layout rhythm: passed.
+- Colors and visual tokens: passed, intentionally mapped to Mira UI Kit.
+- Image and icon fidelity: passed; this direction has no raster assets, and all icons use the established library.
+- Copy and content: passed.
 
-## Interaction and console checks
+## Follow-up polish
 
-- History header and rows route to the existing cycle analytics pages.
-- Dynamics action routes to `/analytics/cycles`.
-- Empty and insufficient-data states are implemented.
-- Browser console was checked. One pre-existing development-only hydration warning comes from Telegram viewport styles on the root element; no error from the new components was observed.
+- P3: a future motion-only pass can add subtle section transitions without hiding content before intersection.
 
 final result: passed

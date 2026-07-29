@@ -1,0 +1,5 @@
+interface:
+  display_name: "Mira Feature Flow"
+  short_description: "От идеи до проверенной функции Mira"
+  brand_color: "#E46DB6"
+  default_prompt: "Используй $mira-feature-flow, чтобы прожарить идею, оценить её как продукт и провести до проверенной реализации."

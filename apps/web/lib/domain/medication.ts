@@ -1,17 +1,8 @@
-export type MedicationReason = "pain" | "migraine" | "iron" | "contraception" | "heavy_bleeding" | "supplement" | "other";
-export type MedicationEffect = "pending" | "full" | "partial" | "none" | "worse";
+import type { MedicationIntake } from "../contracts/entry";
 
-export type MedicationIntake = {
-  id: string;
-  name: string;
-  activeIngredient?: string;
-  dose?: string;
-  takenAt: string;
-  reason: MedicationReason;
-  prescribedByDoctor: boolean;
-  effect: MedicationEffect;
-  sideEffects?: string;
-};
+export type { MedicationIntake } from "../contracts/entry";
+export type MedicationReason = MedicationIntake["reason"];
+export type MedicationEffect = MedicationIntake["effect"];
 
 export const MEDICATION_REASON_LABELS: Record<MedicationReason, string> = {
   pain: "Боль",

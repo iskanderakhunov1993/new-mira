@@ -20,7 +20,7 @@ export function AuthShell({ children, eyebrow, title, text, quote }: AuthShellPr
         <div className="auth-brand-copy">
           <div className="eyebrow auth-eyebrow"><span><Heart /></span>{eyebrow}</div>
           <h1>{title}</h1>
-          <p>{text}</p>
+          {text && <p>{text}</p>}
         </div>
         <div className="auth-orbits" aria-hidden="true"><span /><span /><span /></div>
         {quote && <blockquote>«{quote}»<small>— принцип Mira</small></blockquote>}
