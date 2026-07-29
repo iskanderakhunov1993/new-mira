@@ -3,17 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, CalendarDays, ChevronRight, CircleUserRound, Droplet, GlassWater, Info, Package, Pill, Plus, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
+import { Activity, CalendarDays, ChevronRight, CircleUserRound, Droplet, GlassWater, Package, Pill, Plus, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
 import { getProfile, MiraProfile } from "@/lib/demo-session";
 import { AppTabBar } from "@/components/AppTabBar";
+import { CycleTrendCard } from "@/components/CycleTrendCard";
 import { Spotlight } from "@/components/Spotlight";
+import { SymptomPatternCard } from "@/components/SymptomPatternCard";
 import { buildCycleHistorySummary, buildCycles, formatCycleDate } from "@/lib/cycle-analytics";
 import { buildPersonalization } from "@/lib/personalization";
 import { calculateCycle } from "@/lib/domain/cycle-engine";
 import { cyclePhaseForDate } from "@/lib/domain/cycle-phase";
 import { buildTodayCards, type TodayCard } from "@/lib/domain/today-cards";
 import { buildDailyRecommendations } from "@/lib/domain/daily-recommendations";
-import { buildCycleDynamics } from "@/lib/domain/cycle-dynamics";
 
 const monthNames = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
 
@@ -71,7 +72,6 @@ export default function TodayPage() {
   const cycleRecords = buildCycles(profile?.entries ?? [], todayKey);
   const visibleCycles = cycleRecords.slice(-3).reverse();
   const completedCycles = cycleRecords.filter((item) => item.completed);
-  const cycleDynamics = buildCycleDynamics(completedCycles.map((item) => item.length));
   const nextPattern = personalization.completed.length >= 3 ? personalization.patterns.find((pattern) => pattern.typicalDay >= cycle.day && pattern.typicalDay <= cycle.day + 7) : undefined;
   const todayPhase = cyclePhaseForDate({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, date: todayKey });
   const actualTodayCards = buildTodayCards({ entries: profile?.entries ?? [], today: todayKey, hasCycleData: cycle.hasCycleStart, cycleDay: cycle.day, phase: todayPhase, delayed: cycle.until < -cycle.uncertaintyDays, expectedStart: cycle.expectedStart, uncertaintyDays: cycle.uncertaintyDays, periodActive: cycle.active, periodDay: cycle.periodDay });
@@ -127,43 +127,15 @@ export default function TodayPage() {
             })}
           </div> : <div className="today-cycle-panel-empty"><strong>Здесь появятся ваши циклы</strong><p>Для истории нужна хотя бы одна отметка начала месячных.</p><Link href="/calendar?action=period">Добавить отметку</Link></div>}
         </section>
-        <section className="today-cycle-dynamics" aria-labelledby="today-cycle-dynamics-title">
-          <div className="today-cycle-panel-heading">
-            <h2 id="today-cycle-dynamics-title">Динамика циклов</h2>
-            <Info aria-label="Сравниваем только завершённые циклы" />
+        <CycleTrendCard className="today-cycle-trend" cycles={completedCycles} />
+        <section className="today-patterns-block" aria-labelledby="today-patterns-title">
+          <div className="today-patterns-heading">
+            <div><small>По вашим отметкам</small><h2 id="today-patterns-title">Мои закономерности</h2></div>
+            <Link href="/insights">Смотреть все <ChevronRight /></Link>
           </div>
-          {cycleDynamics.points.length >= 3 ? <div className="today-cycle-chart-wrap">
-            {(() => {
-              const values = cycleDynamics.points.map((point) => point.length);
-              const minValue = Math.min(...values, cycleDynamics.baseline?.min ?? Infinity);
-              const maxValue = Math.max(...values, cycleDynamics.baseline?.max ?? -Infinity);
-              const range = Math.max(4, maxValue - minValue);
-              const chartMin = minValue - Math.max(2, Math.round(range * .2));
-              const chartMax = maxValue + Math.max(2, Math.round(range * .2));
-              const y = (value: number) => 292 - ((value - chartMin) / (chartMax - chartMin)) * 228;
-              const x = (index: number) => cycleDynamics.points.length === 1 ? 300 : 50 + (index * 500) / (cycleDynamics.points.length - 1);
-              const path = cycleDynamics.points.map((point, index) => `${x(index)},${y(point.length)}`).join(" ");
-              const baselineTop = cycleDynamics.baseline ? y(cycleDynamics.baseline.max) : 92;
-              const baselineBottom = cycleDynamics.baseline ? y(cycleDynamics.baseline.min) : 168;
-              return <svg className="today-cycle-chart" viewBox="0 0 600 360" role="img" aria-label={`Длина последних циклов: ${values.join(", ")} дней`}>
-                {[60, 120, 180, 240, 300].map((line) => <line className="grid-line" x1="24" x2="576" y1={line} y2={line} key={line} />)}
-                <rect className="range-band" x="24" y={baselineTop} width="552" height={Math.max(8, baselineBottom - baselineTop)} />
-                <polyline className="cycle-line" points={path} />
-                {cycleDynamics.points.map((point, index) => <g key={`${point.length}-${index}`}>
-                  <circle className={point.attention ? "cycle-point attention-halo" : "cycle-point-halo"} cx={x(index)} cy={y(point.length)} r={point.attention ? 20 : 12} />
-                  <circle className={point.attention ? "cycle-point attention" : "cycle-point"} cx={x(index)} cy={y(point.length)} r="8" />
-                  <text x={x(index)} y="340">{point.length}</text>
-                  {point.attention && <text className="attention-label" x={x(index)} y={Math.max(24, y(point.length) - 28)}>Отличается</text>}
-                </g>)}
-              </svg>;
-            })()}
-            <p>График сравнивает фактическую длину последних циклов с вашей собственной историей. Выделение означает отличие от трёх предыдущих циклов, а не медицинскую оценку.</p>
-            <Link href="/analytics/cycles">Подробнее в аналитике <ChevronRight /></Link>
-          </div> : <div className="today-cycle-panel-empty dynamics-empty">
-            <TrendingUp />
-            <strong>Нужно ещё {cycleDynamics.remainingForChart} {cycleWord(cycleDynamics.remainingForChart)}</strong>
-            <p>Динамика появится после трёх завершённых циклов — раньше сравнение может вводить в заблуждение.</p>
-          </div>}
+          {personalization.patterns[0]
+            ? <SymptomPatternCard pattern={personalization.patterns[0]} />
+            : <div className="today-patterns-empty"><strong>Закономерности пока собираются</strong><p>Отмечайте симптомы в течение нескольких циклов — Mira покажет только подтверждённые повторения.</p><Link href="/diary?section=symptoms">Отметить симптомы</Link></div>}
         </section>
       </div>
       <AppTabBar active="today" />

@@ -7,6 +7,7 @@ declare global {
     Telegram?: {
       WebApp: {
         initData: string;
+        isVersionAtLeast?: (version: string) => boolean;
         ready: () => void;
         expand: () => void;
         setHeaderColor?: (color: string) => void;
@@ -27,8 +28,10 @@ export function TelegramRuntime() {
       // custom color and must not prevent the app from becoming visible.
       webApp.ready();
       try { webApp.expand(); } catch { /* Unsupported in some desktop clients. */ }
-      try { webApp.setHeaderColor?.("#eefafa"); } catch { /* Keep Telegram defaults. */ }
-      try { webApp.setBackgroundColor?.("#eefafa"); } catch { /* Keep Telegram defaults. */ }
+      if (webApp.isVersionAtLeast?.("6.1")) {
+        try { webApp.setHeaderColor?.("#eefafa"); } catch { /* Keep Telegram defaults. */ }
+        try { webApp.setBackgroundColor?.("#eefafa"); } catch { /* Keep Telegram defaults. */ }
+      }
     };
     if (window.Telegram?.WebApp) return activate();
     const timer = window.setInterval(() => {
