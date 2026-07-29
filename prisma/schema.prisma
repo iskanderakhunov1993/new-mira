@@ -122,6 +122,13 @@ model Entry {
   symptoms           String[]
   symptomIntensity   Json?
   medicationIntakes  Json?
+  activityTypes      String[]
+  contraceptionMethod String?
+  contraceptionStatus String?
+  pregnancyTest      String?
+  ovulationTest      String?
+  sexualActivity     String?
+  sexualComfort      String?
   sleepHours         Float?
   waterMl            Int?
   weightKg           Float?

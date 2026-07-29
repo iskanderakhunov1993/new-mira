@@ -30,6 +30,13 @@ export const entryUpdateSchema = z.object({
   symptoms: z.array(z.string().max(80)).max(50).optional(),
   symptomIntensity: z.record(z.string(), z.number().int().min(1).max(3)).nullable().optional(),
   medicationIntakes: z.array(medicationIntakeSchema).max(20).nullable().optional(),
+  activityTypes: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
+  contraceptionMethod: z.enum(["pill", "ring", "patch", "iud", "implant", "injection", "condom", "other"]).nullable().optional(),
+  contraceptionStatus: z.enum(["on_time", "missed", "changed", "stopped"]).nullable().optional(),
+  pregnancyTest: z.enum(["negative", "positive", "unclear"]).nullable().optional(),
+  ovulationTest: z.enum(["negative", "positive", "unclear"]).nullable().optional(),
+  sexualActivity: z.enum(["none", "protected", "unprotected"]).nullable().optional(),
+  sexualComfort: z.enum(["comfortable", "dryness", "pain", "bleeding"]).nullable().optional(),
   sleepHours: z.number().min(0).max(24).nullable().optional(),
   waterMl: z.number().int().min(0).max(20000).nullable().optional(),
   weightKg: z.number().min(20).max(500).nullable().optional(),
@@ -55,6 +62,13 @@ type SerializableEntry = {
   symptoms: string[];
   symptomIntensity: unknown;
   medicationIntakes: unknown;
+  activityTypes: string[];
+  contraceptionMethod: string | null;
+  contraceptionStatus: string | null;
+  pregnancyTest: string | null;
+  ovulationTest: string | null;
+  sexualActivity: string | null;
+  sexualComfort: string | null;
   sleepHours: number | null;
   waterMl: number | null;
   weightKg: number | null;
@@ -81,6 +95,13 @@ export function serializeEntry(entry: SerializableEntry) {
     symptoms: entry.symptoms,
     symptomIntensity: entry.symptomIntensity ?? undefined,
     medicationIntakes: entry.medicationIntakes ?? undefined,
+    activityTypes: entry.activityTypes,
+    contraceptionMethod: entry.contraceptionMethod ?? undefined,
+    contraceptionStatus: entry.contraceptionStatus ?? undefined,
+    pregnancyTest: entry.pregnancyTest ?? undefined,
+    ovulationTest: entry.ovulationTest ?? undefined,
+    sexualActivity: entry.sexualActivity ?? undefined,
+    sexualComfort: entry.sexualComfort ?? undefined,
     sleepHours: entry.sleepHours ?? undefined,
     waterMl: entry.waterMl ?? undefined,
     weightKg: entry.weightKg ?? undefined,

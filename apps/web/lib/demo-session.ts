@@ -48,6 +48,13 @@ export type CycleEntry = {
   symptoms?: string[];
   symptomIntensity?: Record<string, 1 | 2 | 3>;
   medicationIntakes?: MedicationIntake[];
+  activityTypes?: string[];
+  contraceptionMethod?: "pill" | "ring" | "patch" | "iud" | "implant" | "injection" | "condom" | "other" | null;
+  contraceptionStatus?: "on_time" | "missed" | "changed" | "stopped" | null;
+  pregnancyTest?: "negative" | "positive" | "unclear" | null;
+  ovulationTest?: "negative" | "positive" | "unclear" | null;
+  sexualActivity?: "none" | "protected" | "unprotected" | null;
+  sexualComfort?: "comfortable" | "dryness" | "pain" | "bleeding" | null;
   sleepHours?: number;
   waterMl?: number;
   weightKg?: number;

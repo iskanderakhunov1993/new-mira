@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowLeft,
+  Activity,
+  BatteryLow,
   Bell,
+  Bike,
   Calendar,
   Check,
   ChartNoAxesColumnIncreasing,
@@ -10,21 +13,34 @@ import {
   CircleAlert,
   CircleHelp,
   CircleUserRound,
+  CircleDotDashed,
   Cross,
   Droplet,
+  Droplets,
+  Dumbbell,
   FileText,
   Footprints,
+  Heart,
+  HeartCrack,
+  HeartPulse,
   Lightbulb,
   Lock,
   Moon,
+  MapPin,
   Pill,
   Plus,
   Search,
   Settings,
+  ShieldCheck,
+  ShieldOff,
   Share,
   Smile,
   SquarePen,
+  TestTube2,
+  Timer,
   TriangleAlert,
+  Waves,
+  Wind,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -83,6 +99,31 @@ const iconGroups = [
   { title: "Системные действия", text: "Знакомые действия без дополнительного объяснения.", icons: icons.slice(18, 24) },
 ];
 
+const subsymptomGroups: Array<{
+  title: string;
+  tone: "pink" | "purple" | "orange" | "green" | "blue";
+  items: Array<[LucideIcon, string, string]>;
+}> = [
+  { title: "Самочувствие", tone: "pink", items: [
+    [Activity, "cramps", "Спазмы"], [HeartPulse, "tender-breasts", "Чувствительная грудь"], [BatteryLow, "fatigue", "Усталость"], [CircleDotDashed, "bloating", "Вздутие"],
+  ] },
+  { title: "Пищеварение", tone: "purple", items: [
+    [Waves, "nausea", "Тошнота"], [CircleDotDashed, "constipation", "Запор"], [Wind, "gas", "Газообразование"], [Activity, "diarrhea", "Диарея"],
+  ] },
+  { title: "Домашние тесты", tone: "orange", items: [
+    [TestTube2, "test-none", "Не делала"], [Check, "test-positive", "Положительный"], [X, "test-negative", "Отрицательный"], [CircleDotDashed, "test-faint", "Слабая полоска"],
+  ] },
+  { title: "Активность", tone: "green", items: [
+    [Footprints, "walking", "Ходьба"], [Activity, "yoga", "Йога"], [Dumbbell, "gym", "Тренировка"], [Waves, "swimming", "Плавание"], [Bike, "cycling", "Велосипед"], [MapPin, "travel", "Путешествие"],
+  ] },
+  { title: "Контрацепция", tone: "blue", items: [
+    [Pill, "pill-on-time", "Принято вовремя"], [Timer, "pill-late", "Пропуск"], [ShieldCheck, "protected", "С защитой"], [ShieldOff, "unprotected", "Без защиты"],
+  ] },
+  { title: "Интимная жизнь и комфорт", tone: "pink", items: [
+    [X, "sex-none", "Секса не было"], [ShieldCheck, "sex-protected", "Секс с защитой"], [Heart, "comfortable", "Комфортно"], [Droplets, "dryness", "Сухость"], [HeartCrack, "pain", "Боль"], [Droplet, "bleeding", "Кровь после секса"],
+  ] },
+];
+
 function SectionTitle({ eyebrow, children, text }: { eyebrow: string; children: React.ReactNode; text: string }) {
   return (
     <header className="uik-section-title">
@@ -114,6 +155,7 @@ export default function UiKitPage() {
         <a href="#color">Цвет</a>
         <a href="#type">Типографика</a>
         <a href="#symbols">Символы</a>
+        <a href="#subsymptoms">Подсимптомы</a>
         <a href="#controls">System UI</a>
         <a href="#graphs">Графики</a>
         <a href="#widgets">Health widgets</a>
@@ -179,22 +221,38 @@ export default function UiKitPage() {
         </div>
       </section>
 
+      <section className="uik-section" id="subsymptoms">
+        <SectionTitle eyebrow="04 · Подсимптомы" text="Компактные пиктограммы для chips и быстрых отметок. Геометрия единая, а цвет закреплён за категорией — он не обозначает тяжесть состояния.">
+          Библиотека ежедневных отметок
+        </SectionTitle>
+        <div className="uik-subsymptom-groups">
+          {subsymptomGroups.map((group) => <section className={`tone-${group.tone}`} key={group.title}>
+            <header><h3>{group.title}</h3><span>{group.items.length} элементов</span></header>
+            <div>{group.items.map(([Icon, name, label]) => <article key={name}>
+              <button type="button" aria-label={label}><i><Icon strokeWidth={1.8} /></i><strong>{label}</strong></button>
+              <code>{name}</code>
+            </article>)}</div>
+          </section>)}
+        </div>
+        <aside className="uik-subsymptom-rule"><CircleAlert /><p><strong>Правило безопасности</strong><span>Иконка помогает быстро найти отметку, но смысл всегда дублируется текстом. Интимные данные остаются отдельной приватной категорией.</span></p></aside>
+      </section>
+
       <section className="uik-section" id="controls">
-        <SectionTitle eyebrow="04 · Компоненты" text="Каждый элемент имеет одно назначение. Основное действие всегда одно; дополнительные действия визуально тише.">
+        <SectionTitle eyebrow="05 · Компоненты" text="Каждый элемент имеет одно назначение. Основное действие всегда одно; дополнительные действия визуально тише.">
           Базовые элементы интерфейса
         </SectionTitle>
         <UiKitShadcnShowcase />
       </section>
 
       <section className="uik-section" id="graphs">
-        <SectionTitle eyebrow="05 · Графики" text="Каждый график должен отвечать на один вопрос. Вывод написан рядом; цвет не является единственным способом прочитать состояние.">
+        <SectionTitle eyebrow="06 · Графики" text="Каждый график должен отвечать на один вопрос. Вывод написан рядом; цвет не является единственным способом прочитать состояние.">
           System graphs
         </SectionTitle>
         <UiKitShadcnCharts />
       </section>
 
       <section className="uik-section" id="widgets">
-        <SectionTitle eyebrow="06 · Health widgets" text="Компактные модули для Today и Analytics. В каждом виджете — один показатель, период, состояние данных и понятный переход.">
+        <SectionTitle eyebrow="07 · Health widgets" text="Компактные модули для Today и Analytics. В каждом виджете — один показатель, период, состояние данных и понятный переход.">
           Библиотека health-виджетов
         </SectionTitle>
         <div className="uik-widget-grid">
@@ -226,7 +284,7 @@ export default function UiKitPage() {
       </section>
 
       <section className="uik-section uik-rules">
-        <SectionTitle eyebrow="07 · Правила" text="Эти ограничения сохраняют Mira узнаваемой, даже когда продукт растёт.">
+        <SectionTitle eyebrow="08 · Правила" text="Эти ограничения сохраняют Mira узнаваемой, даже когда продукт растёт.">
           Как применять систему
         </SectionTitle>
         <div>

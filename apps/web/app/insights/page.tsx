@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, BedDouble, ChevronRight, HeartPulse, Lightbulb, Sparkles } from "lucide-react";
+import { Activity, ArrowRight, BedDouble, CalendarRange, ChevronRight, Droplet, HeartPulse, Lightbulb, LockKeyhole, Pill, Sparkles, TestTube } from "lucide-react";
 import { AppTabBar } from "@/components/AppTabBar";
 import { getProfile, MiraProfile } from "@/lib/demo-session";
 import { buildPersonalization, SymptomPattern } from "@/lib/personalization";
@@ -17,10 +17,35 @@ export default function InsightsPage() {
   useEffect(() => { void getProfile().then(setProfile).catch(() => setProfile(null)); }, []);
   const personalization = useMemo(() => buildPersonalization(profile?.entries ?? []), [profile]);
   const ready = personalization.completed.length >= 3;
+  const entries = profile?.entries ?? [];
+  const trackedDays = entries.filter((entry) => entry.period || entry.symptoms?.length || entry.pain !== undefined || entry.mood || entry.energy || entry.sleepHours !== undefined || entry.medicationIntakes?.length).length;
+  const symptomMarks = entries.reduce((sum, entry) => sum + (entry.symptoms?.length ?? 0), 0);
+  const medicationMarks = entries.reduce((sum, entry) => sum + (entry.medicationIntakes?.length ?? 0), 0);
+  const periodMarks = entries.filter((entry) => entry.period).length;
+  const activityMarks = entries.filter((entry) => entry.activityTypes?.length).length;
+  const testMarks = entries.filter((entry) => entry.pregnancyTest || entry.ovulationTest).length;
+  const privateMarks = entries.filter((entry) => entry.sexualActivity || entry.sexualComfort).length;
+  const privateInsightsEnabled = Boolean(profile?.preferences?.privateInsights && profile?.consents?.sensitiveInsights);
 
   return <main className="insights-page"><div className="insights-shell">
     <header className="insights-header"><div><small>Персональные объяснения</small><h1>Инсайты</h1><p>Что повторяется в ваших записях.</p></div><span><Lightbulb /></span></header>
     <section className={`insights-hero fingerprint-hero ${ready ? "has-patterns" : ""}`}><span><Sparkles /></span><div><small>Ваш отпечаток цикла</small><h2>{ready ? `Основано на ${personalization.completed.length} циклах` : "Нужно ещё заполнить историю"}</h2><p>{ready ? "Mira показывает только повторения в ваших отметках — это не диагноз." : `Сейчас завершённых циклов: ${personalization.completed.length} из 3. Отмечайте начало месячных и самочувствие.`}</p></div></section>
+    <section className="insights-coverage">
+      <header><div><small>Все функции доступны бесплатно</small><h2>Что уже можно анализировать</h2></div><span>{trackedDays} дней</span></header>
+      <div>
+        <Link href="/analytics"><CalendarRange /><span><strong>{personalization.completed.length}</strong><small>завершённых циклов</small></span><ChevronRight /></Link>
+        <Link href="/diary?section=period"><Droplet /><span><strong>{periodMarks}</strong><small>отметок месячных</small></span><ChevronRight /></Link>
+        <Link href="/diary?section=symptoms"><HeartPulse /><span><strong>{symptomMarks}</strong><small>отметок симптомов</small></span><ChevronRight /></Link>
+        <Link href="/diary?section=medication"><Pill /><span><strong>{medicationMarks}</strong><small>приёмов лекарств</small></span><ChevronRight /></Link>
+        <Link href="/diary?section=lifestyle"><Activity /><span><strong>{activityMarks}</strong><small>дней с активностью</small></span><ChevronRight /></Link>
+        <Link href="/diary?section=tests"><TestTube /><span><strong>{testMarks}</strong><small>дней с домашними тестами</small></span><ChevronRight /></Link>
+      </div>
+      <p>Записи принадлежат вам. Mira сравнивает только фактические отметки и всегда показывает, на скольких данных основано наблюдение.</p>
+    </section>
+    <section className="insights-coverage">
+      <header><div><small>Отдельный приватный контур</small><h2>Интимные наблюдения</h2></div><LockKeyhole /></header>
+      {privateInsightsEnabled ? <p>Приватных отметок: {privateMarks}. Они анализируются отдельно и не попадут в отчёт для врача, пока вы сами не включите этот раздел.</p> : <p>Приватные инсайты выключены. Записи сохраняются в дневнике, но Mira не строит по ним выводы без отдельного согласия.</p>}
+    </section>
     {ready && <>
       <section className="fingerprint-card"><header><div><small>Ваш обычный ритм</small><h2>Отпечаток цикла</h2></div><span>{personalization.completed.length} циклов</span></header><div>{personalization.fingerprint.slice(0, 3).map((item) => <article key={item.label}><small>{item.label}</small><strong>{item.value}</strong></article>)}</div></section>
       {personalization.currentComparison && <section className={`current-comparison ${personalization.currentComparison.tone}`}><HeartPulse /><div><small>Текущий и типичный цикл</small><h2>{personalization.currentComparison.label}</h2><p>{personalization.currentComparison.text}</p></div></section>}

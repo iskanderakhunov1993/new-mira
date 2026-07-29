@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Bug, Check, ChevronRight, Database, Download, Eye, FileHeart, HandHeart, Lightbulb, LogOut, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
+import { ArrowLeft, Bot, Bug, Check, ChevronRight, Database, Download, Eye, FileHeart, HandHeart, Lightbulb, LogOut, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
 import { clearHealthHistory, deleteLocalProfile, getAssessments, getProfile, MiraProfile, saveProfile, signOutAccount } from "@/lib/demo-session";
 import { PwaInstallAction } from "@/components/PwaInstallAction";
 import { TelegramLinkAction } from "@/components/TelegramLinkAction";
@@ -21,18 +21,19 @@ export default function ProfilePage() {
   const [name, setName] = useState("");
   const [cycleLength, setCycleLength] = useState(28);
   const [periodLength, setPeriodLength] = useState(5);
+  const [goal, setGoal] = useState("understand");
   const [saved, setSaved] = useState(false);
   const [confirming, setConfirming] = useState<ConfirmAction>(null);
   const [supportInfo, setSupportInfo] = useState<SupportInfo>(null);
 
   useEffect(() => {
     void getProfile().then((current) => {
-      setProfile(current); setName(current?.name ?? ""); setCycleLength(current?.cycleLength ?? 28); setPeriodLength(current?.periodLength ?? 5);
+      setProfile(current); setName(current?.name ?? ""); setCycleLength(current?.cycleLength ?? 28); setPeriodLength(current?.periodLength ?? 5); setGoal(current?.goal ?? "understand");
     }).catch(() => setProfile(null));
   }, []);
 
   async function updateProfile() {
-    const updated = await saveProfile({ name: name.trim() || undefined, cycleLength, periodLength });
+    const updated = await saveProfile({ name: name.trim() || undefined, cycleLength, periodLength, goal });
     setProfile(updated); setSaved(true); window.setTimeout(() => setSaved(false), 1800);
   }
 
@@ -40,6 +41,12 @@ export default function ProfilePage() {
     const preferences = { cycleForecasts: profile?.preferences?.cycleForecasts ?? true, privateInsights: profile?.preferences?.privateInsights ?? false, [key]: !(profile?.preferences?.[key] ?? (key === "cycleForecasts")) };
     const consents = key === "privateInsights" ? { ...profile?.consents, sensitiveInsights: preferences.privateInsights } : profile?.consents;
     const updated = await saveProfile({ preferences, consents }); setProfile(updated);
+  }
+
+  async function updateGoal(nextGoal: string) {
+    setGoal(nextGoal);
+    const updated = await saveProfile({ goal: nextGoal });
+    setProfile(updated);
   }
 
   async function exportData() {
@@ -85,6 +92,10 @@ export default function ProfilePage() {
     <header className="profile-top"><Link href="/today" aria-label="Вернуться на главную"><ArrowLeft /></Link><div><small>Аккаунт</small><h1>Профиль</h1></div><span><UserRound /></span></header>
 
     <section className="profile-identity"><span>{(profile?.name ?? profile?.email ?? "M").slice(0, 1).toUpperCase()}</span><div><h2>{profile?.name || "Пользователь Mira"}</h2><p>{profile ? (profile.email || "Telegram Mini App") : "Профиль загружается"}</p></div><ShieldCheck /></section>
+
+    <section className="profile-goal"><header><small>Моя цель</small><h2>Что для вас сейчас важнее?</h2></header><div>{[{ id: "understand", label: "Понимать цикл" }, { id: "wellbeing", label: "Самочувствие" }, { id: "pms", label: "Наблюдать ПМС" }].map((item) => <button className={goal === item.id ? "selected" : ""} type="button" onClick={() => void updateGoal(item.id)} key={item.id}>{item.label}</button>)}</div></section>
+
+    <section className="profile-assistant"><span><Bot /></span><div><small>Новый раздел</small><h2>Ассистент Mira</h2><p>Разбирает ваши отметки без диагнозов и помогает выбрать следующий шаг.</p></div><Link href="/assistant">Открыть <ChevronRight /></Link></section>
 
     <section className="profile-section"><header><div><h2>Основные данные</h2><p>Используются для персонального прогноза цикла.</p></div></header><div className="profile-fields"><label><span>Имя</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Как к вам обращаться" /></label><div><label><span>Средняя длина цикла</span><select value={cycleLength} onChange={(event) => setCycleLength(Number(event.target.value))}>{Array.from({ length: 25 }, (_, index) => index + 21).map((value) => <option value={value} key={value}>{value} дней</option>)}</select></label><label><span>Месячные обычно идут</span><select value={periodLength} onChange={(event) => setPeriodLength(Number(event.target.value))}>{Array.from({ length: 9 }, (_, index) => index + 2).map((value) => <option value={value} key={value}>{value} дней</option>)}</select></label></div></div><button className={`profile-save ${saved ? "saved" : ""}`} onClick={updateProfile}>{saved ? <><Check />Сохранено</> : "Сохранить изменения"}</button></section>
 

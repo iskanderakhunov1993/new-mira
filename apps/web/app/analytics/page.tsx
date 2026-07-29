@@ -2,19 +2,36 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ChevronRight, Droplet, FileHeart, HeartPulse, Sparkles, TrendingUp } from "lucide-react";
+import { CalendarDays, ChevronRight, CircleHelp, Droplet, FileHeart, HeartPulse, MoonStar, Pill, Plus, Sparkles, TrendingUp } from "lucide-react";
 import { AppTabBar } from "@/components/AppTabBar";
 import { AppPageState } from "@/components/AppPageState";
 import { getProfile, MiraProfile } from "@/lib/demo-session";
 import { buildCycleHistorySummary, CycleRecord, daysBetween, formatCycleDate } from "@/lib/cycle-analytics";
+import { calculateCycle } from "@/lib/domain/cycle-engine";
 
 const flowLabels = { spotting: "Мажущие", light: "Слабые", medium: "Средние", heavy: "Обильные" } as const;
+const phaseLabels = {
+  menstruation: "Менструальная фаза",
+  follicular: "Фолликулярная фаза",
+  "ovulation-window": "Предполагаемое окно овуляции",
+  luteal: "Лютеиновая фаза",
+} as const;
 
 function formatDays(value: number) {
   const mod10 = value % 10;
   const mod100 = value % 100;
   const word = mod10 === 1 && mod100 !== 11 ? "день" : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? "дня" : "дней";
   return `${value} ${word}`;
+}
+
+function formatShortDate(value?: string) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" }).format(new Date(`${value}T12:00:00`));
+}
+
+function formatPredictionRange(start?: string, end?: string) {
+  if (!start || !end) return "Появится после первой отметки";
+  return `${formatShortDate(start)} — ${formatShortDate(end)}`;
 }
 
 function CycleDots({ cycle }: { cycle: CycleRecord }) {
@@ -72,7 +89,7 @@ function getRhythmInsight(completed: CycleRecord[]) {
   const difference = latest.length < baselineMin ? baselineMin - latest.length : latest.length - baselineMax;
   return {
     tone: "attention",
-    title: "Последний цикл отличался от предыдущих",
+    title: "Последний цикл был короче вашей недавней истории",
     text: `${latest.length} дней — на ${difference} ${difference === 1 ? "день" : difference < 5 ? "дня" : "дней"} за пределами предыдущего диапазона ${baselineMin}–${baselineMax}.`,
     basis: "Это наблюдение по вашим записям, а не диагноз.",
   };
@@ -119,18 +136,67 @@ export default function AnalyticsPage() {
     ? `${recentRange.min}–${recentRange.max} дней`
     : "—";
   const rhythm = getRhythmInsight(completed);
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const forecast = calculateCycle({
+    entries: profile?.entries ?? [],
+    lastPeriod: profile?.lastPeriod,
+    cycleLength: profile?.cycleLength,
+    periodLength: profile?.periodLength,
+    cyclePattern: profile?.cyclePattern,
+    today: todayKey,
+  });
+  const todayEntry = profile?.entries?.find((entry) => entry.date === todayKey);
+  const progress = forecast.cycleDay
+    ? Math.min(100, Math.max(2, (forecast.cycleDay / Math.max(1, forecast.cycleLength)) * 100))
+    : 2;
+  const todayFacts = [
+    todayEntry?.pain !== undefined && todayEntry.pain > 0
+      ? { icon: HeartPulse, label: "Боль", value: `${todayEntry.pain} из 10` }
+      : undefined,
+    todayEntry?.energy
+      ? { icon: Sparkles, label: "Энергия", value: todayEntry.energy === "low" ? "Низкая" : todayEntry.energy === "high" ? "Высокая" : "Обычная" }
+      : undefined,
+    todayEntry?.sleepHours !== undefined
+      ? { icon: MoonStar, label: "Сон", value: `${todayEntry.sleepHours.toLocaleString("ru-RU")} ч` }
+      : undefined,
+    todayEntry?.medicationIntakes?.length
+      ? { icon: Pill, label: "Лекарства", value: `${todayEntry.medicationIntakes.length} отмечено` }
+      : undefined,
+  ].filter(Boolean) as { icon: typeof HeartPulse; label: string; value: string }[];
 
   if (loadState === "loading") return <main className="analytics-page cycles-product-page"><div className="analytics-shell"><AppPageState kind="loading" title="Загружаем историю цикла" text="Собираем ваши сохранённые отметки." /></div><AppTabBar active="analytics" /></main>;
   if (loadState === "error") return <main className="analytics-page cycles-product-page"><div className="analytics-shell"><AppPageState kind="error" title="Не удалось загрузить историю" text="Проверьте подключение и попробуйте ещё раз." onRetry={loadProfile} /></div><AppTabBar active="analytics" /></main>;
 
-  return <main className="analytics-page cycles-product-page"><div className="analytics-shell"><header className="analytics-header"><div><small>История и динамика</small><h1>Мой цикл</h1><p>Факты и сравнение последних циклов.</p></div><span><TrendingUp /></span></header>
+  return <main className="analytics-page cycles-product-page cycle-home-page"><div className="analytics-shell"><header className="analytics-header cycle-home-header"><div><small>Мой цикл</small><h1>{forecast.cycleDay ? `${forecast.cycleDay}-й день` : "Мой цикл"}</h1><p>{forecast.phase ? `Предположительно: ${phaseLabels[forecast.phase].toLowerCase()}` : "Отметьте начало месячных, чтобы появился прогноз."}</p></div><Link href="/calendar" aria-label="Открыть календарь"><CalendarDays /></Link></header>
     {!cycles.length ? <section className="analytics-empty"><Sparkles /><h2>Пока нет завершённых циклов</h2><p>Отметьте начало месячных в календаре — здесь появится история.</p><Link href="/calendar?action=period">Отметить месячные</Link></section> : <>
+      <section className="cycle-now-card">
+        <header><span>Сейчас</span><details><summary aria-label="Как рассчитывается прогноз"><CircleHelp /></summary><p>{forecast.explanation}</p></details></header>
+        <h2>{forecast.phase ? phaseLabels[forecast.phase] : "Прогноз формируется"}</h2>
+        <p>{forecast.daysUntil !== undefined && forecast.daysUntil >= 0 ? `До следующих месячных ориентировочно ${formatDays(forecast.daysUntil)}` : forecast.delayed ? "Ожидаемая дата прошла — прогноз мог измениться" : "Продолжайте отмечать цикл, чтобы уточнить даты"}</p>
+        <div className="cycle-now-track" aria-label={`Пройдено около ${Math.round(progress)}% текущего цикла`}>
+          <i className="menstruation" />
+          <i className="follicular" />
+          <i className="ovulation" />
+          <i className="luteal" />
+          <b style={{ left: `${progress}%` }}><span>Сегодня</span></b>
+        </div>
+        <div className="cycle-now-labels"><span>Месячные</span><span>Овуляция</span><span>Следующие</span></div>
+        <div className="cycle-next-period"><div><small>Следующие месячные</small><strong>{formatPredictionRange(forecast.rangeStart, forecast.rangeEnd)}</strong></div><span>Прогноз</span></div>
+        <footer>Основано на {forecast.completedCycles} {forecast.completedCycles === 1 ? "завершённом цикле" : "завершённых циклах"} · прогноз не является методом контрацепции</footer>
+      </section>
+      <Link className="cycle-log-today" href={`/diary?date=${todayKey}`}><span><Plus /></span><div><strong>Отметить сегодня</strong><small>Самочувствие, симптомы, сон и лекарства</small></div><ChevronRight /></Link>
+      <section className="cycle-today-facts">
+        <header><div><small>Сегодня</small><h2>Краткая сводка</h2></div><Link href={`/diary?date=${todayKey}`}>Изменить</Link></header>
+        {todayFacts.length ? <div>{todayFacts.map(({ icon: Icon, label, value }) => <article key={label}><Icon /><span><small>{label}</small><strong>{value}</strong></span></article>)}</div> : <div className="cycle-today-empty"><p>Сегодня пока ничего не отмечено.</p><span>Даже одна короткая запись помогает Mira замечать изменения со временем.</span></div>}
+      </section>
       <section className={`cycle-status-card ${rhythm.tone}`}><Sparkles /><div><small>Ваш ритм</small><h2>{rhythm.title}</h2><p>{rhythm.text}</p><span>{rhythm.basis}</span></div></section>
       <section className="cycle-summary-grid"><article><CalendarDays /><strong>{latestCompleted ? formatDays(latestCompleted.length) : "—"}</strong><span>предыдущий цикл</span></article><article><Droplet /><strong>{latestCompleted?.periodDays ? formatDays(latestCompleted.periodDays) : "—"}</strong><span>отмеченные месячные</span></article><article><TrendingUp /><strong>{personalRange}</strong><span>{recentRange ? "диапазон последних 3 циклов" : "появится после 3 циклов"}</span></article></section>
+      <section className="cycle-comparison-strip"><header><div><small>Изменения со временем</small><h2>Сравнение циклов</h2></div><Link href="/insights">Все наблюдения <ChevronRight /></Link></header><div>{completed.slice(-4).map((cycle) => <Link href={`/analytics/cycles/${cycle.start}`} key={cycle.start}><small>{formatCycleDate(cycle.start)}</small><strong>{cycle.length}</strong><span>дней</span></Link>)}</div><p>{completed.length >= 3 ? `Личная картина построена по ${completed.length} завершённым циклам.` : "Добавьте ещё циклы — Mira покажет первые повторения без медицинских выводов."}</p></section>
       <section className="cycle-history-preview"><header><h2>История циклов</h2><Link href="/analytics/cycles">Все циклы <ChevronRight /></Link></header><div>{[...(current ? [current] : []), ...completed.slice(-2).reverse()].map((cycle) => <Link href={`/analytics/cycles/${cycle.start}`} key={cycle.start}><div><strong>{cycle.current ? `Текущий цикл: ${cycle.length}-й день` : formatDays(cycle.length)}</strong><span>{cycle.current ? `Начался ${formatCycleDate(cycle.start)}` : `${formatCycleDate(cycle.start)} — ${formatCycleDate(cycle.end)}`}</span><CycleDots cycle={cycle} /></div><ChevronRight /></Link>)}</div></section>
       <section className="cycle-dynamics-card redesigned"><header><div><small>Только завершённые циклы</small><h2>Динамика длины цикла</h2></div><span>{chartCycles.length} из истории</span></header><CycleChart cycles={chartCycles} /><footer><strong>{rhythm.title}</strong><span>{chartCycles.length >= 2 ? `${rhythm.text} Нажмите на точку, чтобы открыть цикл.` : "Динамика появится после второго завершённого цикла."}</span></footer></section>
       <details className="cycle-more-data"><summary>Подробные отметки <ChevronRight /></summary><section className="p1-analytics-card"><header><div><small>Фактические данные</small><h2>Интенсивность месячных</h2><p>Сравнение последних циклов по дням.</p></div><span><Droplet /></span></header><FlowHeatmap cycles={recentTrackedCycles} /></section><section className="p1-analytics-card"><header><div><small>Фактические данные</small><h2>Боль по дням цикла</h2><p>Чем насыщеннее точка, тем сильнее отмеченная боль.</p></div><span className="pain"><HeartPulse /></span></header><PainMap cycles={recentTrackedCycles} /></section></details>
       <Link className="doctor-report-entry" href="/analytics/report"><span><FileHeart /></span><div><small>Для консультации</small><h2>Отчёт для врача</h2><p>Соберите факты о циклах и симптомах. Вы сами решаете, что включить.</p></div><ChevronRight /></Link>
+      <section className="cycle-free-tools"><header><small>Все функции Mira доступны бесплатно</small><h2>Ваши инструменты</h2></header><div><Link href="/calendar"><CalendarDays /><span><strong>Календарь</strong><small>Записи и прогнозы по дням</small></span><ChevronRight /></Link><Link href="/diary?section=tests"><HeartPulse /><span><strong>Тесты и измерения</strong><small>Температура, тесты и наблюдения</small></span><ChevronRight /></Link><Link href="/diary?section=medication"><Pill /><span><strong>Лекарства</strong><small>Приём, причина и эффект</small></span><ChevronRight /></Link><Link href="/insights"><Sparkles /><span><strong>Инсайты</strong><small>Повторения и сравнение циклов</small></span><ChevronRight /></Link></div></section>
     </>}
   </div><AppTabBar active="analytics" /></main>;
 }

@@ -2,22 +2,31 @@
 
 import { Dispatch, SetStateAction, Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Activity, BarChart3, BatteryMedium, CalendarDays, Check, ChevronLeft, ChevronRight, CircleAlert, Droplet, FileText, GlassWater, Heart, HeartPulse, Leaf, Minus, MoonStar, Pill, Plus, Save, Scale, Search, Smile, Sparkles, TestTube, Thermometer, Waves, X } from "lucide-react";
+import { Activity, BarChart3, BatteryMedium, CalendarDays, Check, ChevronLeft, ChevronRight, CircleAlert, Droplet, FileText, GlassWater, Heart, HeartPulse, Leaf, Minus, MoonStar, Pill, Plus, Save, Scale, Search, ShieldCheck, Smile, Sparkles, TestTube, Thermometer, Waves, X } from "lucide-react";
 import { AppTabBar } from "@/components/AppTabBar";
 import { CycleEntry, getProfile, MiraProfile, saveEntry, saveProfile } from "@/lib/demo-session";
 import { MEDICATION_EFFECT_LABELS, MEDICATION_REASON_LABELS, type MedicationEffect, type MedicationIntake, type MedicationReason } from "@/lib/domain/medication";
 
-type Section = "period" | "symptoms" | "mood" | "sleep" | "notes" | "digestion" | "discharge" | "energy" | "intimacy" | "medication" | "lifestyle" | "tests";
+type Section = "period" | "symptoms" | "mood" | "sleep" | "notes" | "digestion" | "discharge" | "energy" | "intimacy" | "medication" | "lifestyle" | "contraception" | "tests";
 
 const symptomGroups = [
   { id: "symptoms", title: "Общее самочувствие", description: "Боль и физические ощущения", icon: HeartPulse, tone: "physical", options: ["Всё в порядке", "Спазмы", "Головная боль", "Усталость", "Чувствительная грудь", "Боль в спине", "Прыщи", "Приливы жара", "Ночная потливость", "Боль в суставах", "Боль внизу живота", "Бессонница", "Забывчивость", "Зуд во влагалище", "Сухость во влагалище"] },
   { id: "digestion", title: "Пищеварение", description: "Живот, аппетит и стул", icon: Leaf, tone: "digestion", options: ["Без изменений", "Вздутие", "Тошнота", "Запор", "Диарея", "Тяга к сладкому", "Повышенный аппетит", "Сниженный аппетит", "Боль в животе", "Изжога", "Газообразование"] },
   { id: "discharge", title: "Выделения", description: "Характер выделений в течение дня", icon: Waves, tone: "discharge", options: ["Выделений нет", "Кремообразные", "Водянистые", "Липкие", "Слизистые", "Кровомажущие", "Нетипичные", "Белые комковатые", "Серые", "С неприятным запахом"] },
   { id: "energy", title: "Энергия и стресс", description: "Ресурс и эмоциональная нагрузка", icon: BatteryMedium, tone: "energy", options: ["Высокая энергия", "Нормальная энергия", "Мало энергии", "Стресс", "Тревога", "Раздражительность", "Апатия", "Спокойствие", "Перепады настроения", "Подавленность", "Навязчивые мысли"] },
-  { id: "intimacy", title: "Интимная жизнь", description: "Личная отметка — не включается в отчёт автоматически", icon: Heart, tone: "intimacy", options: ["Секса не было", "Секс с защитой", "Секс без защиты", "Оральный секс", "Анальный секс", "Мастурбация", "Интимные прикосновения", "Секс-игрушки", "Оргазм", "Сильное желание", "Среднее желание", "Слабое желание"] },
+  { id: "intimacy", title: "Интимная жизнь", description: "Приватная отметка — не включается в отчёт автоматически", icon: Heart, tone: "intimacy", options: ["Секса не было", "Секс с защитой", "Секс без защиты", "Комфортно", "Сухость", "Боль во время секса", "Кровь после секса"] },
   { id: "lifestyle", title: "Активность и события", description: "Нагрузка и события, которые могут влиять на самочувствие", icon: Activity, tone: "lifestyle", options: ["Тренировка", "Йога", "Бег", "Ходьба", "Плавание", "Алкоголь", "Путешествие", "Медитация", "Болезнь или травма", "Высокая нагрузка"] },
+  { id: "contraception", title: "Контрацепция", description: "Метод и важные изменения сегодня", icon: ShieldCheck, tone: "lifestyle", options: ["Таблетки", "Кольцо", "Пластырь", "ВМС", "Имплант", "Инъекция", "Презерватив", "Другой метод", "Принято вовремя", "Пропуск", "Смена метода", "Отмена"] },
   { id: "tests", title: "Тесты и измерения", description: "Результаты домашних тестов и наблюдений", icon: TestTube, tone: "tests", options: ["Тест на беременность: отрицательный", "Тест на беременность: положительный", "Тест на овуляцию: отрицательный", "Тест на овуляцию: положительный", "Измерена базальная температура"] },
 ];
+const contextGroupIds = new Set(["intimacy", "lifestyle", "contraception", "tests"]);
+const contextOptions = new Set(symptomGroups.filter((group) => contextGroupIds.has(group.id)).flatMap((group) => group.options));
+const contraceptionMethodLabels: Record<string, string> = { pill: "Таблетки", ring: "Кольцо", patch: "Пластырь", iud: "ВМС", implant: "Имплант", injection: "Инъекция", condom: "Презерватив", other: "Другой метод" };
+const contraceptionStatusLabels: Record<string, string> = { on_time: "Принято вовремя", missed: "Пропуск", changed: "Смена метода", stopped: "Отмена" };
+const sexualActivityLabels: Record<string, string> = { none: "Секса не было", protected: "Секс с защитой", unprotected: "Секс без защиты" };
+const sexualComfortLabels: Record<string, string> = { comfortable: "Комфортно", dryness: "Сухость", pain: "Боль во время секса", bleeding: "Кровь после секса" };
+const pregnancyTestLabels: Record<string, string> = { negative: "Тест на беременность: отрицательный", positive: "Тест на беременность: положительный" };
+const ovulationTestLabels: Record<string, string> = { negative: "Тест на овуляцию: отрицательный", positive: "Тест на овуляцию: положительный" };
 const trackingOptionCount = symptomGroups.reduce((sum, group) => sum + group.options.length, 0);
 const moodOptions: { value: CycleEntry["mood"]; label: string; emoji: string }[] = [
   { value: "low", label: "Тяжело", emoji: "😔" },
@@ -29,6 +38,8 @@ const emptyGroupOptions = ["Всё в порядке", "Без изменени�
 const exclusiveSets = [
   ["Секса не было", "Секс с защитой", "Секс без защиты"],
   ["Контрацептив вовремя", "Пропуск контрацептива"],
+  ["Таблетки", "Кольцо", "Пластырь", "ВМС", "Имплант", "Инъекция", "Презерватив", "Другой метод"],
+  ["Принято вовремя", "Пропуск", "Смена метода", "Отмена"],
   ["Тест на беременность: отрицательный", "Тест на беременность: положительный"],
   ["Тест на овуляцию: отрицательный", "Тест на овуляцию: положительный"],
 ];
@@ -103,7 +114,16 @@ function DiaryContent() {
       setProfile(currentProfile);
       setPeriod(entry?.period); setPain(entry?.pain ?? 0); setPainLocations(entry?.painLocations ?? []); setPainTypes(entry?.painTypes ?? []); setPainImpact(entry?.painImpact ?? "none");
       setPeriodClots(Boolean(entry?.periodClots)); setPeriodLeak(Boolean(entry?.periodLeak)); setPeriodNightChange(Boolean(entry?.periodNightChange)); setPeriodHourlyChange(Boolean(entry?.periodHourlyChange));
-      setSymptoms(entry?.symptoms ?? []); setSymptomIntensity(entry?.symptomIntensity ?? {});
+      const structuredMarks = [
+        ...(entry?.activityTypes ?? []),
+        ...(contraceptionMethodLabels[entry?.contraceptionMethod ?? ""] ? [contraceptionMethodLabels[entry!.contraceptionMethod!]] : []),
+        ...(contraceptionStatusLabels[entry?.contraceptionStatus ?? ""] ? [contraceptionStatusLabels[entry!.contraceptionStatus!]] : []),
+        ...(pregnancyTestLabels[entry?.pregnancyTest ?? ""] ? [pregnancyTestLabels[entry!.pregnancyTest!]] : []),
+        ...(ovulationTestLabels[entry?.ovulationTest ?? ""] ? [ovulationTestLabels[entry!.ovulationTest!]] : []),
+        ...(sexualActivityLabels[entry?.sexualActivity ?? ""] ? [sexualActivityLabels[entry!.sexualActivity!]] : []),
+        ...(sexualComfortLabels[entry?.sexualComfort ?? ""] ? [sexualComfortLabels[entry!.sexualComfort!]] : []),
+      ].filter(Boolean);
+      setSymptoms([...new Set([...(entry?.symptoms ?? []), ...structuredMarks])]); setSymptomIntensity(entry?.symptomIntensity ?? {});
       setMedicationIntakes(entry?.medicationIntakes ?? []);
       setMood(entry?.mood); setSleepHours(entry?.sleepHours); setNotes(entry?.notes ?? ""); setSaved(false);
       setWaterMl(entry?.waterMl ?? 0); setWeightKg(entry?.weightKg ?? currentProfile?.weightKg ?? ""); setBasalTemperature(entry?.basalTemperature ?? ""); setOpenChart(null);
@@ -112,7 +132,7 @@ function DiaryContent() {
   }, [date]);
 
   useEffect(() => {
-    if (!requested || requested === "symptoms" || !["period", "mood", "sleep", "notes", "digestion", "discharge", "energy", "intimacy", "medication", "lifestyle", "tests"].includes(requested)) return;
+    if (!requested || requested === "symptoms" || !["period", "mood", "sleep", "notes", "digestion", "discharge", "energy", "intimacy", "medication", "lifestyle", "contraception", "tests"].includes(requested)) return;
     const timer = window.setTimeout(() => document.getElementById(`diary-${requested}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
     return () => window.clearTimeout(timer);
   }, [requested]);
@@ -170,7 +190,10 @@ function DiaryContent() {
 
   async function save() {
     const numericWeight = weightKg === "" ? undefined : weightKg;
-    let updated = await saveEntry({ date, period, periodClots: period ? periodClots || undefined : undefined, periodLeak: period ? periodLeak || undefined : undefined, periodNightChange: period ? periodNightChange || undefined : undefined, periodHourlyChange: period ? periodHourlyChange || undefined : undefined, pain: pain || undefined, painLocations: pain && painLocations.length ? painLocations : undefined, painTypes: pain && painTypes.length ? painTypes : undefined, painImpact: pain ? painImpact : undefined, symptoms: symptoms.length ? symptoms : undefined, symptomIntensity: Object.keys(symptomIntensity).length ? symptomIntensity : undefined, medicationIntakes: medicationIntakes.length ? medicationIntakes : undefined, mood, sleepHours, waterMl: waterMl || undefined, weightKg: numericWeight, basalTemperature: basalTemperature === "" ? undefined : basalTemperature, notes: notes.trim() || undefined });
+    const pick = <const T extends string>(mapping: Record<string, T>) => Object.entries(mapping).find(([label]) => symptoms.includes(label))?.[1];
+    const activityTypes = symptomGroups.find((group) => group.id === "lifestyle")!.options.filter((item) => symptoms.includes(item));
+    const generalSymptoms = symptoms.filter((item) => !contextOptions.has(item));
+    let updated = await saveEntry({ date, period, periodClots: period ? periodClots || undefined : undefined, periodLeak: period ? periodLeak || undefined : undefined, periodNightChange: period ? periodNightChange || undefined : undefined, periodHourlyChange: period ? periodHourlyChange || undefined : undefined, pain: pain || undefined, painLocations: pain && painLocations.length ? painLocations : undefined, painTypes: pain && painTypes.length ? painTypes : undefined, painImpact: pain ? painImpact : undefined, symptoms: generalSymptoms, symptomIntensity: Object.keys(symptomIntensity).length ? symptomIntensity : undefined, medicationIntakes: medicationIntakes.length ? medicationIntakes : undefined, activityTypes, contraceptionMethod: pick({ "Таблетки": "pill", "Кольцо": "ring", "Пластырь": "patch", "ВМС": "iud", "Имплант": "implant", "Инъекция": "injection", "Презерватив": "condom", "Другой метод": "other" }) ?? null, contraceptionStatus: pick({ "Принято вовремя": "on_time", "Пропуск": "missed", "Смена метода": "changed", "Отмена": "stopped" }) ?? null, pregnancyTest: pick({ "Тест на беременность: отрицательный": "negative", "Тест на беременность: положительный": "positive" }) ?? null, ovulationTest: pick({ "Тест на овуляцию: отрицательный": "negative", "Тест на овуляцию: положительный": "positive" }) ?? null, sexualActivity: pick({ "Секса не было": "none", "Секс с защитой": "protected", "Секс без защиты": "unprotected" }) ?? null, sexualComfort: pick({ "Комфортно": "comfortable", "Сухость": "dryness", "Боль во время секса": "pain", "Кровь после секса": "bleeding" }) ?? null, mood, sleepHours, waterMl: waterMl || undefined, weightKg: numericWeight, basalTemperature: basalTemperature === "" ? undefined : basalTemperature, notes: notes.trim() || undefined });
     if (numericWeight) updated = await saveProfile({ weightKg: numericWeight });
     setProfile(updated);
     setSaved(true); window.setTimeout(() => setSaved(false), 2400);
@@ -200,8 +223,8 @@ function DiaryContent() {
 
   if (intimacyMode) {
     const intimacyOptions = symptomGroups.find((group) => group.id === "intimacy")!.options;
-    const intimacyIcons: Record<string, string> = { "Секса не было": "⊘", "Секс с защитой": "🔒", "Секс без защиты": "♡", "Оральный секс": "◒", "Анальный секс": "●", "Мастурбация": "♥", "Интимные прикосновения": "❥", "Секс-игрушки": "∿", "Оргазм": "✦", "Сильное желание": "◎", "Среднее желание": "◉", "Слабое желание": "○" };
-    return <main className="diary-page intimacy-entry-page"><div className="diary-shell"><header className="intimacy-reference-top"><button type="button" aria-label="Закрыть" onClick={() => { window.location.href = "/today"; }}><X /></button><label><strong>{date === todayKey ? "Сегодня" : formatDay(date)}</strong><span>{cycleDay}-й день цикла</span><input type="date" value={date} max={todayKey} onChange={(event) => setDate(event.target.value)} /></label><i /></header><section className="intimacy-reference-card"><h1>Секс и сексуальное желание</h1><div className="intimacy-reference-options">{intimacyOptions.map((item) => <button className={symptoms.includes(item) ? "selected" : ""} type="button" onClick={() => toggleSymptom(item)} key={item}><i>{intimacyIcons[item]}</i><span>{item}</span></button>)}</div><div className="intimacy-reference-save"><small>{saved ? <><Check /> Сохранено</> : "Данные останутся только в вашем дневнике"}</small><button type="button" onClick={save}><Save /> Сохранить</button></div></section></div><AppTabBar active="diary" /></main>;
+    const intimacyIcons: Record<string, string> = { "Секса не было": "⊘", "Секс с защитой": "🔒", "Секс без защиты": "♡", "Комфортно": "○", "Сухость": "◌", "Боль во время секса": "!", "Кровь после секса": "•" };
+    return <main className="diary-page intimacy-entry-page"><div className="diary-shell"><header className="intimacy-reference-top"><button type="button" aria-label="Закрыть" onClick={() => { window.location.href = "/today"; }}><X /></button><label><strong>{date === todayKey ? "Сегодня" : formatDay(date)}</strong><span>{cycleDay}-й день цикла</span><input type="date" value={date} max={todayKey} onChange={(event) => setDate(event.target.value)} /></label><i /></header><section className="intimacy-reference-card"><h1>Интимная жизнь и комфорт</h1><div className="intimacy-reference-options">{intimacyOptions.map((item) => <button className={symptoms.includes(item) ? "selected" : ""} type="button" onClick={() => toggleSymptom(item)} key={item}><i>{intimacyIcons[item]}</i><span>{item}</span></button>)}</div><div className="intimacy-reference-save"><small>{saved ? <><Check /> Сохранено</> : "Данные останутся только в вашем дневнике"}</small><button type="button" onClick={save}><Save /> Сохранить</button></div></section></div><AppTabBar active="diary" /></main>;
   }
 
   return (
