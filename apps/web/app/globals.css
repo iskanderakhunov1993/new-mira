@@ -2095,14 +2095,6 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .symptom-history article:last-child { border-bottom: 0; padding-bottom: 0; }
 .symptom-history article div { display: grid; gap: 4px; }
 .symptom-history article strong { font-size: 12px; }.symptom-history article span { color: #8a7f87; font-size: 8px; }.symptom-history article b { padding: 6px 8px; border-radius: 999px; color: #835f78; background: #f3e9ef; font-size: 7px; text-align: center; }
-.today-personalization { display: grid; gap: 10px; margin-top: 14px; }
-.today-pattern, .today-comparison { display: grid; grid-template-columns: 28px 1fr 18px; align-items: start; gap: 11px; padding: 16px; border-radius: 21px; color: inherit; background: white; box-shadow: 0 8px 26px rgba(91,63,85,.06); }
-.today-pattern > svg:first-child, .today-comparison > svg:first-child { width: 20px; color: #b45d8e; }
-.today-pattern > svg:last-child, .today-comparison > svg:last-child { width: 17px; margin-top: 12px; color: #b091a4; }
-.today-pattern small, .today-comparison small { color: #a25480; font-size: 7px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
-.today-pattern h2, .today-comparison h2 { margin: 4px 0; font-size: 14px; }
-.today-pattern p, .today-comparison p { margin: 0; color: #827780; font-size: 8px; line-height: 1.45; }
-.today-pattern.quiet { background: #faf7f9; }.today-comparison.attention { background: #fff8f5; }
 .cycle-status-card { display: flex; gap: 15px; margin-top: 14px; padding: 22px; border: 1px solid #f2dce7; border-radius: 27px; background: #fff8fb; }
 .cycle-status-card > svg { width: 25px; flex: none; color: #d85f98; }.cycle-status-card small { color: #aa5d84; font-size: 7px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }.cycle-status-card h2 { margin: 5px 0; font-size: 21px; }.cycle-status-card p { margin: 0; color: #81757e; font-size: 9px; line-height: 1.5; }.cycle-status-card div > span { display: block; margin-top: 11px; color: #9a8f97; font-size: 7px; line-height: 1.45; }.cycle-status-card.good { border-color: #dceadf; background: #f7fbf8; }.cycle-status-card.good > svg { color: #5f9d72; }.cycle-status-card.attention { border-color: #f3dfc6; background: #fffaf4; }.cycle-status-card.attention > svg { color: #d89539; }
 .cycle-reliability { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; margin-top: 13px; }
