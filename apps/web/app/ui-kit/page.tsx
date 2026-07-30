@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Activity,
-  BatteryLow,
   Bell,
-  Bike,
   Calendar,
   Check,
   ChartNoAxesColumnIncreasing,
@@ -13,39 +10,27 @@ import {
   CircleAlert,
   CircleHelp,
   CircleUserRound,
-  CircleDotDashed,
   Cross,
   Droplet,
-  Droplets,
-  Dumbbell,
   FileText,
   Footprints,
-  Heart,
-  HeartCrack,
-  HeartPulse,
   Lightbulb,
   Lock,
   Moon,
-  MapPin,
   Pill,
   Plus,
   Search,
   Settings,
-  ShieldCheck,
-  ShieldOff,
   Share,
   Smile,
   SquarePen,
-  TestTube2,
-  Timer,
   TriangleAlert,
-  Waves,
-  Wind,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { UiKitShadcnShowcase } from "@/components/UiKitShadcnShowcase";
 import { UiKitShadcnCharts } from "@/components/UiKitShadcnCharts";
+import { symptomGroups, SymptomIcon } from "@/lib/symptom-catalog";
 
 export const metadata: Metadata = {
   title: "Mira UI Kit",
@@ -97,31 +82,6 @@ const iconGroups = [
   { title: "Здоровье и поддержка", text: "Лекарства, рекомендации и подготовка к врачу.", icons: icons.slice(6, 12) },
   { title: "Состояния и профиль", text: "Важные сигналы, личные настройки и заметки.", icons: icons.slice(12, 18) },
   { title: "Системные действия", text: "Знакомые действия без дополнительного объяснения.", icons: icons.slice(18, 24) },
-];
-
-const subsymptomGroups: Array<{
-  title: string;
-  tone: "pink" | "purple" | "orange" | "green" | "blue";
-  items: Array<[LucideIcon, string, string]>;
-}> = [
-  { title: "Самочувствие", tone: "pink", items: [
-    [Activity, "cramps", "Спазмы"], [HeartPulse, "tender-breasts", "Чувствительная грудь"], [BatteryLow, "fatigue", "Усталость"], [CircleDotDashed, "bloating", "Вздутие"],
-  ] },
-  { title: "Пищеварение", tone: "purple", items: [
-    [Waves, "nausea", "Тошнота"], [CircleDotDashed, "constipation", "Запор"], [Wind, "gas", "Газообразование"], [Activity, "diarrhea", "Диарея"],
-  ] },
-  { title: "Домашние тесты", tone: "orange", items: [
-    [TestTube2, "test-none", "Не делала"], [Check, "test-positive", "Положительный"], [X, "test-negative", "Отрицательный"], [CircleDotDashed, "test-faint", "Слабая полоска"],
-  ] },
-  { title: "Активность", tone: "green", items: [
-    [Footprints, "walking", "Ходьба"], [Activity, "yoga", "Йога"], [Dumbbell, "gym", "Тренировка"], [Waves, "swimming", "Плавание"], [Bike, "cycling", "Велосипед"], [MapPin, "travel", "Путешествие"],
-  ] },
-  { title: "Контрацепция", tone: "blue", items: [
-    [Pill, "pill-on-time", "Принято вовремя"], [Timer, "pill-late", "Пропуск"], [ShieldCheck, "protected", "С защитой"], [ShieldOff, "unprotected", "Без защиты"],
-  ] },
-  { title: "Интимная жизнь и комфорт", tone: "pink", items: [
-    [X, "sex-none", "Секса не было"], [ShieldCheck, "sex-protected", "Секс с защитой"], [Heart, "comfortable", "Комфортно"], [Droplets, "dryness", "Сухость"], [HeartCrack, "pain", "Боль"], [Droplet, "bleeding", "Кровь после секса"],
-  ] },
 ];
 
 function SectionTitle({ eyebrow, children, text }: { eyebrow: string; children: React.ReactNode; text: string }) {
@@ -226,11 +186,11 @@ export default function UiKitPage() {
           Библиотека ежедневных отметок
         </SectionTitle>
         <div className="uik-subsymptom-groups">
-          {subsymptomGroups.map((group) => <section className={`tone-${group.tone}`} key={group.title}>
-            <header><h3>{group.title}</h3><span>{group.items.length} элементов</span></header>
-            <div>{group.items.map(([Icon, name, label]) => <article key={name}>
-              <button type="button" aria-label={label}><i><Icon strokeWidth={1.8} /></i><strong>{label}</strong></button>
-              <code>{name}</code>
+          {symptomGroups.map((group) => <section className={`tone-${group.uiTone}`} key={group.title}>
+            <header><h3>{group.title}</h3><span>{group.options.length} элементов</span></header>
+            <div>{group.options.map((label) => <article key={label}>
+              <button type="button" aria-label={label}><i><SymptomIcon label={label} /></i><strong>{label}</strong></button>
+              <code>{group.id}/{label.toLowerCase().replaceAll(" ", "-")}</code>
             </article>)}</div>
           </section>)}
         </div>

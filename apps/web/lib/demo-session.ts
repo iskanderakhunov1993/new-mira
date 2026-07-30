@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { evaluateAssessment, type AssessmentAnswers, type AssessmentType, type HealthAssessment } from "@/lib/domain/assessment";
+import { buildEntryReplacementPayload } from "@/lib/domain/entry-replacement";
 import type { MedicationIntake } from "@/lib/domain/medication";
 
 export type MiraProfile = {
@@ -188,7 +189,7 @@ export async function deleteLocalProfile(): Promise<void> {
   memoryProfile = null;
 }
 
-export async function saveEntry(entry: CycleEntry): Promise<MiraProfile> {
+export async function saveEntry(entry: CycleEntry, options: { replace?: boolean } = {}): Promise<MiraProfile> {
   if (isLocalDemoMode()) {
     const current = memoryProfile ?? await getProfile();
     if (!current) throw new Error("Профиль не найден");
@@ -197,7 +198,8 @@ export async function saveEntry(entry: CycleEntry): Promise<MiraProfile> {
     return memoryProfile;
   }
   const { date, ...payload } = entry;
-  await fetchJson(`/api/entries/${date}`, { method: "PUT", body: JSON.stringify(payload) });
+  const requestPayload = options.replace ? buildEntryReplacementPayload(entry) : payload;
+  await fetchJson(`/api/entries/${date}`, { method: "PUT", body: JSON.stringify(requestPayload) });
   const profile = await getProfile({ refresh: true });
   if (!profile) throw new Error("Профиль не найден");
   return profile;

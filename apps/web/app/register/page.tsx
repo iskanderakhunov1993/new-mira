@@ -65,8 +65,8 @@ export default function RegisterPage() {
 
   return (<>
     <PublicPageView name="register_view" route="/register" />
-    <AuthShell eyebrow="Ваше пространство" title="Начните понимать свой цикл" text="Несколько спокойных отметок помогут увидеть общую картину без догадок." quote="Только вы решаете, что хранить и чем делиться">
-      <div className="auth-form-heading"><span>Создание аккаунта</span><h2>Добро пожаловать<br />в Mira</h2><p>Все функции доступны бесплатно. Регистрация займёт меньше минуты.</p></div>
+    <AuthShell eyebrow="Mira" title="Личное пространство" text="Ваши записи доступны только вам.">
+      <div className="auth-form-heading"><h2>Создать аккаунт</h2></div>
       {success ? <div className="auth-confirmation" role="status">
         <span className="auth-confirmation-icon"><Mail /></span>
         <h3>Подтвердите почту</h3>
@@ -77,14 +77,13 @@ export default function RegisterPage() {
       </div> : <form className="auth-form" onSubmit={submit} noValidate>
         <label><span>Email</span><div className="input-wrap"><Mail /><input name="email" type="email" autoComplete="email" placeholder="you@example.com" required value={email} onChange={(event) => setEmail(event.target.value)} /></div></label>
         <label><span>Пароль</span><div className="input-wrap"><LockKeyhole /><input name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Минимум 8 символов" required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
-        <label className="consent"><input name="termsConsent" type="checkbox" /><span className="custom-check"><Check /></span><span>Мне исполнилось 18 лет, я принимаю <Link href="/terms" target="_blank">условия использования</Link> и ознакомилась с <Link href="/privacy" target="_blank">политикой конфиденциальности</Link>.</span></label>
-        <label className="consent"><input name="healthDataConsent" type="checkbox" /><span className="custom-check"><Check /></span><span>Я отдельно соглашаюсь на обработку чувствительных данных о цикле, симптомах и самочувствии для работы Mira. Согласие можно отозвать удалением истории или аккаунта.</span></label>
+        <label className="consent"><input name="termsConsent" type="checkbox" /><span className="custom-check"><Check /></span><span>Мне есть 18 лет. Принимаю <Link href="/terms" target="_blank">условия</Link> и <Link href="/privacy" target="_blank">политику конфиденциальности</Link>.</span></label>
+        <label className="consent"><input name="healthDataConsent" type="checkbox" /><span className="custom-check"><Check /></span><span>Разрешаю Mira обрабатывать данные о цикле и здоровье. Согласие можно отозвать.</span></label>
         {error && <p className="form-error" role="alert">{error}</p>}
         <button className="button auth-submit" type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>Создать аккаунт <ArrowRight /></button>
       </form>}
       {!success && <TelegramAuthAction />}
       <p className="auth-switch">Уже есть аккаунт? <Link href="/login">Войти</Link></p>
-      <p className="auth-demo-note"><LockKeyhole /> Пароль обрабатывается Supabase Auth и не хранится в Mira</p>
     </AuthShell>
   </>);
 }
