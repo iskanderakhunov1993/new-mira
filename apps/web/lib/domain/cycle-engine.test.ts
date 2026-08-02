@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addDays, buildCycleHistorySummary, buildCycleRecords, calculateCycle, completedCycles, periodStarts } from "./cycle-engine";
+import { addDays, buildCycleHistorySummary, buildCycleRecords, buildFertilityForecast, calculateCycle, completedCycles, periodStarts } from "./cycle-engine";
 
 test("calculates first configured cycle as a range", () => {
   const result = calculateCycle({ entries: [], lastPeriod: "2026-07-05", cycleLength: 28, periodLength: 5, cyclePattern: "regular", today: "2026-07-22" });
@@ -89,4 +89,22 @@ test("handles year boundary and missing data", () => {
 test("marks a forecast delayed only outside its range", () => {
   const result = calculateCycle({ entries: [], lastPeriod: "2026-06-01", cycleLength: 28, cyclePattern: "regular", today: "2026-07-05" });
   assert.equal(result.delayed, true);
+});
+
+test("derives calendar fertility hints from the same cycle forecast", () => {
+  const forecast = calculateCycle({ entries: [], lastPeriod: "2026-07-01", cycleLength: 28, cyclePattern: "regular", today: "2026-07-10" });
+  const fertility = buildFertilityForecast(forecast, 0);
+
+  assert.equal(forecast.expectedStart, "2026-07-29");
+  assert.equal(fertility.expectedOvulation, "2026-07-15");
+  assert.deepEqual(fertility.fertileWindow, [
+    "2026-07-10",
+    "2026-07-11",
+    "2026-07-12",
+    "2026-07-13",
+    "2026-07-14",
+    "2026-07-15",
+    "2026-07-16",
+  ]);
+  assert.equal(fertility.ovulation.has("2026-07-15"), true);
 });

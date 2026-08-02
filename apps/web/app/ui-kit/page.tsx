@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { UiKitShadcnShowcase } from "@/components/UiKitShadcnShowcase";
 import { UiKitShadcnCharts } from "@/components/UiKitShadcnCharts";
+import { symptomGroups, SymptomIcon } from "@/lib/symptom-catalog";
 
 export const metadata: Metadata = {
   title: "Mira UI Kit",
@@ -114,6 +115,7 @@ export default function UiKitPage() {
         <a href="#color">Цвет</a>
         <a href="#type">Типографика</a>
         <a href="#symbols">Символы</a>
+        <a href="#subsymptoms">Подсимптомы</a>
         <a href="#controls">System UI</a>
         <a href="#graphs">Графики</a>
         <a href="#widgets">Health widgets</a>
@@ -179,22 +181,38 @@ export default function UiKitPage() {
         </div>
       </section>
 
+      <section className="uik-section" id="subsymptoms">
+        <SectionTitle eyebrow="04 · Подсимптомы" text="Компактные пиктограммы для chips и быстрых отметок. Геометрия единая, а цвет закреплён за категорией — он не обозначает тяжесть состояния.">
+          Библиотека ежедневных отметок
+        </SectionTitle>
+        <div className="uik-subsymptom-groups">
+          {symptomGroups.map((group) => <section className={`tone-${group.uiTone}`} key={group.title}>
+            <header><h3>{group.title}</h3><span>{group.options.length} элементов</span></header>
+            <div>{group.options.map((label) => <article key={label}>
+              <button type="button" aria-label={label}><i><SymptomIcon label={label} /></i><strong>{label}</strong></button>
+              <code>{group.id}/{label.toLowerCase().replaceAll(" ", "-")}</code>
+            </article>)}</div>
+          </section>)}
+        </div>
+        <aside className="uik-subsymptom-rule"><CircleAlert /><p><strong>Правило безопасности</strong><span>Иконка помогает быстро найти отметку, но смысл всегда дублируется текстом. Интимные данные остаются отдельной приватной категорией.</span></p></aside>
+      </section>
+
       <section className="uik-section" id="controls">
-        <SectionTitle eyebrow="04 · Компоненты" text="Каждый элемент имеет одно назначение. Основное действие всегда одно; дополнительные действия визуально тише.">
+        <SectionTitle eyebrow="05 · Компоненты" text="Каждый элемент имеет одно назначение. Основное действие всегда одно; дополнительные действия визуально тише.">
           Базовые элементы интерфейса
         </SectionTitle>
         <UiKitShadcnShowcase />
       </section>
 
       <section className="uik-section" id="graphs">
-        <SectionTitle eyebrow="05 · Графики" text="Каждый график должен отвечать на один вопрос. Вывод написан рядом; цвет не является единственным способом прочитать состояние.">
+        <SectionTitle eyebrow="06 · Графики" text="Каждый график должен отвечать на один вопрос. Вывод написан рядом; цвет не является единственным способом прочитать состояние.">
           System graphs
         </SectionTitle>
         <UiKitShadcnCharts />
       </section>
 
       <section className="uik-section" id="widgets">
-        <SectionTitle eyebrow="06 · Health widgets" text="Компактные модули для Today и Analytics. В каждом виджете — один показатель, период, состояние данных и понятный переход.">
+        <SectionTitle eyebrow="07 · Health widgets" text="Компактные модули для Today и Analytics. В каждом виджете — один показатель, период, состояние данных и понятный переход.">
           Библиотека health-виджетов
         </SectionTitle>
         <div className="uik-widget-grid">
@@ -226,7 +244,7 @@ export default function UiKitPage() {
       </section>
 
       <section className="uik-section uik-rules">
-        <SectionTitle eyebrow="07 · Правила" text="Эти ограничения сохраняют Mira узнаваемой, даже когда продукт растёт.">
+        <SectionTitle eyebrow="08 · Правила" text="Эти ограничения сохраняют Mira узнаваемой, даже когда продукт растёт.">
           Как применять систему
         </SectionTitle>
         <div>

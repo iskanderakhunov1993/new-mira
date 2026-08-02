@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { evaluateAssessment, type AssessmentAnswers, type AssessmentType, type HealthAssessment } from "@/lib/domain/assessment";
+import { buildEntryReplacementPayload } from "@/lib/domain/entry-replacement";
 import type { MedicationIntake } from "@/lib/domain/medication";
 
 export type MiraProfile = {
@@ -20,6 +21,9 @@ export type MiraProfile = {
   preferences?: {
     cycleForecasts?: boolean;
     privateInsights?: boolean;
+    todayWidgets?: TodayWidget[];
+    todayHiddenWidgets?: TodayWidget[];
+    todayHiddenDate?: string;
   };
   consents?: {
     healthData?: boolean;
@@ -29,6 +33,8 @@ export type MiraProfile = {
     version?: string;
   };
 };
+
+export type TodayWidget = "water" | "movement" | "plan" | "weight" | "temperature";
 
 export type CycleEntry = {
   date: string;
@@ -48,6 +54,13 @@ export type CycleEntry = {
   symptoms?: string[];
   symptomIntensity?: Record<string, 1 | 2 | 3>;
   medicationIntakes?: MedicationIntake[];
+  activityTypes?: string[];
+  contraceptionMethod?: "pill" | "ring" | "patch" | "iud" | "implant" | "injection" | "condom" | "other" | null;
+  contraceptionStatus?: "on_time" | "missed" | "changed" | "stopped" | null;
+  pregnancyTest?: "negative" | "positive" | "unclear" | null;
+  ovulationTest?: "negative" | "positive" | "unclear" | null;
+  sexualActivity?: "none" | "protected" | "unprotected" | null;
+  sexualComfort?: "comfortable" | "dryness" | "pain" | "bleeding" | null;
   sleepHours?: number;
   waterMl?: number;
   weightKg?: number;
@@ -60,6 +73,7 @@ type ApiResult = Record<string, unknown>;
 // This cache lives only in memory for the current page lifetime. PostgreSQL is
 // the sole persistent source of truth; no health data is written to web storage.
 let memoryProfile: MiraProfile | null = null;
+const memoryInsightInteractions = new Map<string, InsightInteraction>();
 let legacyStoragePurged = false;
 
 function isLocalDemoMode(): boolean {
@@ -78,7 +92,7 @@ function localDate(offset: number): string {
 function buildLocalDemoProfile(): MiraProfile {
   const starts = [-118, -90, -59, -31, -5];
   const flows: NonNullable<CycleEntry["period"]>[] = ["medium", "heavy", "medium", "light"];
-  const entries = starts.flatMap((startOffset, cycleIndex) => (
+  const entries: CycleEntry[] = starts.flatMap((startOffset, cycleIndex) => (
     flows.map((period, dayIndex) => ({
       date: localDate(startOffset + dayIndex),
       period,
@@ -91,6 +105,10 @@ function buildLocalDemoProfile(): MiraProfile {
       sleepHours: dayIndex === 1 ? 6.5 : undefined,
     }))
   ));
+  entries.push(
+    { date: localDate(-1), weightKg: 61.8, basalTemperature: 36.55 },
+    { date: localDate(0), weightKg: 61.6, basalTemperature: 36.62 },
+  );
   return {
     email: "demo@mira.local",
     name: "Анна",
@@ -102,7 +120,7 @@ function buildLocalDemoProfile(): MiraProfile {
     periodLength: 4,
     entries,
     assessments: [],
-    preferences: { cycleForecasts: true, privateInsights: false },
+    preferences: { cycleForecasts: true, privateInsights: false, todayWidgets: ["water", "movement", "temperature", "weight", "plan"], todayHiddenWidgets: [] },
     consents: { healthData: true, privacyPolicy: true, sensitiveInsights: false },
   };
 }
@@ -160,6 +178,10 @@ export async function saveProfile(update: Partial<MiraProfile>): Promise<MiraPro
     preferences: update.preferences ? { ...current.preferences, ...update.preferences } : current.preferences,
     consents: update.consents ? { ...current.consents, ...update.consents } : current.consents,
   };
+  if (isLocalDemoMode()) {
+    memoryProfile = next;
+    return next;
+  }
   const profileOnly = { ...next };
   delete profileOnly.entries;
   memoryProfile = await fetchJson("/api/users", {
@@ -181,7 +203,7 @@ export async function deleteLocalProfile(): Promise<void> {
   memoryProfile = null;
 }
 
-export async function saveEntry(entry: CycleEntry): Promise<MiraProfile> {
+export async function saveEntry(entry: CycleEntry, options: { replace?: boolean } = {}): Promise<MiraProfile> {
   if (isLocalDemoMode()) {
     const current = memoryProfile ?? await getProfile();
     if (!current) throw new Error("Профиль не найден");
@@ -190,7 +212,8 @@ export async function saveEntry(entry: CycleEntry): Promise<MiraProfile> {
     return memoryProfile;
   }
   const { date, ...payload } = entry;
-  await fetchJson(`/api/entries/${date}`, { method: "PUT", body: JSON.stringify(payload) });
+  const requestPayload = options.replace ? buildEntryReplacementPayload(entry) : payload;
+  await fetchJson(`/api/entries/${date}`, { method: "PUT", body: JSON.stringify(requestPayload) });
   const profile = await getProfile({ refresh: true });
   if (!profile) throw new Error("Профиль не найден");
   return profile;
@@ -263,7 +286,59 @@ export async function updatePeriod(start: string, update: { startDate: string; e
   return getProfile({ refresh: true });
 }
 
-export type ProductEventName = "onboarding_started" | "onboarding_step_completed" | "onboarding_completed" | "spotlight_shown" | "spotlight_skipped" | "spotlight_completed" | "checkin_started" | "checkin_completed" | "entry_updated" | "entry_deleted" | "period_started" | "period_ended" | "period_updated" | "period_deleted";
+export type InsightInteraction = {
+  insightKey: string;
+  readAt: string | null;
+  dismissedAt: string | null;
+};
+
+export async function getInsightInteractions(): Promise<InsightInteraction[]> {
+  if (isLocalDemoMode()) return [...memoryInsightInteractions.values()];
+  return await fetchJson("/api/insights/interactions") as unknown as InsightInteraction[];
+}
+
+export async function saveInsightInteraction(
+  insightKey: string,
+  action: "read" | "dismiss" | "restore",
+): Promise<InsightInteraction> {
+  if (isLocalDemoMode()) {
+    const current = memoryInsightInteractions.get(insightKey) ?? { insightKey, readAt: null, dismissedAt: null };
+    const now = new Date().toISOString();
+    const next = action === "read"
+      ? { ...current, readAt: current.readAt ?? now }
+      : action === "dismiss"
+        ? { ...current, readAt: current.readAt ?? now, dismissedAt: now }
+        : { ...current, dismissedAt: null };
+    memoryInsightInteractions.set(insightKey, next);
+    return next;
+  }
+  return await fetchJson("/api/insights/interactions", {
+    method: "POST",
+    body: JSON.stringify({ insightKey, action }),
+  }) as unknown as InsightInteraction;
+}
+
+export type ProductEventName =
+  | "onboarding_started"
+  | "onboarding_step_completed"
+  | "onboarding_completed"
+  | "spotlight_shown"
+  | "spotlight_skipped"
+  | "spotlight_completed"
+  | "checkin_started"
+  | "checkin_completed"
+  | "entry_updated"
+  | "entry_deleted"
+  | "period_started"
+  | "period_ended"
+  | "period_updated"
+  | "period_deleted"
+  | "insights_viewed"
+  | "insight_detail_opened"
+  | "insight_evidence_opened"
+  | "insight_dismissed"
+  | "insight_restored"
+  | "insight_check_started";
 
 export async function trackProductEvent(name: ProductEventName, route: string) {
   try { await fetchJson("/api/product-events", { method: "POST", body: JSON.stringify({ name, route }) }); } catch { /* аналитика не блокирует основной сценарий */ }

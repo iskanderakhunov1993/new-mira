@@ -107,6 +107,21 @@ export type CycleForecast = {
   explanation: string;
 };
 
+export function buildFertilityForecast(forecast: CycleForecast, monthsAhead = 12) {
+  const fertile = new Set<string>();
+  const ovulation = new Set<string>();
+  if (!forecast.expectedStart) return { expectedOvulation: undefined, fertileWindow: [] as string[], fertile, ovulation };
+
+  const expectedOvulation = addDays(forecast.expectedStart, -14);
+  const fertileWindow = Array.from({ length: 7 }, (_, index) => addDays(expectedOvulation, index - 5));
+  for (let cycle = 0; cycle <= Math.ceil((monthsAhead * 31) / forecast.cycleLength); cycle += 1) {
+    const ovulationKey = addDays(expectedOvulation, cycle * forecast.cycleLength);
+    ovulation.add(ovulationKey);
+    for (let day = -5; day <= 1; day += 1) fertile.add(addDays(ovulationKey, day));
+  }
+  return { expectedOvulation, fertileWindow, fertile, ovulation };
+}
+
 export function calculateCycle(options: {
   entries: DomainEntry[];
   lastPeriod?: string;

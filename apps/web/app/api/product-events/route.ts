@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/supabase/auth";
 
-const eventNames = ["onboarding_started", "onboarding_step_completed", "onboarding_completed", "spotlight_shown", "spotlight_skipped", "spotlight_completed", "checkin_started", "checkin_completed", "entry_updated", "entry_deleted", "period_started", "period_ended", "period_updated", "period_deleted"] as const;
+const eventNames = ["onboarding_started", "onboarding_step_completed", "onboarding_completed", "spotlight_shown", "spotlight_skipped", "spotlight_completed", "checkin_started", "checkin_completed", "entry_updated", "entry_deleted", "period_started", "period_ended", "period_updated", "period_deleted", "insights_viewed", "insight_detail_opened", "insight_evidence_opened", "insight_dismissed", "insight_restored", "insight_check_started"] as const;
 const schema = z.object({ name: z.enum(eventNames), route: z.string().startsWith("/").max(120) });
 
 export async function POST(request: Request) {

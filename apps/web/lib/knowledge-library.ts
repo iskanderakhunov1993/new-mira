@@ -7,16 +7,16 @@ export type KnowledgeCategory = {
 };
 
 export const knowledgeTopics = [
-  { id: "cycle", title: "Цикл" },
-  { id: "period", title: "Месячные" },
-  { id: "discharge", title: "Выделения" },
-  { id: "wellbeing", title: "Самочувствие" },
-  { id: "pms", title: "ПМС и эмоции" },
-  { id: "irregular", title: "Задержки" },
-  { id: "important", title: "Важные симптомы" },
-  { id: "conditions", title: "Состояния здоровья" },
-  { id: "fertility", title: "Фертильность" },
-  { id: "sexual-health", title: "Секс и отношения" },
+  { id: "cycle", title: "Цикл", description: "Фазы, гормоны и личная норма" },
+  { id: "period", title: "Месячные", description: "Комфорт, гигиена и повседневная жизнь" },
+  { id: "discharge", title: "Выделения", description: "Интенсивность и изменения в течение цикла" },
+  { id: "wellbeing", title: "Самочувствие", description: "Боль, усталость и безопасная самопомощь" },
+  { id: "pms", title: "ПМС и эмоции", description: "Настроение и симптомы перед месячными" },
+  { id: "irregular", title: "Задержки", description: "Возможные причины и следующие шаги" },
+  { id: "important", title: "Когда нужна помощь", description: "Симптомы, которые не стоит откладывать" },
+  { id: "conditions", title: "Состояния здоровья", description: "Что обсуждают с врачом и как готовятся" },
+  { id: "fertility", title: "Фертильность", description: "Овуляция и планирование беременности" },
+  { id: "sexual-health", title: "Секс и отношения", description: "Комфорт, защита и личные границы" },
 ] as const;
 
 export type KnowledgeTopicId = (typeof knowledgeTopics)[number]["id"];

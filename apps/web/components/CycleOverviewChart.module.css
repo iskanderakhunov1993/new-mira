@@ -1,0 +1,49 @@
+.chartWrap {
+  min-width: 0;
+  position: relative;
+}
+
+.chart {
+  width: 100%;
+  height: 108px;
+  min-height: 108px;
+  aspect-ratio: auto;
+}
+
+.chart :global(.recharts-cartesian-axis-tick text) {
+  font-size: 8px;
+}
+
+.rangeLabel {
+  position: absolute;
+  z-index: 2;
+  top: 28px;
+  right: 12px;
+  color: #8a7f87;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.empty {
+  min-height: 250px;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  color: #80767e;
+  text-align: center;
+}
+
+.empty strong {
+  color: #322b31;
+  font-size: 16px;
+}
+
+.empty span {
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .chart { height: 220px; min-height: 220px; }
+  .rangeLabel { top: 60px; right: 4px; font-size: 9px; }
+}

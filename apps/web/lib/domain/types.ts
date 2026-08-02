@@ -16,6 +16,8 @@ export type DomainEntry = {
   symptomIntensity?: Record<string, 1 | 2 | 3>;
   medicationIntakes?: MedicationIntake[];
   waterMl?: number;
+  weightKg?: number;
+  basalTemperature?: number;
   sleepHours?: number;
   notes?: string;
 };

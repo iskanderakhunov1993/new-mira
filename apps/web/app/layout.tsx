@@ -20,7 +20,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru" data-scroll-behavior="smooth">
+    <html lang="ru" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         {/* Served through Mira because some Telegram Desktop networks block telegram.org inside WebView. */}
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}

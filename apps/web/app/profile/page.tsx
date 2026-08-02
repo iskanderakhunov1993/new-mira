@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Bug, Check, ChevronRight, Database, Download, Eye, FileHeart, HandHeart, Lightbulb, LogOut, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
+import { ArrowLeft, Bug, Check, ChevronRight, Download, Eye, FileHeart, HandHeart, Lightbulb, LogOut, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
 import { clearHealthHistory, deleteLocalProfile, getAssessments, getProfile, MiraProfile, saveProfile, signOutAccount } from "@/lib/demo-session";
 import { PwaInstallAction } from "@/components/PwaInstallAction";
 import { TelegramLinkAction } from "@/components/TelegramLinkAction";
@@ -15,24 +15,32 @@ const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || process.en
 const configuredDonationUrl = process.env.NEXT_PUBLIC_DONATION_URL?.trim() || "";
 const donationUrl = configuredDonationUrl.startsWith("https://") ? configuredDonationUrl : "";
 
+function formatDays(value: number) {
+  const mod10 = value % 10;
+  const mod100 = value % 100;
+  const unit = mod10 === 1 && mod100 !== 11 ? "день" : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? "дня" : "дней";
+  return `${value} ${unit}`;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<MiraProfile | null>(null);
   const [name, setName] = useState("");
   const [cycleLength, setCycleLength] = useState(28);
   const [periodLength, setPeriodLength] = useState(5);
+  const [goal, setGoal] = useState("understand");
   const [saved, setSaved] = useState(false);
   const [confirming, setConfirming] = useState<ConfirmAction>(null);
   const [supportInfo, setSupportInfo] = useState<SupportInfo>(null);
 
   useEffect(() => {
     void getProfile().then((current) => {
-      setProfile(current); setName(current?.name ?? ""); setCycleLength(current?.cycleLength ?? 28); setPeriodLength(current?.periodLength ?? 5);
+      setProfile(current); setName(current?.name ?? ""); setCycleLength(current?.cycleLength ?? 28); setPeriodLength(current?.periodLength ?? 5); setGoal(current?.goal ?? "understand");
     }).catch(() => setProfile(null));
   }, []);
 
   async function updateProfile() {
-    const updated = await saveProfile({ name: name.trim() || undefined, cycleLength, periodLength });
+    const updated = await saveProfile({ name: name.trim() || undefined, cycleLength, periodLength, goal });
     setProfile(updated); setSaved(true); window.setTimeout(() => setSaved(false), 1800);
   }
 
@@ -40,6 +48,12 @@ export default function ProfilePage() {
     const preferences = { cycleForecasts: profile?.preferences?.cycleForecasts ?? true, privateInsights: profile?.preferences?.privateInsights ?? false, [key]: !(profile?.preferences?.[key] ?? (key === "cycleForecasts")) };
     const consents = key === "privateInsights" ? { ...profile?.consents, sensitiveInsights: preferences.privateInsights } : profile?.consents;
     const updated = await saveProfile({ preferences, consents }); setProfile(updated);
+  }
+
+  async function updateGoal(nextGoal: string) {
+    setGoal(nextGoal);
+    const updated = await saveProfile({ goal: nextGoal });
+    setProfile(updated);
   }
 
   async function exportData() {
@@ -86,15 +100,17 @@ export default function ProfilePage() {
 
     <section className="profile-identity"><span>{(profile?.name ?? profile?.email ?? "M").slice(0, 1).toUpperCase()}</span><div><h2>{profile?.name || "Пользователь Mira"}</h2><p>{profile ? (profile.email || "Telegram Mini App") : "Профиль загружается"}</p></div><ShieldCheck /></section>
 
-    <section className="profile-section"><header><div><h2>Основные данные</h2><p>Используются для персонального прогноза цикла.</p></div></header><div className="profile-fields"><label><span>Имя</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Как к вам обращаться" /></label><div><label><span>Средняя длина цикла</span><select value={cycleLength} onChange={(event) => setCycleLength(Number(event.target.value))}>{Array.from({ length: 25 }, (_, index) => index + 21).map((value) => <option value={value} key={value}>{value} дней</option>)}</select></label><label><span>Месячные обычно идут</span><select value={periodLength} onChange={(event) => setPeriodLength(Number(event.target.value))}>{Array.from({ length: 9 }, (_, index) => index + 2).map((value) => <option value={value} key={value}>{value} дней</option>)}</select></label></div></div><button className={`profile-save ${saved ? "saved" : ""}`} onClick={updateProfile}>{saved ? <><Check />Сохранено</> : "Сохранить изменения"}</button></section>
+    <section className="profile-goal"><header><h2>Моя цель</h2></header><div>{[{ id: "understand", label: "Понимать цикл" }, { id: "wellbeing", label: "Самочувствие" }, { id: "pms", label: "Наблюдать ПМС" }].map((item) => <button className={goal === item.id ? "selected" : ""} type="button" onClick={() => void updateGoal(item.id)} key={item.id}>{item.label}</button>)}</div></section>
 
-    <section className="profile-section profile-list"><header><div><h2>Настройки Mira</h2><p>Выберите, как приложение использует ваши отметки.</p></div></header><button onClick={() => updatePreference("cycleForecasts")}><i><Eye /></i><span><strong>Прогнозы цикла</strong><small>Показывать предполагаемые даты</small></span><b className={(profile?.preferences?.cycleForecasts ?? true) ? "on" : ""}><em /></b></button><button onClick={() => updatePreference("privateInsights")}><i><ShieldCheck /></i><span><strong>Чувствительные данные в подсказках</strong><small>Учитывать интимные отметки в личных наблюдениях</small></span><b className={(profile?.preferences?.privateInsights ?? false) ? "on" : ""}><em /></b></button><button onClick={restartSpotlight}><i><UserRound /></i><span><strong>Повторить знакомство</strong><small>Снова показать подсказку первой отметки</small></span><ChevronRight /></button></section>
+    <section className="profile-section"><header><div><h2>Цикл</h2></div></header><div className="profile-fields"><label><span>Имя</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Как к вам обращаться" /></label><div><label><span>Длина цикла</span><select value={cycleLength} onChange={(event) => setCycleLength(Number(event.target.value))}>{Array.from({ length: 25 }, (_, index) => index + 21).map((value) => <option value={value} key={value}>{formatDays(value)}</option>)}</select></label><label><span>Длительность месячных</span><select value={periodLength} onChange={(event) => setPeriodLength(Number(event.target.value))}>{Array.from({ length: 9 }, (_, index) => index + 2).map((value) => <option value={value} key={value}>{formatDays(value)}</option>)}</select></label></div></div><button className={`profile-save ${saved ? "saved" : ""}`} onClick={updateProfile}>{saved ? <><Check />Сохранено</> : "Сохранить"}</button></section>
 
-    <section className="profile-section profile-list profile-install"><header><div><h2>Приложение</h2><p>Открывайте одну Mira в PWA и Telegram — отметки синхронизируются через ваш профиль.</p></div></header><PwaInstallAction /><TelegramLinkAction /></section>
+    <section className="profile-section profile-list"><header><div><h2>Настройки</h2></div></header><button onClick={() => updatePreference("cycleForecasts")}><i><Eye /></i><span><strong>Прогнозы цикла</strong></span><b className={(profile?.preferences?.cycleForecasts ?? true) ? "on" : ""}><em /></b></button><button onClick={() => updatePreference("privateInsights")}><i><ShieldCheck /></i><span><strong>Приватные данные в инсайтах</strong><small>Интимные отметки учитываются только с разрешения</small></span><b className={(profile?.preferences?.privateInsights ?? false) ? "on" : ""}><em /></b></button><button onClick={restartSpotlight}><i><UserRound /></i><span><strong>Повторить знакомство</strong></span><ChevronRight /></button></section>
 
-    <section className="profile-section profile-list"><header><div><h2>Данные и приватность</h2><p>Профиль и записи хранятся только в защищённой базе аккаунта.</p></div></header><Link href="/analytics/report"><i><FileHeart /></i><span><strong>Отчёт для врача</strong><small>Настроить состав и сохранить PDF</small></span><ChevronRight /></Link><button onClick={() => void exportData()}><i><Download /></i><span><strong>Скачать все данные</strong><small>Файл JSON · {entryCount} отметок</small></span><ChevronRight /></button><div className="profile-storage"><Database /><p><strong>Supabase PostgreSQL</strong><span>Браузер не хранит постоянную копию данных здоровья.</span></p></div></section>
+    <section className="profile-section profile-list profile-install"><header><div><h2>Приложение</h2></div></header><PwaInstallAction /><TelegramLinkAction /></section>
 
-    <section className="profile-section profile-list profile-support"><header><div><h2>Помощь и развитие</h2><p>Обратная связь помогает делать Mira понятнее и надёжнее.</p></div></header><button type="button" aria-expanded={supportInfo === "bug"} onClick={() => toggleSupportInfo("bug")}><i><Bug /></i><span><strong>Сообщить об ошибке</strong><small>Расскажите, что произошло</small></span><ChevronRight /></button><button type="button" aria-expanded={supportInfo === "idea"} onClick={() => toggleSupportInfo("idea")}><i><Lightbulb /></i><span><strong>Предложить идею</strong><small>Помогите сделать Mira удобнее</small></span><ChevronRight /></button><button type="button" aria-expanded={supportInfo === "donate"} onClick={() => toggleSupportInfo("donate")}><i><HandHeart /></i><span><strong>Поддержать Mira</strong><small>Добровольный донат на развитие проекта</small></span><ChevronRight /></button>
+    <section className="profile-section profile-list"><header><div><h2>Ваши данные</h2></div></header><Link href="/analytics/report"><i><FileHeart /></i><span><strong>Отчёт для врача</strong><small>Выбрать разделы и сохранить PDF</small></span><ChevronRight /></Link><button onClick={() => void exportData()}><i><Download /></i><span><strong>Скачать данные</strong><small>JSON · {entryCount} отметок</small></span><ChevronRight /></button></section>
+
+    <section className="profile-section profile-list profile-support"><header><div><h2>Помощь</h2></div></header><button type="button" aria-expanded={supportInfo === "bug"} onClick={() => toggleSupportInfo("bug")}><i><Bug /></i><span><strong>Сообщить об ошибке</strong></span><ChevronRight /></button><button type="button" aria-expanded={supportInfo === "idea"} onClick={() => toggleSupportInfo("idea")}><i><Lightbulb /></i><span><strong>Предложить идею</strong></span><ChevronRight /></button><button type="button" aria-expanded={supportInfo === "donate"} onClick={() => toggleSupportInfo("donate")}><i><HandHeart /></i><span><strong>Поддержать Mira</strong></span><ChevronRight /></button>
       {supportInfo && <aside className="profile-support-panel" aria-live="polite">
         <button type="button" className="profile-support-close" aria-label="Закрыть" onClick={() => setSupportInfo(null)}><X /></button>
         {supportInfo === "bug" && <><strong>Нашли ошибку?</strong><p>Опишите экран, что произошло и какой результат вы ожидали. Данные о здоровье не прикладываются автоматически.</p>{feedbackLink("bug") ? <a href={feedbackLink("bug")}>Написать о проблеме</a> : <small>Канал обратной связи пока не подключён.</small>}</>}
@@ -103,9 +119,9 @@ export default function ProfilePage() {
       </aside>}
     </section>
 
-    <section className="profile-section profile-list profile-danger"><header><div><h2>Управление аккаунтом</h2></div></header><button onClick={() => setConfirming("history")}><i><Trash2 /></i><span><strong>Очистить историю здоровья</strong><small>Удалить циклы, симптомы и заметки</small></span><ChevronRight /></button><button onClick={logout}><i><LogOut /></i><span><strong>Выйти</strong><small>Локальная сессия будет завершена</small></span><ChevronRight /></button><button onClick={() => setConfirming("account")}><i><Trash2 /></i><span><strong>Удалить аккаунт</strong><small>Необратимо удалить профиль и все данные</small></span><ChevronRight /></button></section>
+    <section className="profile-section profile-list profile-danger"><header><div><h2>Аккаунт</h2></div></header><button onClick={() => setConfirming("history")}><i><Trash2 /></i><span><strong>Очистить историю</strong><small>Циклы, симптомы и заметки</small></span><ChevronRight /></button><button onClick={logout}><i><LogOut /></i><span><strong>Выйти</strong></span><ChevronRight /></button><button onClick={() => setConfirming("account")}><i><Trash2 /></i><span><strong>Удалить аккаунт</strong><small>Профиль и все данные</small></span><ChevronRight /></button></section>
 
-    <p className="profile-version">Mira · прототип PWA · данные не являются медицинским заключением</p>
+    <p className="profile-version">Mira · PWA</p>
   </div>
 
   {confirming && <div className="profile-confirm-backdrop" role="presentation"><section role="dialog" aria-modal="true" aria-labelledby="confirm-title"><span><Trash2 /></span><h2 id="confirm-title">{confirming === "history" ? "Очистить историю?" : "Удалить профиль?"}</h2><p>{confirming === "history" ? `Будут удалены ${entryCount} отметок: месячные, симптомы, боль, настроение и заметки. Данные профиля сохранятся.` : "Будут удалены профиль, настройки и вся история здоровья из базы Mira. Отменить действие после удаления нельзя."}</p><button className="confirm-delete" onClick={confirmAction}>{confirming === "history" ? "Очистить историю" : "Удалить всё"}</button><button className="confirm-cancel" onClick={() => setConfirming(null)}>Отмена</button></section></div>}

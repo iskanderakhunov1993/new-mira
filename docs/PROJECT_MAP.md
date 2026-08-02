@@ -157,6 +157,7 @@ git diff --check     # whitespace/errors в diff
 | Health/safety flow | `SAFETY_RULES.md` |
 | Проверка релиза | `QA_MATRIX.md`, `PRODUCTION_CHECKLIST.md` |
 | Любая инженерная задача | этот файл и ближайшие связанные исходники |
+| Новая идея или продуктовая задача | `BACKLOG.md`, затем бэклог нужной страницы в `backlog/pages/` |
 
 ## 9. Definition of Done
 

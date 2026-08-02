@@ -6,8 +6,8 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Droplet, Sparkles, X } from "lucide-react";
 import { getProfile, MiraProfile, setPeriodForDate } from "@/lib/demo-session";
 import { AppTabBar } from "@/components/AppTabBar";
-import { buildPeriodForecast, formatCycleDate, predictedFertilityDates } from "@/lib/cycle-analytics";
-import { addDays, calculateCycle, periodIntervals } from "@/lib/domain/cycle-engine";
+import { formatCycleDate } from "@/lib/cycle-analytics";
+import { addDays, buildFertilityForecast, calculateCycle, periodIntervals } from "@/lib/domain/cycle-engine";
 import { buildCalendarMarkers } from "@/lib/domain/calendar-markers";
 import { cyclePhaseForDate } from "@/lib/domain/cycle-phase";
 
@@ -36,10 +36,10 @@ function CalendarContent() {
   const periodDates = new Set(profile?.entries?.filter((entry) => entry.period).map((entry) => entry.date) ?? []);
   periodIntervals(profile?.entries ?? [], todayKey).forEach((interval) => { if (!interval.end) return; for (let cursor = interval.start; cursor <= interval.end; cursor = addDays(cursor, 1)) periodDates.add(cursor); });
   const forecast = calculateCycle({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, cyclePattern: profile?.cyclePattern, today: todayKey });
-  const legacyForecast = buildPeriodForecast({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, today: todayKey });
+  const fertilityForecast = buildFertilityForecast(forecast);
   const predictedDates = new Set<string>();
   if (forecast.rangeStart && forecast.rangeEnd) for (let cursor = forecast.rangeStart; cursor <= addDays(forecast.rangeEnd, (profile?.periodLength ?? 5) - 1); cursor = addDays(cursor, 1)) predictedDates.add(cursor);
-  const fertilityDates = predictedFertilityDates(legacyForecast);
+  const fertilityDates = { fertile: fertilityForecast.fertile, ovulation: fertilityForecast.ovulation };
   periodDates.forEach((date) => predictedDates.delete(date));
   const visiblePeriodDays = days.filter((day) => {
     if (!day) return false;
@@ -87,7 +87,7 @@ function CalendarContent() {
           <div className="calendar-phase-legend"><span><i className="menstruation" />Месячные</span><span><i className="follicular" />Фолликулярная</span><span><i className="ovulation" />Овуляторная*</span><span><i className="luteal" />Лютеиновая</span><small>*Фазы и овуляция — приблизительная календарная оценка</small></div>
         </section>
         <section className="calendar-summary"><span><Droplet /></span><div><small>{forecast.expectedStart ? "Следующие месячные — прогноз" : "Отмечено в этом месяце"}</small><h2>{forecast.expectedStart ? forecastRange : `${visiblePeriodDays} ${visiblePeriodDays === 1 ? "день" : visiblePeriodDays > 1 && visiblePeriodDays < 5 ? "дня" : "дней"}`}</h2><p>{forecast.expectedStart ? `${forecast.explanation} Основано на ${forecast.completedCycles || "настройках профиля"}.` : markMode ? "Нажимайте на прошедшие дни, чтобы добавить или убрать отметку." : "Отметьте начало месячных — после этого появится прогноз."}</p></div></section>
-        {legacyForecast.expectedOvulation && <section className="fertility-summary"><span><Sparkles /></span><div><small>Дополнительный календарный ориентир</small><h2>Овуляция — около {formatCycleDate(legacyForecast.expectedOvulation)}</h2><p>Фертильное окно: {formatCycleDate(legacyForecast.fertileWindow[0])} — {formatCycleDate(legacyForecast.fertileWindow.at(-1)!)} Этот расчёт не подтверждает овуляцию и не подходит как метод контрацепции.</p></div></section>}
+        {fertilityForecast.expectedOvulation && <section className="fertility-summary"><span><Sparkles /></span><div><small>Дополнительный календарный ориентир</small><h2>Овуляция — около {formatCycleDate(fertilityForecast.expectedOvulation)}</h2><p>Фертильное окно: {formatCycleDate(fertilityForecast.fertileWindow[0])} — {formatCycleDate(fertilityForecast.fertileWindow.at(-1)!)} Этот расчёт не подтверждает овуляцию и не подходит как метод контрацепции.</p></div></section>}
       </div>
       <AppTabBar active="today" />
     </main>

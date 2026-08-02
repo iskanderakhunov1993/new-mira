@@ -22,6 +22,9 @@ model Profile {
   weightKg           Float?
   cycleForecasts     Boolean   @default(true)
   privateInsights    Boolean   @default(false)
+  todayWidgets       String[]  @default(["water", "movement", "temperature", "weight", "plan"]) @map("today_widgets")
+  todayHiddenWidgets String[]  @default([]) @map("today_hidden_widgets")
+  todayHiddenDate    DateTime? @db.Date @map("today_hidden_date")
   healthDataConsent  Boolean   @default(false)
   privacyConsent     Boolean   @default(false)
   sensitiveConsent   Boolean   @default(false)
@@ -37,8 +40,24 @@ model Profile {
   externalIdentities ExternalIdentity[]
   appSessions        AppSession[]
   accountLinkTokens  AccountLinkToken[]
+  insightInteractions InsightInteraction[]
 
   @@map("profiles")
+}
+
+model InsightInteraction {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id") @db.Uuid
+  profile     Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  insightKey  String    @map("insight_key") @db.VarChar(200)
+  readAt      DateTime? @map("read_at")
+  dismissedAt DateTime? @map("dismissed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@unique([userId, insightKey])
+  @@index([userId, updatedAt])
+  @@map("insight_interactions")
 }
 
 model AccountLinkToken {
@@ -122,6 +141,13 @@ model Entry {
   symptoms           String[]
   symptomIntensity   Json?
   medicationIntakes  Json?
+  activityTypes      String[]
+  contraceptionMethod String?
+  contraceptionStatus String?
+  pregnancyTest      String?
+  ovulationTest      String?
+  sexualActivity     String?
+  sexualComfort      String?
   sleepHours         Float?
   waterMl            Int?
   weightKg           Float?
