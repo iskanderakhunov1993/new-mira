@@ -81,7 +81,6 @@ function DiaryContent() {
   const [medicationIntakes, setMedicationIntakes] = useState<MedicationIntake[]>([]);
   const [medicationName, setMedicationName] = useState("");
   const [medicationIngredient, setMedicationIngredient] = useState("");
-  const [medicationDose, setMedicationDose] = useState("");
   const [medicationTime, setMedicationTime] = useState(() => new Date().toTimeString().slice(0, 5));
   const [medicationReason, setMedicationReason] = useState<MedicationReason>("pain");
   const [medicationPrescribed, setMedicationPrescribed] = useState(false);
@@ -167,13 +166,12 @@ function DiaryContent() {
       id: `${date}-${Date.now()}`,
       name,
       activeIngredient: medicationIngredient.trim() || undefined,
-      dose: medicationDose.trim() || undefined,
       takenAt: medicationTime,
       reason: medicationReason,
       prescribedByDoctor: medicationPrescribed,
       effect: "pending",
     }]);
-    setMedicationName(""); setMedicationIngredient(""); setMedicationDose("");
+    setMedicationName(""); setMedicationIngredient("");
   }
 
   function updateMedication(id: string, update: Partial<MedicationIntake>) {
@@ -243,7 +241,6 @@ function DiaryContent() {
           <div className="medication-form-grid">
             <label><span>Название *</span><input value={medicationName} maxLength={120} placeholder="Как на упаковке" onChange={(event) => setMedicationName(event.target.value)} /></label>
             <label><span>Действующее вещество</span><input value={medicationIngredient} maxLength={120} placeholder="Если известно" onChange={(event) => setMedicationIngredient(event.target.value)} /></label>
-            <label><span>Дозировка и форма</span><input value={medicationDose} maxLength={80} placeholder="Например, 200 мг, таблетка" onChange={(event) => setMedicationDose(event.target.value)} /></label>
             <label><span>Время</span><input type="time" value={medicationTime} onChange={(event) => setMedicationTime(event.target.value)} /></label>
             <label><span>Причина</span><select value={medicationReason} onChange={(event) => setMedicationReason(event.target.value as MedicationReason)}>{Object.entries(MEDICATION_REASON_LABELS).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
           </div>
@@ -254,7 +251,6 @@ function DiaryContent() {
             <label><span>Как изменилось состояние?</span><select value={intake.effect} onChange={(event) => updateMedication(intake.id, { effect: event.target.value as MedicationEffect })}>{Object.entries(MEDICATION_EFFECT_LABELS).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
             <label><span>Побочные эффекты</span><input value={intake.sideEffects ?? ""} maxLength={500} placeholder="Необязательно" onChange={(event) => updateMedication(intake.id, { sideEffects: event.target.value || undefined })} /></label>
           </article>)}</div>}
-          <aside className="medication-safety-note"><CircleAlert /><p>Mira не назначает препараты и дозировки. При ухудшении состояния или необычной реакции обратитесь к врачу или фармацевту.</p></aside>
         </section>}
         {(matches("сон") || matches("часы")) && <section className="state-card state-sleep" id="diary-sleep"><div className="state-card-title"><span><MoonStar /></span><div><h2>Сон</h2><p>Примерная продолжительность сна</p></div></div><div className="compact-sleep"><button type="button" onClick={() => setSleepHours(Math.max(3, (sleepHours ?? 8) - .5))}>−</button><strong>{sleepHours ?? "—"}<small> часов</small></strong><button type="button" onClick={() => setSleepHours(Math.min(12, (sleepHours ?? 8) + .5))}>+</button></div>{sleepHours !== undefined && <button className="track-clear-value" type="button" onClick={() => setSleepHours(undefined)}>Не сохранять сон</button>}</section>}
         <section className="measurements-section" aria-labelledby="measurements-title">

@@ -14,6 +14,7 @@ import { getProfile, MiraProfile } from "@/lib/demo-session";
 import { buildCycleHistorySummary, CycleRecord, daysBetween, formatCycleDate } from "@/lib/cycle-analytics";
 import { calculateCycle } from "@/lib/domain/cycle-engine";
 import { buildCycleAttention, buildCyclePeriodStats, buildCycleReliability, type CyclePeriod } from "@/lib/domain/cycle-period-stats";
+import { buildSymptomAnalytics, type SymptomAnalytics } from "@/lib/domain/symptom-analytics";
 import { cn } from "@/lib/utils";
 import styles from "./analytics.module.css";
 
@@ -110,6 +111,44 @@ function PainMap({ cycles }: { cycles: CycleRecord[] }) {
   return <><div className="pain-map"><div className="pain-map-scale"><span>Цикл</span><b>1</b><b>7</b><b>14</b><b>21</b><b>28</b></div>{recent.map((cycle) => <div className="pain-map-row" key={cycle.start}><span>{formatCycleDate(cycle.start)}</span><div>{Array.from({ length: Math.min(45, Math.max(28, cycle.length)) }, (_, index) => { const day = index + 1; const entry = cycle.entries.find((item) => daysBetween(cycle.start, item.date) + 1 === day); const value = entry?.pain ?? 0; return value ? <Link className={value >= 7 ? "high" : value >= 4 ? "medium" : "low"} href={`/diary?date=${entry!.date}`} title={`${day}-й день · боль ${value}/10`} aria-label={`${day}-й день цикла: боль ${value} из 10`} key={day} /> : <i key={day} />; })}</div></div>)}</div><div className="pain-map-facts"><p><small>Наиболее выражена</small><strong>{typicalDay ? `${typicalDay}-й день цикла` : "Пока неизвестно"}</strong></p><p><small>Частое место</small><strong>{common(locations) ?? "Не указано"}</strong></p><p><small>Частый характер</small><strong>{common(types) ?? "Не указано"}</strong></p></div><small className="p1-basis">Основано на {painEntries.length} фактических отметках боли в {recent.length} циклах.</small></>;
 }
 
+function formatDecimal(value: number) {
+  return value.toLocaleString("ru-RU", { maximumFractionDigits: 1 });
+}
+
+function SymptomMatrix({ analytics }: { analytics: SymptomAnalytics }) {
+  if (!analytics.matrix.rows.length) return <div className={styles.symptomEmpty}>Отмечайте симптомы в дневнике — здесь появится карта по дням цикла.</div>;
+  const columns = { gridTemplateColumns: `minmax(118px, 1.35fr) repeat(${analytics.matrix.maxDay}, 22px)` };
+  return <div className={styles.matrixScroll}>
+    <div className={styles.symptomMatrix} style={{ minWidth: `${150 + analytics.matrix.maxDay * 22}px` }}>
+      <div className={styles.matrixHead} style={columns}><span>Симптом</span>{Array.from({ length: analytics.matrix.maxDay }, (_, index) => <b key={index}>{index === 0 || (index + 1) % 5 === 0 ? index + 1 : ""}</b>)}</div>
+      {analytics.matrix.rows.map((row) => <div className={styles.matrixRow} key={row.key} style={columns}><strong>{row.name}</strong>{row.days.map((day) => <i aria-label={`${day.day}-й день: ${day.count ? `отмечено в ${day.count} циклах` : "нет отметок"}`} className={cn(day.count === 1 && styles.matrixOnce, day.count === 2 && styles.matrixTwice, day.count >= 3 && styles.matrixOften, day.latest && styles.matrixLatest)} key={day.day} title={`${day.day}-й день · ${day.count} из последних ${Math.min(3, analytics.trackedCycles)} циклов`} />)}</div>)}
+    </div>
+  </div>;
+}
+
+function SymptomAnalyticsPanel({ analytics }: { analytics: SymptomAnalytics }) {
+  const enoughObservations = analytics.totalObservations >= 5;
+  return <section className={styles.symptomSection}>
+    <header className={styles.symptomHeader}><div><small>{enoughObservations ? "По вашим отметкам" : "Первые признаки"}</small><h2>Симптомы по циклам</h2><p>{analytics.trackedCycles ? `Фактические отметки из ${analytics.trackedCycles} завершённых ${analytics.trackedCycles === 1 ? "цикла" : "циклов"}.` : "Данные появятся после первых завершённых циклов с симптомами."}</p></div><Link href="/diary?section=symptoms">Добавить отметку <ChevronRight /></Link></header>
+    {!analytics.topSymptoms.length ? <div className={styles.symptomEmpty}>Пока нет симптомов, которые можно сопоставить с завершёнными циклами.</div> : <>
+      <div className={styles.symptomTopGrid}>
+        {analytics.topSymptoms.slice(0, 3).map((symptom, index) => <article key={symptom.key}><span>{index + 1}</span><div><small>{formatDays(symptom.totalDays)} с отметкой</small><h3>{symptom.name}</h3><p>{symptom.typicalPhaseLabel}</p></div><strong>{formatDecimal(symptom.averageDaysPerCycle)}<small>дн./цикл</small></strong></article>)}
+      </div>
+      <div className={styles.symptomDetailGrid}>
+        <article className={styles.symptomComparison}>
+          <header><div><small>Последний завершённый цикл</small><h3>Сравнение с личной историей</h3></div>{analytics.comparison && <span>{analytics.comparison.baselineCycles} предыдущих цикла</span>}</header>
+          {analytics.comparison ? <div className={styles.comparisonRows}>{analytics.comparison.rows.map((row) => { const max = Math.max(1, row.latestDays, row.baselineAverageDays); return <div className={styles.comparisonRow} key={row.key}><strong>{row.name}</strong><div><span>Последний</span><i><b style={{ width: `${(row.latestDays / max) * 100}%` }} /></i><em>{formatDecimal(row.latestDays)}</em></div><div><span>Обычно</span><i><b style={{ width: `${(row.baselineAverageDays / max) * 100}%` }} /></i><em>{formatDecimal(row.baselineAverageDays)}</em></div></div>; })}</div> : <div className={styles.comparisonEmpty}><strong>Нужно ещё немного истории</strong><p>Сравнение появится после четырёх завершённых циклов с отметками симптомов.</p></div>}
+          <footer>Сравниваем число дней с отметкой. Отсутствие записи не считаем отсутствием симптома.</footer>
+        </article>
+        <Accordion className={styles.symptomMatrixCard}>
+          <AccordionItem value="symptom-matrix"><AccordionTrigger className={styles.symptomMatrixTrigger}><span><small>Последние 3 отслеженных цикла</small><strong>Карта отметок по дням</strong></span></AccordionTrigger><AccordionContent className={styles.symptomMatrixContent}><SymptomMatrix analytics={analytics} /><footer><span><i className={styles.matrixOnce} />1 цикл</span><span><i className={styles.matrixTwice} />2 цикла</span><span><i className={styles.matrixOften} />3 цикла</span><span><i className={styles.matrixLatest} />последний цикл</span></footer></AccordionContent></AccordionItem>
+        </Accordion>
+      </div>
+      {!enoughObservations && <p className={styles.symptomBasis}>Пока мало данных для устойчивого вывода. Продолжайте отмечать самочувствие — картина станет точнее.</p>}
+    </>}
+  </section>;
+}
+
 function CycleHistoryList({ cycles, selectedStart, onSelect, limit }: { cycles: CycleRecord[]; selectedStart?: string; onSelect: (cycle: CycleRecord) => void; limit?: number }) {
   const visible = limit ? cycles.slice(0, limit) : cycles;
   return <div className={styles.historyTable}>
@@ -171,6 +210,7 @@ export default function AnalyticsPage() {
   const periodStats = useMemo(() => buildCyclePeriodStats(completed, selectedPeriod, todayKey), [completed, selectedPeriod, todayKey]);
   const chartCycles = periodStats.cycles;
   const recentTrackedCycles = cycles.slice(-3);
+  const symptomAnalytics = useMemo(() => buildSymptomAnalytics(completed), [completed]);
   const personalRange = periodStats.range ? `${periodStats.range.min}–${periodStats.range.max} дней` : "—";
   const rhythm = getRhythmInsight(periodStats.cycles);
   const attention = buildCycleAttention(periodStats.cycles);
@@ -220,6 +260,7 @@ export default function AnalyticsPage() {
               </ToggleGroup>
             </section>
           </> : <section className={styles.periodEmpty}><TrendingUp /><div><strong>В этом периоде нет завершённых циклов</strong><p>Выберите больший период, чтобы увидеть сохранённую историю.</p></div><button onClick={() => setSelectedPeriod("all")} type="button">Показать всю историю</button></section>}
+          <SymptomAnalyticsPanel analytics={symptomAnalytics} />
           <div className={styles.detailGrid}>
             <section className={styles.historyPanel}><header><h2>История циклов</h2><Link href="/analytics/cycles">Все циклы <ChevronRight /></Link></header><CycleHistoryList cycles={historyRows} limit={3} onSelect={(cycle) => setSelectedCycleStart(cycle.start)} selectedStart={selectedCycle?.start} /></section>
             <section className={styles.selectedPanel}><header><h2>Данные выбранного цикла</h2><span>{selectedCycle ? formatCycleDate(selectedCycle.start) : "—"}</span></header><SelectedCycleData cycle={selectedCycle} /></section>

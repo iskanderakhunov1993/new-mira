@@ -2886,8 +2886,6 @@ h1 em, h2 em { color: var(--rose-dark); font-style: normal; }
 .medication-intake-list article > header button { width: 29px; height: 29px; display: grid; place-items: center; border: 0; border-radius: 50%; color: #8f7f88; background: white; cursor: pointer; }
 .medication-intake-list article > header svg { width: 14px; }
 .medication-intake-list article > label { display: block; margin-top: 9px; }
-.medication-safety-note { display: flex; gap: 9px; margin-top: 16px; padding: 12px; border-radius: 14px; color: #5f6870; background: #edf4f8; font-size: 8px; line-height: 1.5; }
-.medication-safety-note svg { width: 16px; flex: none; color: #427da4; }
 .state-group.lifestyle .state-card-title > span { color: #3d8c68; background: #e2f1e9; }
 .state-group.tests .state-card-title > span { color: #8b5aa7; background: #eee4f5; }
 .state-sleep .state-card-title > span { color: #6f61a6; background: #e9e5f7; }
