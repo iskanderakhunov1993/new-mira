@@ -2,14 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ChevronRight, CircleHelp, Droplet, FileHeart, HeartPulse, MoonStar, Pill, Plus, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
+import { CalendarDays, ChevronRight, Droplet, FileHeart, HeartPulse, ListFilter, Plus, Sparkles, TrendingUp } from "lucide-react";
 import { AppTabBar } from "@/components/AppTabBar";
 import { AppPageState } from "@/components/AppPageState";
-import { CycleTrendCard } from "@/components/CycleTrendCard";
+import { CycleOverviewChart } from "@/components/CycleOverviewChart";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { buttonVariants } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { getProfile, MiraProfile } from "@/lib/demo-session";
 import { buildCycleHistorySummary, CycleRecord, daysBetween, formatCycleDate } from "@/lib/cycle-analytics";
 import { calculateCycle } from "@/lib/domain/cycle-engine";
 import { buildCycleAttention, buildCyclePeriodStats, buildCycleReliability, type CyclePeriod } from "@/lib/domain/cycle-period-stats";
+import { cn } from "@/lib/utils";
+import styles from "./analytics.module.css";
 
 const flowLabels = { spotting: "Мажущие", light: "Слабые", medium: "Средние", heavy: "Обильные" } as const;
 const phaseLabels = {
@@ -39,11 +45,6 @@ function formatShortDate(value?: string) {
 function formatPredictionRange(start?: string, end?: string) {
   if (!start || !end) return "Появится после первой отметки";
   return `${formatShortDate(start)} — ${formatShortDate(end)}`;
-}
-
-function CycleDots({ cycle }: { cycle: CycleRecord }) {
-  const periodDays = new Set(cycle.entries.filter((entry) => entry.period).map((entry) => daysBetween(cycle.start, entry.date)));
-  return <div className="cycle-dots" aria-label={`${formatDays(cycle.periodDays)} месячных`}>{Array.from({ length: Math.min(cycle.length, 35) }, (_, index) => <i className={periodDays.has(index) ? "period" : ""} key={index} />)}</div>;
 }
 
 function getRhythmInsight(completed: CycleRecord[]) {
@@ -109,10 +110,51 @@ function PainMap({ cycles }: { cycles: CycleRecord[] }) {
   return <><div className="pain-map"><div className="pain-map-scale"><span>Цикл</span><b>1</b><b>7</b><b>14</b><b>21</b><b>28</b></div>{recent.map((cycle) => <div className="pain-map-row" key={cycle.start}><span>{formatCycleDate(cycle.start)}</span><div>{Array.from({ length: Math.min(45, Math.max(28, cycle.length)) }, (_, index) => { const day = index + 1; const entry = cycle.entries.find((item) => daysBetween(cycle.start, item.date) + 1 === day); const value = entry?.pain ?? 0; return value ? <Link className={value >= 7 ? "high" : value >= 4 ? "medium" : "low"} href={`/diary?date=${entry!.date}`} title={`${day}-й день · боль ${value}/10`} aria-label={`${day}-й день цикла: боль ${value} из 10`} key={day} /> : <i key={day} />; })}</div></div>)}</div><div className="pain-map-facts"><p><small>Наиболее выражена</small><strong>{typicalDay ? `${typicalDay}-й день цикла` : "Пока неизвестно"}</strong></p><p><small>Частое место</small><strong>{common(locations) ?? "Не указано"}</strong></p><p><small>Частый характер</small><strong>{common(types) ?? "Не указано"}</strong></p></div><small className="p1-basis">Основано на {painEntries.length} фактических отметках боли в {recent.length} циклах.</small></>;
 }
 
+function CycleHistoryList({ cycles, selectedStart, onSelect, limit }: { cycles: CycleRecord[]; selectedStart?: string; onSelect: (cycle: CycleRecord) => void; limit?: number }) {
+  const visible = limit ? cycles.slice(0, limit) : cycles;
+  return <div className={styles.historyTable}>
+    <div className={styles.historyHead} aria-hidden="true"><span>Начало цикла</span><span>Длина</span><span>Месячные</span><span /></div>
+    {visible.map((cycle) => <button
+      aria-pressed={selectedStart === cycle.start}
+      className={styles.historyRow}
+      key={cycle.start}
+      onClick={() => onSelect(cycle)}
+      type="button"
+    >
+      <i aria-hidden="true" />
+      <span><strong>{formatCycleDate(cycle.start)}{cycle.current ? " · текущий" : ""}</strong><small>{cycle.current ? `Сейчас ${cycle.length}-й день` : cycle.end ? `до ${formatCycleDate(cycle.end)}` : "Дата окончания не отмечена"}</small></span>
+      <b>{cycle.current ? `${cycle.length}-й день` : formatDays(cycle.length)}</b>
+      <span><strong>{cycle.periodDays ? formatDays(cycle.periodDays) : "Нет данных"}</strong><small>длительность</small></span>
+      <ChevronRight aria-hidden="true" />
+    </button>)}
+  </div>;
+}
+
+function SelectedCycleData({ cycle }: { cycle?: CycleRecord }) {
+  if (!cycle) return <div className={styles.selectedEmpty}>Выберите цикл, чтобы посмотреть его данные.</div>;
+  const painEntries = cycle.entries.filter((entry) => (entry.pain ?? 0) > 0);
+  const notes = cycle.entries.filter((entry) => entry.notes?.trim());
+  const maxPain = painEntries.length ? Math.max(...painEntries.map((entry) => entry.pain ?? 0)) : undefined;
+  return <div className={styles.selectedData}>
+    <div><span>Месячные</span><strong>{cycle.periodDays ? formatDays(cycle.periodDays) : "Нет отметок"}</strong><small>{cycle.entries.filter((entry) => entry.period).length ? `${formatCycleDate(cycle.start)} · фактические записи` : "Добавьте данные в дневнике"}</small></div>
+    <div><span>Записи о боли</span><strong>{painEntries.length ? `${painEntries.length} ${painEntries.length === 1 ? "запись" : "записи"}` : "Нет отметок"}</strong><small>{maxPain ? `максимум ${maxPain} из 10` : "Боль не отмечена"}</small></div>
+    <div><span>Заметки</span><strong>{notes.length ? `${notes.length} ${notes.length === 1 ? "запись" : "записи"}` : "Нет заметок"}</strong><small>{notes.at(-1)?.notes ?? "Можно добавить в дневнике"}</small></div>
+  </div>;
+}
+
+function PhaseTimeline({ progress }: { progress: number }) {
+  return <div className={styles.phaseTimeline} aria-label={`Пройдено около ${Math.round(progress)}% текущего цикла`}>
+    <div className={styles.phaseLabels}><span><strong>Месячные</strong><small>1–5 день</small></span><span><strong>Фолликулярная фаза</strong><small>6–14 день</small></span><span><strong>Овуляция</strong><small>15–17 день</small></span><span><strong>Лютеиновая фаза</strong><small>18–28 день</small></span></div>
+    <div className={styles.phaseTrack}><i /><i /><i /><i /><b style={{ left: `${progress}%` }}><span className="sr-only">Сегодня</span></b></div>
+  </div>;
+}
+
 export default function AnalyticsPage() {
   const [profile, setProfile] = useState<MiraProfile | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [selectedPeriod, setSelectedPeriod] = useState<CyclePeriod>("6m");
+  const [selectedCycleStart, setSelectedCycleStart] = useState<string>();
+  const [activeTab, setActiveTab] = useState<"overview" | "history" | "data">("overview");
   const loadProfile = () => {
     setLoadState("loading");
     void getProfile().then((nextProfile) => {
@@ -124,6 +166,7 @@ export default function AnalyticsPage() {
 
   const cycleHistory = useMemo(() => buildCycleHistorySummary(profile?.entries ?? []), [profile]);
   const { cycles, completed, current } = cycleHistory;
+  const historyRows = useMemo(() => [...(current ? [current] : []), ...completed.slice().reverse()], [completed, current]);
   const todayKey = new Date().toISOString().slice(0, 10);
   const periodStats = useMemo(() => buildCyclePeriodStats(completed, selectedPeriod, todayKey), [completed, selectedPeriod, todayKey]);
   const chartCycles = periodStats.cycles;
@@ -132,6 +175,7 @@ export default function AnalyticsPage() {
   const rhythm = getRhythmInsight(periodStats.cycles);
   const attention = buildCycleAttention(periodStats.cycles);
   const reliability = buildCycleReliability(periodStats.completedCount);
+  const selectedCycle = historyRows.find((cycle) => cycle.start === selectedCycleStart) ?? historyRows[0];
   const forecast = calculateCycle({
     entries: profile?.entries ?? [],
     lastPeriod: profile?.lastPeriod,
@@ -140,66 +184,56 @@ export default function AnalyticsPage() {
     cyclePattern: profile?.cyclePattern,
     today: todayKey,
   });
-  const todayEntry = profile?.entries?.find((entry) => entry.date === todayKey);
   const progress = forecast.cycleDay
     ? Math.min(100, Math.max(2, (forecast.cycleDay / Math.max(1, forecast.cycleLength)) * 100))
     : 2;
-  const todayFacts = [
-    todayEntry?.pain !== undefined && todayEntry.pain > 0
-      ? { icon: HeartPulse, label: "Боль", value: `${todayEntry.pain} из 10` }
-      : undefined,
-    todayEntry?.energy
-      ? { icon: Sparkles, label: "Энергия", value: todayEntry.energy === "low" ? "Низкая" : todayEntry.energy === "high" ? "Высокая" : "Обычная" }
-      : undefined,
-    todayEntry?.sleepHours !== undefined
-      ? { icon: MoonStar, label: "Сон", value: `${todayEntry.sleepHours.toLocaleString("ru-RU")} ч` }
-      : undefined,
-    todayEntry?.medicationIntakes?.length
-      ? { icon: Pill, label: "Лекарства", value: `${todayEntry.medicationIntakes.length} отмечено` }
-      : undefined,
-  ].filter(Boolean) as { icon: typeof HeartPulse; label: string; value: string }[];
 
-  if (loadState === "loading") return <main className="analytics-page cycles-product-page"><div className="analytics-shell"><AppPageState kind="loading" title="Загружаем историю цикла" text="Собираем ваши сохранённые отметки." /></div><AppTabBar active="analytics" /></main>;
-  if (loadState === "error") return <main className="analytics-page cycles-product-page"><div className="analytics-shell"><AppPageState kind="error" title="Не удалось загрузить историю" text="Проверьте подключение и попробуйте ещё раз." onRetry={loadProfile} /></div><AppTabBar active="analytics" /></main>;
+  const insight = attention
+    ? { label: "Обратите внимание", title: attention.title, text: attention.text, tone: "attention" }
+    : { label: "Mira заметила", title: rhythm.title, text: rhythm.text, tone: rhythm.tone };
+  const periodOptions = [["3m", "3 мес."], ["6m", "6 мес."], ["12m", "12 мес."], ["all", "Всё"]] as const;
 
-  return <main className="analytics-page cycles-product-page cycle-home-page"><div className="analytics-shell"><header className="analytics-header cycle-home-header"><div><small>Мой цикл</small><h1>{forecast.cycleDay ? `${forecast.cycleDay}-й день` : "Мой цикл"}</h1><p>{forecast.phase ? `Предположительно: ${phaseLabels[forecast.phase].toLowerCase()}` : "Отметьте начало месячных, чтобы появился прогноз."}</p></div><Link href="/calendar" aria-label="Открыть календарь"><CalendarDays /></Link></header>
+  if (loadState === "loading") return <main className={cn("analytics-page cycles-product-page", styles.page)}><div className={cn("analytics-shell", styles.shell)}><AppPageState kind="loading" title="Загружаем историю цикла" text="Собираем ваши сохранённые отметки." /></div><AppTabBar active="analytics" /></main>;
+  if (loadState === "error") return <main className={cn("analytics-page cycles-product-page", styles.page)}><div className={cn("analytics-shell", styles.shell)}><AppPageState kind="error" title="Не удалось загрузить историю" text="Проверьте подключение и попробуйте ещё раз." onRetry={loadProfile} /></div><AppTabBar active="analytics" /></main>;
+
+  return <main className={cn("analytics-page cycles-product-page", styles.page)}><div className={cn("analytics-shell", styles.shell)}>
+    <header className={styles.hero}>
+      <div className={styles.heroCopy}><small>Мой цикл</small><h1>{forecast.cycleDay ? `${forecast.cycleDay}-й день` : "Мой цикл"}</h1><h2>{forecast.phase ? phaseLabels[forecast.phase] : "Прогноз формируется"}</h2><Link className={cn(buttonVariants({ variant: "outline", size: "xs" }), styles.todayButton)} href={`/diary?date=${todayKey}`}><Plus />Отметить сегодня</Link></div>
+      <div className={styles.forecast}><CalendarDays /><div><small>Следующие месячные</small><strong>{formatPredictionRange(forecast.rangeStart, forecast.rangeEnd)}</strong><span>на основе {forecast.completedCycles} завершённых циклов</span><b>{reliability.label.toLowerCase()}</b></div></div>
+    </header>
     {!cycles.length ? <section className="analytics-empty"><Sparkles /><h2>Пока нет завершённых циклов</h2><p>Отметьте начало месячных в календаре — здесь появится история.</p><Link href="/calendar?action=period">Отметить месячные</Link></section> : <>
-      <section className="cycle-now-card">
-        <header><span>Сейчас</span><details><summary aria-label="Как рассчитывается прогноз"><CircleHelp /></summary><p>{forecast.explanation}</p></details></header>
-        <h2>{forecast.phase ? phaseLabels[forecast.phase] : "Прогноз формируется"}</h2>
-        <p>{forecast.daysUntil !== undefined && forecast.daysUntil >= 0 ? `До следующих месячных ориентировочно ${formatDays(forecast.daysUntil)}` : forecast.delayed ? "Ожидаемая дата прошла — прогноз мог измениться" : "Продолжайте отмечать цикл, чтобы уточнить даты"}</p>
-        <div className="cycle-now-track" aria-label={`Пройдено около ${Math.round(progress)}% текущего цикла`}>
-          <i className="menstruation" />
-          <i className="follicular" />
-          <i className="ovulation" />
-          <i className="luteal" />
-          <b style={{ left: `${progress}%` }}><span>Сегодня</span></b>
-        </div>
-        <div className="cycle-now-labels"><span>Месячные</span><span>Овуляция</span><span>Следующие</span></div>
-        <div className="cycle-next-period"><div><small>Следующие месячные</small><strong>{formatPredictionRange(forecast.rangeStart, forecast.rangeEnd)}</strong></div><span>Прогноз</span></div>
-        <footer>Основано на {forecast.completedCycles} {forecast.completedCycles === 1 ? "завершённом цикле" : "завершённых циклах"} · прогноз не является методом контрацепции</footer>
-      </section>
-      <Link className="cycle-log-today" href={`/diary?date=${todayKey}`}><span><Plus /></span><div><strong>Отметить сегодня</strong><small>Самочувствие, симптомы, сон и лекарства</small></div><ChevronRight /></Link>
-      <section className="cycle-today-facts">
-        <header><div><small>Сегодня</small><h2>Краткая сводка</h2></div><Link href={`/diary?date=${todayKey}`}>Изменить</Link></header>
-        {todayFacts.length ? <div>{todayFacts.map(({ icon: Icon, label, value }) => <article key={label}><Icon /><span><small>{label}</small><strong>{value}</strong></span></article>)}</div> : <div className="cycle-today-empty"><p>Сегодня пока ничего не отмечено.</p><span>Даже одна короткая запись помогает Mira замечать изменения со временем.</span></div>}
-      </section>
-      <section className="cycle-period-overview" aria-labelledby="cycle-period-title">
-        <header><div><small>Завершённые циклы</small><h2 id="cycle-period-title">Обзор за период</h2></div><span>{periodStats.completedCount}</span></header>
-        <div className="cycle-period-control" role="group" aria-label="Период аналитики">
-          {([["3m", "3 мес"], ["6m", "6 мес"], ["12m", "12 мес"], ["all", "Всё"]] as const).map(([value, label]) => <button aria-pressed={selectedPeriod === value} className={selectedPeriod === value ? "active" : ""} key={value} onClick={() => setSelectedPeriod(value)} type="button">{label}</button>)}
-        </div>
-      </section>
-      {periodStats.completedCount ? <>
-        <section className={`cycle-status-card ${rhythm.tone}`}><Sparkles /><div><small>Mira заметила</small><h2>{rhythm.title}</h2><p>{rhythm.text}</p><div className="cycle-reliability"><strong>{reliability.label}</strong><span>{reliability.text}</span></div></div></section>
-        <section className="cycle-summary-grid period-metrics"><article><CalendarDays /><strong>{formatAverageDays(periodStats.averageCycleLength)}</strong><span>средняя длина цикла</span></article><article><Droplet /><strong>{formatAverageDays(periodStats.averagePeriodLength)}</strong><span>средняя длительность месячных</span></article><article><TrendingUp /><strong>{personalRange}</strong><span>диапазон за выбранный период</span></article></section>
-      </> : <section className="cycle-period-empty"><TrendingUp /><div><strong>В этом периоде нет завершённых циклов</strong><p>Выберите больший период, чтобы увидеть сохранённую историю.</p></div><button onClick={() => setSelectedPeriod("all")} type="button">Показать всю историю</button></section>}
-      {attention && <section className="cycle-attention-card"><ShieldAlert /><div><small>Обратите внимание</small><h2>{attention.title}</h2><p>{attention.text}</p><div><Link href={`/analytics/cycles/${attention.cycleStart}`}>Посмотреть цикл</Link><Link href="/analytics/report">Подготовить отчёт</Link></div></div></section>}
-      <section className="cycle-history-preview"><header><h2>История циклов</h2><Link href="/analytics/cycles">Все циклы <ChevronRight /></Link></header><div>{[...(current ? [current] : []), ...completed.slice(-2).reverse()].map((cycle) => <Link href={`/analytics/cycles/${cycle.start}`} key={cycle.start}><div><strong>{cycle.current ? `Текущий цикл: ${cycle.length}-й день` : formatDays(cycle.length)}</strong><span>{cycle.current ? `Начался ${formatCycleDate(cycle.start)}` : `${formatCycleDate(cycle.start)} — ${formatCycleDate(cycle.end)}`}</span><CycleDots cycle={cycle} /></div><ChevronRight /></Link>)}</div></section>
-      <CycleTrendCard className="analytics-cycle-trend" cycles={chartCycles} maxCycles={12} />
-      <details className="cycle-more-data"><summary>Подробные отметки <ChevronRight /></summary><section className="p1-analytics-card"><header><div><small>Фактические данные</small><h2>Интенсивность месячных</h2><p>Сравнение последних циклов по дням.</p></div><span><Droplet /></span></header><FlowHeatmap cycles={recentTrackedCycles} /></section><section className="p1-analytics-card"><header><div><small>Фактические данные</small><h2>Боль по дням цикла</h2><p>Чем насыщеннее точка, тем сильнее отмеченная боль.</p></div><span className="pain"><HeartPulse /></span></header><PainMap cycles={recentTrackedCycles} /></section></details>
-      <Link className="doctor-report-entry" href="/analytics/report"><span><FileHeart /></span><div><small>Для консультации</small><h2>Отчёт для врача</h2><p>Соберите факты о циклах и симптомах. Вы сами решаете, что включить.</p></div><ChevronRight /></Link>
-      <section className="cycle-free-tools"><header><small>Все функции Mira доступны бесплатно</small><h2>Ваши инструменты</h2></header><div><Link href="/calendar"><CalendarDays /><span><strong>Календарь</strong><small>Записи и прогнозы по дням</small></span><ChevronRight /></Link><Link href="/diary?section=tests"><HeartPulse /><span><strong>Тесты и измерения</strong><small>Температура, тесты и наблюдения</small></span><ChevronRight /></Link><Link href="/diary?section=medication"><Pill /><span><strong>Лекарства</strong><small>Приём, причина и эффект</small></span><ChevronRight /></Link><Link href="/insights"><Sparkles /><span><strong>Инсайты</strong><small>Повторения и сравнение циклов</small></span><ChevronRight /></Link></div></section>
+      <PhaseTimeline progress={progress} />
+      <Tabs className={styles.tabs} value={activeTab} onValueChange={(value) => value && setActiveTab(value as typeof activeTab)}>
+        <TabsList className={styles.tabsList} variant="line"><TabsTrigger value="overview">Обзор</TabsTrigger><TabsTrigger value="history">История</TabsTrigger><TabsTrigger value="data">Данные</TabsTrigger></TabsList>
+        <TabsContent className={styles.tabContent} value="overview">
+          {periodStats.completedCount ? <>
+            <div className={styles.analysisGrid}>
+              <section className={styles.chartPanel}><header><div><h2>Длина цикла</h2><p>Последние {Math.min(chartCycles.length, 6)} завершённых цикла</p></div><span>{selectedPeriod === "all" ? "Вся история" : periodOptions.find(([value]) => value === selectedPeriod)?.[1]}</span></header><CycleOverviewChart cycles={chartCycles} /></section>
+              <aside className={cn(styles.insightPanel, insight.tone === "attention" && styles.insightAttention)}><Sparkles /><small>{insight.label}</small><h2>{insight.title}</h2><p>{insight.text}</p><div><strong>{reliability.label}</strong><span>{reliability.text}</span></div>{attention && <Link href={`/analytics/cycles/${attention.cycleStart}`}>Посмотреть цикл <ChevronRight /></Link>}</aside>
+            </div>
+            <section className={styles.metricsBand} aria-label="Показатели за выбранный период">
+              <article><CalendarDays /><div><strong>{formatAverageDays(periodStats.averageCycleLength)}</strong><span>средняя длина цикла</span></div></article>
+              <article><Droplet /><div><strong>{formatAverageDays(periodStats.averagePeriodLength)}</strong><span>средняя длительность месячных</span></div></article>
+              <article><TrendingUp /><div><strong>{personalRange}</strong><span>личный диапазон цикла</span></div></article>
+              <ToggleGroup aria-label="Период аналитики" className={styles.periodToggle} onValueChange={(values) => { const next = values.at(-1) as CyclePeriod | undefined; if (next) setSelectedPeriod(next); }} spacing={0} value={[selectedPeriod]} variant="outline">
+                {periodOptions.map(([value, label]) => <ToggleGroupItem aria-label={`Показать ${label}`} key={value} value={value}>{label}</ToggleGroupItem>)}
+              </ToggleGroup>
+            </section>
+          </> : <section className={styles.periodEmpty}><TrendingUp /><div><strong>В этом периоде нет завершённых циклов</strong><p>Выберите больший период, чтобы увидеть сохранённую историю.</p></div><button onClick={() => setSelectedPeriod("all")} type="button">Показать всю историю</button></section>}
+          <div className={styles.detailGrid}>
+            <section className={styles.historyPanel}><header><h2>История циклов</h2><Link href="/analytics/cycles">Все циклы <ChevronRight /></Link></header><CycleHistoryList cycles={historyRows} limit={3} onSelect={(cycle) => setSelectedCycleStart(cycle.start)} selectedStart={selectedCycle?.start} /></section>
+            <section className={styles.selectedPanel}><header><h2>Данные выбранного цикла</h2><span>{selectedCycle ? formatCycleDate(selectedCycle.start) : "—"}</span></header><SelectedCycleData cycle={selectedCycle} /></section>
+          </div>
+          <div className={styles.bottomActions}>
+            <Accordion className={styles.detailsAccordion}>
+              <AccordionItem value="details"><AccordionTrigger className={styles.detailsTrigger}><span><ListFilter />Подробные отметки</span></AccordionTrigger><AccordionContent className={styles.detailsContent}><section className="p1-analytics-card"><header><div><small>Фактические данные</small><h2>Интенсивность месячных</h2><p>Сравнение последних циклов по дням.</p></div><span><Droplet /></span></header><FlowHeatmap cycles={recentTrackedCycles} /></section><section className="p1-analytics-card"><header><div><small>Фактические данные</small><h2>Боль по дням цикла</h2><p>Чем насыщеннее точка, тем сильнее отмеченная боль.</p></div><span className="pain"><HeartPulse /></span></header><PainMap cycles={recentTrackedCycles} /></section></AccordionContent></AccordionItem>
+            </Accordion>
+            <Link className={cn(buttonVariants({ variant: "outline" }), styles.reportButton)} href="/analytics/report"><FileHeart />Подготовить отчёт врачу</Link>
+          </div>
+        </TabsContent>
+        <TabsContent className={styles.tabContent} value="history"><section className={styles.historyPanel}><header><div><h2>История циклов</h2><p>Текущий и завершённые циклы в хронологическом порядке.</p></div><Link href="/analytics/cycles">Открыть полный список <ChevronRight /></Link></header><CycleHistoryList cycles={historyRows} onSelect={(cycle) => setSelectedCycleStart(cycle.start)} selectedStart={selectedCycle?.start} /></section><section className={styles.chartPanel}><header><div><h2>Динамика завершённых циклов</h2><p>Текущий цикл не влияет на сравнение.</p></div></header><CycleOverviewChart cycles={chartCycles} /></section></TabsContent>
+        <TabsContent className={styles.tabContent} value="data"><section className={styles.selectedPanel}><header><h2>Данные выбранного цикла</h2><Link href={`/analytics/cycles/${selectedCycle?.start ?? ""}`}>Открыть цикл <ChevronRight /></Link></header><SelectedCycleData cycle={selectedCycle} /></section><Accordion className={styles.detailsAccordion} defaultValue={["flow"]} multiple><AccordionItem value="flow"><AccordionTrigger>Интенсивность месячных</AccordionTrigger><AccordionContent className={styles.detailsContent}><section className="p1-analytics-card"><FlowHeatmap cycles={recentTrackedCycles} /></section></AccordionContent></AccordionItem><AccordionItem value="pain"><AccordionTrigger>Боль по дням цикла</AccordionTrigger><AccordionContent className={styles.detailsContent}><section className="p1-analytics-card"><PainMap cycles={recentTrackedCycles} /></section></AccordionContent></AccordionItem></Accordion></TabsContent>
+      </Tabs>
     </>}
   </div><AppTabBar active="analytics" /></main>;
 }

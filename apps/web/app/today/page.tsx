@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, CalendarDays, ChevronRight, CircleUserRound, Droplet, GlassWater, Package, Pill, Plus, ShieldAlert } from "lucide-react";
+import { CalendarDays, ChartNoAxesColumnIncreasing, ChevronRight, CircleUserRound, Droplet, GlassWater, PersonStanding, Pill, Plus, ShieldAlert } from "lucide-react";
 import { getProfile, MiraProfile } from "@/lib/demo-session";
 import { AppTabBar } from "@/components/AppTabBar";
 import { CycleTrendCard } from "@/components/CycleTrendCard";
 import { Spotlight } from "@/components/Spotlight";
 import { SymptomPatternCard } from "@/components/SymptomPatternCard";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress, ProgressLabel } from "@/components/ui/progress";
 import { buildCycleHistorySummary, buildCycles, formatCycleDate } from "@/lib/cycle-analytics";
 import { buildPersonalization } from "@/lib/personalization";
 import { calculateCycle } from "@/lib/domain/cycle-engine";
@@ -39,6 +41,27 @@ function cycleWord(value: number) {
   if (value % 10 === 1) return "цикл";
   if (value % 10 >= 2 && value % 10 <= 4) return "цикла";
   return "циклов";
+}
+
+const cycleTrackSegments = 12;
+
+function CycleHistoryTrack({ current, elapsedDays, periodDays, totalDays }: { current: boolean; elapsedDays: number; periodDays: number; totalDays: number }) {
+  const safeTotal = Math.max(totalDays, 1);
+  const periodSegments = Math.max(1, Math.ceil((periodDays / safeTotal) * cycleTrackSegments));
+  const currentSegment = Math.min(cycleTrackSegments - 1, Math.max(0, Math.floor(((elapsedDays - 1) / safeTotal) * cycleTrackSegments)));
+
+  return <span
+    className="today-cycle-track"
+    role="img"
+    aria-label={current
+      ? `${elapsedDays}-й день текущего цикла, месячные отмечены ${periodDays} ${dayWord(periodDays)}`
+      : `Цикл длился ${totalDays} ${dayWord(totalDays)}, месячные отмечены ${periodDays} ${dayWord(periodDays)}`}
+  >
+    {Array.from({ length: cycleTrackSegments }, (_, index) => <i
+      className={index < periodSegments ? "period" : current && index === currentSegment ? "today" : ""}
+      key={index}
+    />)}
+  </span>;
 }
 
 export default function TodayPage() {
@@ -82,6 +105,14 @@ export default function TodayPage() {
   const todayPhase = cyclePhaseForDate({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, date: todayKey });
   const actualTodayCards = buildTodayCards({ entries: profile?.entries ?? [], today: todayKey, hasCycleData: cycle.hasCycleStart, cycleDay: cycle.day, phase: todayPhase, delayed: cycle.until < -cycle.uncertaintyDays, expectedStart: cycle.expectedStart, uncertaintyDays: cycle.uncertaintyDays, periodActive: cycle.active, periodDay: cycle.periodDay });
   const dailyRecommendations = buildDailyRecommendations({ entries: profile?.entries ?? [], today: todayKey, weightKg: profile?.weightKg });
+  const cycleRangePercent = cycleHistory.latestCompleted && cycleHistory.recentRange
+    ? cycleHistory.recentRange.min === cycleHistory.recentRange.max
+      ? 50
+      : Math.max(0, Math.min(100, ((cycleHistory.latestCompleted.length - cycleHistory.recentRange.min) / (cycleHistory.recentRange.max - cycleHistory.recentRange.min)) * 100))
+    : 0;
+  const latestCycleInRange = Boolean(cycleHistory.latestCompleted && cycleHistory.recentRange
+    && cycleHistory.latestCompleted.length >= cycleHistory.recentRange.min
+    && cycleHistory.latestCompleted.length <= cycleHistory.recentRange.max);
   const todayCards: TodayCard[] = previewCards ? [
     actualTodayCards.find((card) => card.kind === "cycle")!,
     actualTodayCards.find((card) => card.kind === "observation") ?? { kind: "observation", eyebrow: "Последние 7 дней", title: "Усталость — 3 раза", description: "Тестовый пример наблюдения.", href: "/insights", tone: "pink" },
@@ -91,7 +122,7 @@ export default function TodayPage() {
   const greeting = `${greetingForHour(today.getHours())}${profile?.name ? `, ${profile.name}` : ""}`;
 
   return (
-    <main className="app-page flo-inspired-page">
+    <main className="app-page flo-inspired-page today-compact-page">
       <div className="app-shell">
         <header className="app-top today-greeting-header"><Link className="app-top-action" href="/profile" aria-label="Профиль"><CircleUserRound /></Link><div><small>{greeting}</small><h1>{weekdayNames[today.getDay()]}, {today.getDate()} {monthNames[today.getMonth()]}</h1></div><Link className="app-top-action" href="/calendar" aria-label="Календарь"><CalendarDays /></Link></header>
         <section className="app-week" aria-label="Дни недели">{dates.map((date, index) => { const key = date.toISOString().slice(0, 10); const hasPeriod = profile?.entries?.some((entry) => entry.date === key && entry.period); const phase = cyclePhaseForDate({ entries: profile?.entries ?? [], lastPeriod: profile?.lastPeriod, cycleLength: profile?.cycleLength, periodLength: profile?.periodLength, date: key }); return <Link aria-label={`Открыть ${date.getDate()} ${monthNames[date.getMonth()]} в календаре`} className={`${index === 3 ? "active" : ""} ${hasPeriod ? "has-period" : ""} ${phase ? `phase-${phase}` : ""}`} href={`/calendar?date=${key}`} key={key}><small>{["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"][date.getDay()]}</small><span>{date.getDate()}</span></Link>; })}</section>
@@ -106,33 +137,59 @@ export default function TodayPage() {
           </div>
         </section>
         <section className="today-quick-actions flo-actions" aria-label="Быстрые отметки"><Link className="primary" href="/calendar?action=period"><span><Droplet /></span><strong>Отметить<br />месячные</strong></Link><Link href="/diary?section=symptoms"><span><Plus /></span><strong>Симптомы</strong></Link><Link href="/concerns"><span><ShieldAlert /></span><strong>Мне<br />плохо</strong></Link></section>
-        <section className="daily-advice"><div className="daily-advice-heading"><h2>Полезное сегодня</h2><Link href="/knowledge">Все материалы</Link></div><div className="daily-advice-scroll">{todayCards.map((card, index) => { const accessiblePrefix = card.kind === "cycle" ? "Прогноз" : card.kind === "observation" ? "Наблюдение недели" : card.eyebrow; return <Link aria-label={`${accessiblePrefix}: ${card.title}`} className={`advice-card advice-${card.tone} advice-card-minimal`} href={card.href} key={`${card.kind}-${index}`}><h3>{card.title}</h3></Link>; })}</div></section>
-        <section className="daily-recommendations" aria-labelledby="daily-recommendations-title"><div className="daily-advice-heading"><div><small>По вашим отметкам</small><h2 id="daily-recommendations-title">Рекомендации дня</h2></div><span>Не назначения</span></div><div className="daily-recommendations-scroll">{dailyRecommendations.map((item) => { const Icon = item.kind === "water" ? GlassWater : item.kind === "movement" ? Activity : item.kind === "kit" ? Package : Pill; return <Link className={`daily-recommendation recommendation-${item.tone}`} href={item.href} key={item.kind}><span><Icon /></span><small>{item.eyebrow}</small><h3>{item.title}</h3><p>{item.description}</p><b>Открыть <ChevronRight /></b></Link>; })}</div></section>
+        <section className="daily-advice"><div className="daily-advice-heading"><h2>Полезное сегодня</h2><Link href="/knowledge">Все</Link></div><div className="daily-advice-scroll">{todayCards.map((card, index) => { const accessiblePrefix = card.kind === "cycle" ? "Прогноз" : card.kind === "observation" ? "Наблюдение недели" : card.eyebrow; return <Link aria-label={`${accessiblePrefix}: ${card.title}`} className={`advice-card advice-${card.tone} advice-card-minimal`} href={card.href} key={`${card.kind}-${index}`}><h3>{card.title}</h3></Link>; })}</div></section>
+        <section className="daily-recommendations" aria-labelledby="daily-recommendations-title"><div className="daily-advice-heading"><h2 id="daily-recommendations-title">Рекомендации дня</h2><span>Не назначения</span></div><div className="daily-recommendations-scroll">{dailyRecommendations.map((item) => { const Icon = item.kind === "water" ? GlassWater : item.kind === "movement" ? PersonStanding : Pill; return <Link aria-label={`${item.eyebrow}: ${item.title}. ${item.description}`} className={`daily-recommendation recommendation-${item.tone}`} href={item.href} key={item.kind}><span aria-hidden="true"><Icon /></span><h3>{item.title}</h3></Link>; })}</div></section>
         <section className="today-cycles-summary" aria-labelledby="today-cycles-title">
-          <div className="today-cycles-heading"><h2 id="today-cycles-title">Мои циклы</h2><Link href="/analytics">Подробнее <ChevronRight /></Link></div>
-          {cycleHistory.latestCompleted ? <Link className="today-cycles-card" href="/analytics" aria-label="Открыть историю и динамику циклов">
-            <div><span>Длина предыдущего цикла</span><strong>{cycleHistory.latestCompleted.length} {dayWord(cycleHistory.latestCompleted.length)}</strong></div>
-            <div><span>Месячные в предыдущем цикле</span><strong>{cycleHistory.latestCompleted.periodDays} {dayWord(cycleHistory.latestCompleted.periodDays)}</strong></div>
-            <div><span>Диапазон длины цикла</span>{cycleHistory.recentRange ? <><strong>{cycleHistory.recentRange.min}–{cycleHistory.recentRange.max} {dayWord(cycleHistory.recentRange.max)}</strong><small>Последние 3 завершённых цикла</small></> : <><strong>Ещё {cycleHistory.remainingForRange} {cycleWord(cycleHistory.remainingForRange)}</strong><small>Диапазон появится после 3 завершённых циклов</small></>}</div>
-          </Link> : <div className="today-cycles-empty"><strong>История пока собирается</strong><p>Отметьте начало следующих месячных, чтобы появился первый завершённый цикл.</p><Link href="/calendar?action=period">Отметить месячные</Link></div>}
+          {cycleHistory.latestCompleted ? <Card className="today-cycles-story" aria-label="Сводка завершённых циклов">
+            <CardHeader className="today-cycles-story-header">
+              <CardTitle><h2 id="today-cycles-title">Мои циклы</h2></CardTitle>
+              <CardAction><Link href="/analytics">История <ChevronRight /></Link></CardAction>
+            </CardHeader>
+            <CardContent className="today-cycles-story-content">
+              <Link className="today-cycles-story-primary" href={`/analytics/cycles/${cycleHistory.latestCompleted.start}`} aria-label={`Последний цикл: ${cycleHistory.latestCompleted.length} ${dayWord(cycleHistory.latestCompleted.length)}. Открыть подробности`}>
+                <span>Последний цикл</span>
+                <strong>{cycleHistory.latestCompleted.length} <em>{dayWord(cycleHistory.latestCompleted.length)}</em></strong>
+                {cycleHistory.recentRange && <small className={latestCycleInRange ? "is-in-range" : "is-outside-range"}><i aria-hidden="true" />{latestCycleInRange ? "В вашем личном диапазоне" : "Отличается от недавнего диапазона"}</small>}
+              </Link>
+              <div className="today-cycles-story-details">
+                <div className="today-cycles-story-detail">
+                  <span className="today-cycles-story-icon is-period" aria-hidden="true"><Droplet /></span>
+                  <div><span>Месячные</span><strong>{cycleHistory.latestCompleted.periodDays} {dayWord(cycleHistory.latestCompleted.periodDays)}</strong></div>
+                </div>
+                <div className="today-cycles-story-detail is-range">
+                  <span className="today-cycles-story-icon" aria-hidden="true"><ChartNoAxesColumnIncreasing /></span>
+                  <div>
+                    <span>Личный диапазон</span>
+                    {cycleHistory.recentRange ? <>
+                      <strong>{cycleHistory.recentRange.min}–{cycleHistory.recentRange.max} {dayWord(cycleHistory.recentRange.max)}</strong>
+                      <small>По последним 3 циклам</small>
+                      <Progress className="today-cycle-range-progress" value={cycleRangePercent}>
+                        <ProgressLabel className="sr-only">Последний цикл относительно личного диапазона</ProgressLabel>
+                      </Progress>
+                      <div className="today-cycle-range-axis" aria-hidden="true"><span>{cycleHistory.recentRange.min}</span><b style={{ left: `${cycleRangePercent}%` }}>{cycleHistory.latestCompleted.length}</b><span>{cycleHistory.recentRange.max}</span></div>
+                    </> : <><strong>Ещё {cycleHistory.remainingForRange} {cycleWord(cycleHistory.remainingForRange)}</strong><small>Появится после 3 завершённых циклов</small></>}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card> : <><div className="today-cycles-heading"><h2 id="today-cycles-title">Мои циклы</h2><Link href="/analytics">История <ChevronRight /></Link></div><div className="today-cycles-empty"><strong>История пока собирается</strong><p>Отметьте начало следующих месячных, чтобы появился первый завершённый цикл.</p><Link href="/calendar?action=period">Отметить месячные</Link></div></>}
         </section>
         <section className="today-cycle-history" aria-labelledby="today-cycle-history-title">
           <div className="today-cycle-panel-heading">
             <h2 id="today-cycle-history-title">История циклов</h2>
-            <Link href="/analytics/cycles">Смотреть все <ChevronRight /></Link>
+            <Link href="/analytics/cycles">Все <ChevronRight /></Link>
           </div>
           {visibleCycles.length ? <div className="today-cycle-history-list">
             {visibleCycles.map((item) => {
-              const shownDays = Math.min(item.length, 32);
-              return <Link className="today-cycle-history-row" href={`/analytics/cycles/${item.start}`} key={item.start}>
-                <div>
-                  <strong>{item.current ? `Текущий цикл: ${item.length} ${dayWord(item.length)}` : `${item.length} ${dayWord(item.length)}`}</strong>
+              const trackTotalDays = item.current ? Math.max(profile?.cycleLength ?? 28, item.length) : item.length;
+              return <Link className={`today-cycle-history-row${item.current ? " is-current" : ""}`} href={`/analytics/cycles/${item.start}`} key={item.start}>
+                <span className="today-cycle-history-icon" aria-hidden="true">{item.current ? <Droplet /> : <CalendarDays />}</span>
+                <div className="today-cycle-history-copy">
+                  <strong>{item.current ? "Текущий цикл" : `${item.length} ${dayWord(item.length)}`}</strong>
+                  {item.current && <b>{item.length}-й день</b>}
                   <span>{item.current ? `Начался ${formatCycleDate(item.start)}` : `${formatCycleDate(item.start)} — ${formatCycleDate(item.end)}`}</span>
-                  <div className="today-cycle-dots" aria-label={`${item.periodDays} ${dayWord(item.periodDays)} месячных из ${item.length}`}>
-                    {Array.from({ length: shownDays }, (_, index) => <i className={index < item.periodDays ? "period" : item.current && index === item.length - 1 ? "today" : ""} key={index} />)}
-                    {item.length > shownDays && <small>+{item.length - shownDays}</small>}
-                  </div>
                 </div>
+                <CycleHistoryTrack current={item.current} elapsedDays={item.length} periodDays={item.periodDays} totalDays={trackTotalDays} />
                 <ChevronRight aria-hidden="true" />
               </Link>;
             })}
@@ -142,7 +199,7 @@ export default function TodayPage() {
         <section className="today-patterns-block" aria-labelledby="today-patterns-title">
           <div className="today-patterns-heading">
             <div><small>По вашим отметкам</small><h2 id="today-patterns-title">Мои закономерности</h2></div>
-            <Link href="/insights">Смотреть все <ChevronRight /></Link>
+            <Link href="/insights">Все <ChevronRight /></Link>
           </div>
           {personalization.patterns[0]
             ? <SymptomPatternCard pattern={personalization.patterns[0]} />

@@ -22,6 +22,9 @@ model Profile {
   weightKg           Float?
   cycleForecasts     Boolean   @default(true)
   privateInsights    Boolean   @default(false)
+  todayWidgets       String[]  @default(["water", "movement", "temperature", "weight", "plan"]) @map("today_widgets")
+  todayHiddenWidgets String[]  @default([]) @map("today_hidden_widgets")
+  todayHiddenDate    DateTime? @db.Date @map("today_hidden_date")
   healthDataConsent  Boolean   @default(false)
   privacyConsent     Boolean   @default(false)
   sensitiveConsent   Boolean   @default(false)

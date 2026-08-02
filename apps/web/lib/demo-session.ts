@@ -21,6 +21,9 @@ export type MiraProfile = {
   preferences?: {
     cycleForecasts?: boolean;
     privateInsights?: boolean;
+    todayWidgets?: TodayWidget[];
+    todayHiddenWidgets?: TodayWidget[];
+    todayHiddenDate?: string;
   };
   consents?: {
     healthData?: boolean;
@@ -30,6 +33,8 @@ export type MiraProfile = {
     version?: string;
   };
 };
+
+export type TodayWidget = "water" | "movement" | "plan" | "weight" | "temperature";
 
 export type CycleEntry = {
   date: string;
@@ -86,7 +91,7 @@ function localDate(offset: number): string {
 function buildLocalDemoProfile(): MiraProfile {
   const starts = [-118, -90, -59, -31, -5];
   const flows: NonNullable<CycleEntry["period"]>[] = ["medium", "heavy", "medium", "light"];
-  const entries = starts.flatMap((startOffset, cycleIndex) => (
+  const entries: CycleEntry[] = starts.flatMap((startOffset, cycleIndex) => (
     flows.map((period, dayIndex) => ({
       date: localDate(startOffset + dayIndex),
       period,
@@ -99,6 +104,10 @@ function buildLocalDemoProfile(): MiraProfile {
       sleepHours: dayIndex === 1 ? 6.5 : undefined,
     }))
   ));
+  entries.push(
+    { date: localDate(-1), weightKg: 61.8, basalTemperature: 36.55 },
+    { date: localDate(0), weightKg: 61.6, basalTemperature: 36.62 },
+  );
   return {
     email: "demo@mira.local",
     name: "Анна",
@@ -110,7 +119,7 @@ function buildLocalDemoProfile(): MiraProfile {
     periodLength: 4,
     entries,
     assessments: [],
-    preferences: { cycleForecasts: true, privateInsights: false },
+    preferences: { cycleForecasts: true, privateInsights: false, todayWidgets: ["water", "movement", "temperature", "weight", "plan"], todayHiddenWidgets: [] },
     consents: { healthData: true, privacyPolicy: true, sensitiveInsights: false },
   };
 }
@@ -168,6 +177,10 @@ export async function saveProfile(update: Partial<MiraProfile>): Promise<MiraPro
     preferences: update.preferences ? { ...current.preferences, ...update.preferences } : current.preferences,
     consents: update.consents ? { ...current.consents, ...update.consents } : current.consents,
   };
+  if (isLocalDemoMode()) {
+    memoryProfile = next;
+    return next;
+  }
   const profileOnly = { ...next };
   delete profileOnly.entries;
   memoryProfile = await fetchJson("/api/users", {

@@ -63,6 +63,9 @@ const profileSchema = z.object({
   preferences: z.object({
     cycleForecasts: z.boolean().optional(),
     privateInsights: z.boolean().optional(),
+    todayWidgets: z.array(z.enum(["water", "movement", "plan", "weight", "temperature"])).max(5).optional(),
+    todayHiddenWidgets: z.array(z.enum(["water", "movement", "plan", "weight", "temperature"])).max(5).optional(),
+    todayHiddenDate: z.iso.date().nullable().optional(),
   }).optional(),
   consents: z.object({
     healthData: z.boolean().optional(),
@@ -90,6 +93,9 @@ function serializeProfile(profile: Awaited<ReturnType<typeof loadProfile>>) {
     preferences: {
       cycleForecasts: profile.cycleForecasts,
       privateInsights: profile.privateInsights,
+      todayWidgets: profile.todayWidgets,
+      todayHiddenWidgets: profile.todayHiddenWidgets,
+      todayHiddenDate: profile.todayHiddenDate?.toISOString().slice(0, 10),
     },
     consents: {
       healthData: profile.healthDataConsent,
@@ -183,6 +189,9 @@ export async function POST(request: Request) {
         weightKg: payload.weightKg,
         cycleForecasts: payload.preferences?.cycleForecasts ?? true,
         privateInsights: payload.preferences?.privateInsights ?? false,
+        todayWidgets: payload.preferences?.todayWidgets ?? ["water", "movement", "temperature", "weight", "plan"],
+        todayHiddenWidgets: payload.preferences?.todayHiddenWidgets ?? [],
+        todayHiddenDate: payload.preferences?.todayHiddenDate ? new Date(`${payload.preferences.todayHiddenDate}T00:00:00.000Z`) : undefined,
         healthDataConsent: payload.consents?.healthData ?? registeredHealthDataConsent,
         privacyConsent: payload.consents?.privacyPolicy ?? registeredPrivacyConsent,
         sensitiveConsent: payload.consents?.sensitiveInsights ?? false,
@@ -204,6 +213,9 @@ export async function POST(request: Request) {
         weightKg: payload.weightKg,
         cycleForecasts: payload.preferences?.cycleForecasts,
         privateInsights: payload.preferences?.privateInsights,
+        todayWidgets: payload.preferences?.todayWidgets,
+        todayHiddenWidgets: payload.preferences?.todayHiddenWidgets,
+        todayHiddenDate: payload.preferences?.todayHiddenDate === null ? null : payload.preferences?.todayHiddenDate ? new Date(`${payload.preferences.todayHiddenDate}T00:00:00.000Z`) : undefined,
         healthDataConsent: payload.consents?.healthData,
         privacyConsent: payload.consents?.privacyPolicy,
         sensitiveConsent: payload.consents?.sensitiveInsights,
