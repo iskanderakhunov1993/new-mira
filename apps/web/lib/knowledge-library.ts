@@ -6,6 +6,12 @@ export type KnowledgeCategory = {
   articles: string[];
 };
 
+export const knowledgeEditorialStatus = {
+  label: "В медицинской редакции",
+  review: "Пока не проверено врачом",
+  sources: "Источники будут опубликованы после рецензирования",
+} as const;
+
 export const knowledgeTopics = [
   { id: "cycle", title: "Цикл", description: "Фазы, гормоны и личная норма" },
   { id: "period", title: "Месячные", description: "Комфорт, гигиена и повседневная жизнь" },
