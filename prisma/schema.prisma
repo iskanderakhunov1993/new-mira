@@ -140,8 +140,8 @@ model Entry {
   energy             String?
   symptoms           String[]
   symptomIntensity   Json?
-  medicationIntakes  Json?
-  activityTypes      String[]
+  medicationIntakes  Json?    @map("medication_intakes")
+  activityTypes      String[]  @default([])
   contraceptionMethod String?
   contraceptionStatus String?
   pregnancyTest      String?
