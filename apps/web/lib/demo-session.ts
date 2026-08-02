@@ -73,6 +73,7 @@ type ApiResult = Record<string, unknown>;
 // This cache lives only in memory for the current page lifetime. PostgreSQL is
 // the sole persistent source of truth; no health data is written to web storage.
 let memoryProfile: MiraProfile | null = null;
+const memoryInsightInteractions = new Map<string, InsightInteraction>();
 let legacyStoragePurged = false;
 
 function isLocalDemoMode(): boolean {
@@ -285,7 +286,59 @@ export async function updatePeriod(start: string, update: { startDate: string; e
   return getProfile({ refresh: true });
 }
 
-export type ProductEventName = "onboarding_started" | "onboarding_step_completed" | "onboarding_completed" | "spotlight_shown" | "spotlight_skipped" | "spotlight_completed" | "checkin_started" | "checkin_completed" | "entry_updated" | "entry_deleted" | "period_started" | "period_ended" | "period_updated" | "period_deleted";
+export type InsightInteraction = {
+  insightKey: string;
+  readAt: string | null;
+  dismissedAt: string | null;
+};
+
+export async function getInsightInteractions(): Promise<InsightInteraction[]> {
+  if (isLocalDemoMode()) return [...memoryInsightInteractions.values()];
+  return await fetchJson("/api/insights/interactions") as unknown as InsightInteraction[];
+}
+
+export async function saveInsightInteraction(
+  insightKey: string,
+  action: "read" | "dismiss" | "restore",
+): Promise<InsightInteraction> {
+  if (isLocalDemoMode()) {
+    const current = memoryInsightInteractions.get(insightKey) ?? { insightKey, readAt: null, dismissedAt: null };
+    const now = new Date().toISOString();
+    const next = action === "read"
+      ? { ...current, readAt: current.readAt ?? now }
+      : action === "dismiss"
+        ? { ...current, readAt: current.readAt ?? now, dismissedAt: now }
+        : { ...current, dismissedAt: null };
+    memoryInsightInteractions.set(insightKey, next);
+    return next;
+  }
+  return await fetchJson("/api/insights/interactions", {
+    method: "POST",
+    body: JSON.stringify({ insightKey, action }),
+  }) as unknown as InsightInteraction;
+}
+
+export type ProductEventName =
+  | "onboarding_started"
+  | "onboarding_step_completed"
+  | "onboarding_completed"
+  | "spotlight_shown"
+  | "spotlight_skipped"
+  | "spotlight_completed"
+  | "checkin_started"
+  | "checkin_completed"
+  | "entry_updated"
+  | "entry_deleted"
+  | "period_started"
+  | "period_ended"
+  | "period_updated"
+  | "period_deleted"
+  | "insights_viewed"
+  | "insight_detail_opened"
+  | "insight_evidence_opened"
+  | "insight_dismissed"
+  | "insight_restored"
+  | "insight_check_started";
 
 export async function trackProductEvent(name: ProductEventName, route: string) {
   try { await fetchJson("/api/product-events", { method: "POST", body: JSON.stringify({ name, route }) }); } catch { /* аналитика не блокирует основной сценарий */ }
